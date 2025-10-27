@@ -101,10 +101,21 @@ body {
   justify-content: space-between;
   align-items: center;
   transition: background 0.2s;
+  cursor: pointer;
 }
 
 .clip-item:hover {
-  background: #f0f0f0;
+  background: #e8e8e8;
+}
+
+.clip-item.selected {
+  background: #3498db;
+  color: white;
+}
+
+.clip-item.selected strong,
+.clip-item.selected .clip-size {
+  color: white;
 }
 
 .clip-item strong {
