@@ -29,12 +29,35 @@ const ImportPanel = ({ onImport, isImporting }) => {
     await processFiles(files);
   };
 
-  // File picker handler
-  const handleFilePicker = async (e) => {
-    const files = Array.from(e.target.files);
-    await processFiles(files);
-    // Reset input for same file re-upload
-    e.target.value = '';
+  // File picker handler using Electron dialog
+  const handleFilePicker = async () => {
+    if (!window.electronAPI) {
+      setError('Electron API not available');
+      return;
+    }
+    
+    try {
+      // Use Electron's file dialog
+      const filePaths = await window.electronAPI.openFileDialog();
+      
+      if (filePaths && filePaths.length > 0) {
+        // Convert file paths to file-like objects
+        const files = filePaths.map(filePath => {
+          const fileName = filePath.split('/').pop() || filePath;
+          return {
+            name: fileName,
+            path: filePath,
+            size: 0, // We'll get this later if needed
+            type: ''
+          };
+        });
+        
+        await processFiles(files);
+      }
+    } catch (error) {
+      console.error('Error opening file dialog:', error);
+      setError('Failed to open file dialog');
+    }
   };
 
   // Process imported files
@@ -45,15 +68,14 @@ const ImportPanel = ({ onImport, isImporting }) => {
     setError(null);
     
     for (const file of files) {
-      const validation = validateFile(file);
-      
-      if (!validation.valid) {
-        setError(validation.error);
+      // Validate file extension
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext !== 'mp4' && ext !== 'mov') {
+        setError(`${file.name} is not a supported format (MP4 or MOV only)`);
         continue;
       }
       
-      // Get absolute path from Electron
-      // In Electron, file.path from drag-drop should be absolute
+      // Get absolute path
       let filePath = file.path;
       
       console.log('File object:', {
@@ -63,12 +85,11 @@ const ImportPanel = ({ onImport, isImporting }) => {
         type: file.type
       });
       
-      // If path is not absolute (doesn't start with /), it's just the filename
-      // We need to handle this case
-      if (!filePath || (!filePath.startsWith('/') && !filePath.startsWith('\\'))) {
-        console.warn('Invalid file path detected:', filePath);
-        // Skip this file or use the name as fallback
-        filePath = null;
+      // Validate that we have a path
+      if (!filePath) {
+        console.error('No path for file:', file.name);
+        setError(`Failed to get path for ${file.name}`);
+        continue;
       }
       
       const clip = {
@@ -90,9 +111,6 @@ const ImportPanel = ({ onImport, isImporting }) => {
     }
   };
 
-  const handleBrowseClick = () => {
-    fileInputRef.current?.click();
-  };
 
   return (
     <div className="import-panel">
@@ -116,10 +134,10 @@ const ImportPanel = ({ onImport, isImporting }) => {
             ref={fileInputRef}
             multiple
             accept="video/*,.mp4,.mov"
-            onChange={handleFilePicker}
+            onChange={() => {}} // Ignore standard file input
             style={{ display: 'none' }}
           />
-          <button className="browse-button" onClick={handleBrowseClick}>
+          <button className="browse-button" onClick={handleFilePicker}>
             Browse Files
           </button>
         </div>
