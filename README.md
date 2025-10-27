@@ -3,11 +3,11 @@
 A simple desktop video editor for quick clip trimming and export.
 
 ## Features (MVP)
-- Import video files (MP4, MOV)
-- Preview videos
-- Timeline visualization
-- Trim clips (set in/out points)
-- Export to MP4
+- ✅ Import video files (MP4, MOV) - WORKING
+- ✅ Preview videos with play/pause - WORKING
+- ⏳ Timeline visualization - IN PROGRESS
+- ⏳ Trim clips (set in/out points) - IN PROGRESS
+- ✅ Export to MP4 - WORKING
 
 ## Development Setup
 
@@ -62,8 +62,9 @@ npm run package
 
 ## Status
 
-**Current:** PR #01 - Project Setup (IN PROGRESS)  
-**Next:** PR #02 - File Import System
+**Current:** PR #01-04 COMPLETE (Day 1 Foundation) ✅  
+**Next:** PR #05 - Timeline Component (Day 2)
+**Progress:** 4/10 PRs complete, 50% of MVP functional
 
 ## Contributing
 
