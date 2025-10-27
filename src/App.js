@@ -74,27 +74,29 @@ function App() {
         <p className="subtitle">Desktop Video Editor MVP</p>
       </div>
       <div className="main-content">
-        <ImportPanel 
-          onImport={handleImport}
-          isImporting={importStatus.loading}
-        />
+        <div className="content-area">
+          <ImportPanel 
+            onImport={handleImport}
+            isImporting={importStatus.loading}
+          />
+          
+          {/* Video Player */}
+          <VideoPlayer 
+            videoSrc={selectedClip?.path ? `file://${selectedClip.path}` : null}
+            onTimeUpdate={handleVideoTimeUpdate}
+            selectedClip={selectedClip}
+          />
+          
+          {/* Export Panel */}
+          <ExportPanel currentClip={selectedClip} />
+        </div>
         
-        {/* Timeline */}
+        {/* Timeline - Always at bottom */}
         <Timeline 
           clips={clips}
           selectedClip={selectedClip}
           onSelectClip={handleClipSelect}
         />
-
-        {/* Video Player */}
-        <VideoPlayer 
-          videoSrc={selectedClip?.path ? `file://${selectedClip.path}` : null}
-          onTimeUpdate={handleVideoTimeUpdate}
-          selectedClip={selectedClip}
-        />
-        
-        {/* Export Panel */}
-        <ExportPanel currentClip={selectedClip} />
       </div>
     </div>
   );
