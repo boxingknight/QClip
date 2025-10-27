@@ -37,11 +37,31 @@ Or run both together:
 npm start  # This runs both concurrently
 ```
 
-### Build
+### Build for Development
 ```bash
 npm run build
-npm run package
+npm start
 ```
+
+### Package for Production
+```bash
+npm run build:app  # Build production webpack bundle
+npm run package     # Create DMG installer
+```
+
+Output: `dist/ClipForge-1.0.0-arm64.dmg` (~683MB)
+
+### Installation
+
+**macOS:**
+1. Download `ClipForge-1.0.0-arm64.dmg`
+2. Open the DMG file
+3. Drag ClipForge to Applications folder
+4. Double-click ClipForge in Applications to launch
+5. If you see "App is damaged" warning:
+   - Right-click app → Open
+   - Click "Open" in the dialog
+   - This is normal for unsigned apps
 
 ## Project Structure
 - `main.js` - Electron main process
