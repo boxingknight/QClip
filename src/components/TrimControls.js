@@ -8,7 +8,10 @@ const TrimControls = ({
   outPoint,
   onSetInPoint,
   onSetOutPoint,
-  onResetTrim
+  onResetTrim,
+  onApplyTrim,
+  isRendering = false,
+  renderProgress = 0
 }) => {
   const [draggingHandle, setDraggingHandle] = useState(null);
   
@@ -132,14 +135,38 @@ const TrimControls = ({
         </div>
       </div>
 
-      {/* Reset Button */}
-      <button
-        className="btn-reset"
-        onClick={onResetTrim}
-        title="Reset trim to full clip"
-      >
-        Reset
-      </button>
+      {/* Action Buttons */}
+      <div className="trim-actions">
+        <button
+          className="btn-reset"
+          onClick={onResetTrim}
+          title="Reset trim to full clip"
+        >
+          Reset
+        </button>
+        
+        <button
+          className={`btn-apply ${!isValid || isRendering ? 'disabled' : ''}`}
+          onClick={onApplyTrim}
+          disabled={!isValid || isRendering}
+          title={isRendering ? 'Applying trim...' : 'Apply trim (permanently delete excess footage)'}
+        >
+          {isRendering ? `Applying... ${Math.round(renderProgress)}%` : 'Apply Trim'}
+        </button>
+      </div>
+
+      {/* Render Progress Bar */}
+      {isRendering && (
+        <div className="render-progress">
+          <div 
+            className="render-progress-bar"
+            style={{ width: `${renderProgress}%` }}
+          />
+          <span className="render-progress-text">
+            Trimming clip... {Math.round(renderProgress)}%
+          </span>
+        </div>
+      )}
     </div>
   );
 };
