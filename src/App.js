@@ -12,6 +12,8 @@ function App() {
   const [currentVideoTime, setCurrentVideoTime] = useState(0);
   // Store trim data per clip
   const [clipTrims, setClipTrims] = useState({});
+  const [isRendering, setIsRendering] = useState(false);
+  const [renderProgress, setRenderProgress] = useState(0);
   const [importStatus, setImportStatus] = useState({
     loading: false,
     error: null,
@@ -129,6 +131,12 @@ function App() {
     }));
   };
 
+  const handleApplyTrim = async () => {
+    if (!selectedClip) return;
+    // TODO: Implement in Phase 2
+    alert('Apply Trim - Coming in Phase 2!');
+  };
+
   const handleVideoTimeUpdate = (data) => {
     // Only update time if it's changed significantly (avoid excessive re-renders)
     const newTime = data?.currentTime || 0;
@@ -186,6 +194,9 @@ function App() {
           onSetInPoint={handleSetInPoint}
           onSetOutPoint={handleSetOutPoint}
           onResetTrim={handleResetTrim}
+          onApplyTrim={handleApplyTrim}
+          isRendering={isRendering}
+          renderProgress={renderProgress}
         />
         <ExportPanel 
           currentClip={selectedClip}
