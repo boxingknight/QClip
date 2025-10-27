@@ -98,10 +98,14 @@ function App() {
   };
 
   const handleVideoTimeUpdate = (data) => {
-    setCurrentVideoTime(data?.currentTime || 0);
+    // Only update time if it's changed significantly (avoid excessive re-renders)
+    const newTime = data?.currentTime || 0;
+    if (Math.abs(newTime - currentVideoTime) > 0.1) {
+      setCurrentVideoTime(newTime);
+    }
     
-    // Update the selected clip's duration if we have it
-    if (selectedClip && data?.duration && selectedClip.duration !== data.duration) {
+    // Update the selected clip's duration if we have it (only once)
+    if (selectedClip && data?.duration && !selectedClip.duration) {
       const updatedDuration = data.duration;
       
       setClips(prev => prev.map(clip => 
@@ -117,50 +121,52 @@ function App() {
 
   return (
     <div className="app">
+      {/* Header */}
       <div className="header">
-        <h1>ClipForge</h1>
-        <p className="subtitle">Desktop Video Editor MVP</p>
+        <h1>ClipForge - Desktop Video Editor</h1>
       </div>
+
+      {/* Left Sidebar - Import */}
+      <div className="sidebar">
+        <ImportPanel 
+          onImport={handleImport}
+          isImporting={importStatus.loading}
+        />
+      </div>
+      
+      {/* Main Area - Video Player */}
       <div className="main-content">
-        <div className="content-area">
-          <ImportPanel 
-            onImport={handleImport}
-            isImporting={importStatus.loading}
-          />
-          
-          {/* Video Player */}
-          <VideoPlayer 
-            videoSrc={selectedClip?.path ? `file://${selectedClip.path}` : null}
-            onTimeUpdate={handleVideoTimeUpdate}
-            selectedClip={selectedClip}
-          />
-          
-          {/* Trim Controls */}
-          <TrimControls
-            currentTime={currentVideoTime}
-            duration={selectedClip?.duration || 0}
-            inPoint={trimData.inPoint}
-            outPoint={trimData.outPoint}
-            onSetInPoint={handleSetInPoint}
-            onSetOutPoint={handleSetOutPoint}
-            onResetTrim={handleResetTrim}
-          />
-          
-          {/* Export Panel */}
-          <ExportPanel 
-            currentClip={selectedClip}
-            trimData={trimData}
-          />
-        </div>
-        
-        {/* Timeline - Always at bottom */}
-        <Timeline 
-          clips={clips}
+        <VideoPlayer 
+          videoSrc={selectedClip?.path ? `file://${selectedClip.path}` : null}
+          onTimeUpdate={handleVideoTimeUpdate}
           selectedClip={selectedClip}
-          onSelectClip={handleClipSelect}
+        />
+      </div>
+      
+      {/* Right Sidebar - Trim Controls & Export */}
+      <div className="controls-sidebar">
+        <TrimControls
+          currentTime={currentVideoTime}
+          duration={selectedClip?.duration || 0}
+          inPoint={trimData.inPoint}
+          outPoint={trimData.outPoint}
+          onSetInPoint={handleSetInPoint}
+          onSetOutPoint={handleSetOutPoint}
+          onResetTrim={handleResetTrim}
+        />
+        <ExportPanel 
+          currentClip={selectedClip}
           trimData={trimData}
         />
       </div>
+      
+      {/* Timeline - Bottom */}
+      <Timeline 
+        clips={clips}
+        selectedClip={selectedClip}
+        onSelectClip={handleClipSelect}
+        trimData={trimData}
+      />
     </div>
   );
 }
