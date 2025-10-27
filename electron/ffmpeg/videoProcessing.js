@@ -47,12 +47,25 @@ let currentFFprobePath = null;
 
 function updateFFmpegPaths() {
   const paths = getFFmpegPaths();
+  
+  // Debug: Check if paths point to files or directories
+  try {
+    const ffmpegStats = fs.statSync(paths.ffmpeg);
+    const ffprobeStats = fs.statSync(paths.ffprobe);
+    console.log('[FFmpeg DEBUG] ffmpeg is file:', ffmpegStats.isFile());
+    console.log('[FFmpeg DEBUG] ffprobe is file:', ffprobeStats.isFile());
+    console.log('[FFmpeg DEBUG] ffmpeg size:', ffmpegStats.size);
+    console.log('[FFmpeg DEBUG] ffprobe size:', ffprobeStats.size);
+  } catch (e) {
+    console.error('[FFmpeg DEBUG ERROR]', e.message);
+  }
+  
   ffmpeg.setFfmpegPath(paths.ffmpeg);
   ffmpeg.setFfprobePath(paths.ffprobe);
   currentFFmpegPath = paths.ffmpeg;
   currentFFprobePath = paths.ffprobe;
-  console.log('FFmpeg configured - Binary:', paths.ffmpeg);
-  console.log('FFprobe configured - Binary:', paths.ffprobe);
+  console.log('[FFmpeg] Configured - Binary:', paths.ffmpeg);
+  console.log('[FFmpeg] Configured - FFprobe:', paths.ffprobe);
 }
 
 // Set paths on first use, after Electron is ready
