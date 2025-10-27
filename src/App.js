@@ -106,7 +106,8 @@ function App() {
       return;
     }
     
-    if (trimTime > (selectedClip.duration || 0)) {
+    // Only validate duration if it's available (not 0/unset)
+    if (selectedClip.duration && trimTime > selectedClip.duration) {
       logger.warn('Invalid in point: exceeds duration');
       alert('In point exceeds video duration');
       return;
@@ -135,7 +136,8 @@ function App() {
       return;
     }
     
-    if (trimTime > (selectedClip.duration || 0)) {
+    // Only validate duration if it's available (not 0/unset)
+    if (selectedClip.duration && trimTime > selectedClip.duration) {
       logger.warn('Invalid out point: exceeds duration');
       alert('Out point exceeds video duration');
       return;
