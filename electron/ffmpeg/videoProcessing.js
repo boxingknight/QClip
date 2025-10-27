@@ -1,13 +1,46 @@
 const ffmpeg = require('fluent-ffmpeg');
-const ffmpegPath = require('ffmpeg-static');
-const ffprobePath = require('ffprobe-static').path;
+const path = require('path');
+const fs = require('fs');
 
-// Configure FFmpeg paths
-ffmpeg.setFfmpegPath(ffmpegPath);
-ffmpeg.setFfprobePath(ffprobePath);
+// Get FFmpeg paths (works in both dev and production)
+function getFFmpegPaths() {
+  const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development';
+  
+  if (isDev || !process.resourcesPath) {
+    // Development: use node_modules
+    console.log('[FFmpeg] Using development paths (node_modules)');
+    return {
+      ffmpeg: require('ffmpeg-static'),
+      ffprobe: require('ffprobe-static').path
+    };
+  } else {
+    // Production: use bundled binaries
+    const resourcesPath = process.resourcesPath;
+    const ffmpegPath = path.join(resourcesPath, 'ffmpeg');
+    const ffprobePath = path.join(resourcesPath, 'ffprobe');
+    
+    console.log('[FFmpeg] Using production paths:', { resourcesPath, ffmpegPath, ffprobePath });
+    
+    // Verify binaries exist
+    if (!fs.existsSync(ffmpegPath)) {
+      console.error('[FFmpeg ERROR] Binary not found at:', ffmpegPath);
+      throw new Error(`FFmpeg binary not found at ${ffmpegPath}. Make sure extraResources is configured in electron-builder.yml`);
+    }
+    
+    return {
+      ffmpeg: ffmpegPath,
+      ffprobe: ffprobePath
+    };
+  }
+}
 
-console.log('FFmpeg configured - Binary path:', ffmpegPath);
-console.log('FFprobe configured - Binary path:', ffprobePath);
+// Configure FFmpeg with correct paths
+const paths = getFFmpegPaths();
+ffmpeg.setFfmpegPath(paths.ffmpeg);
+ffmpeg.setFfprobePath(paths.ffprobe);
+
+console.log('FFmpeg configured - Binary:', paths.ffmpeg);
+console.log('FFprobe configured - Binary:', paths.ffprobe);
 
 /**
  * Export video to MP4

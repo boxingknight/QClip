@@ -2,15 +2,37 @@ appId: com.clipforge.app
 productName: ClipForge
 directories:
   output: dist
+
 files:
-  - dist/bundle.js
-  - src/index.html
-  - main.js
-  - preload.js
-  - package.json
+  - "dist/**/*"
+  - "main.js"
+  - "preload.js"
+  - "electron/**/*"
+  - "package.json"
+  - "!electron/ffmpeg/*.map"
+  - "!electron/ffmpeg/*.js.map"
+
+extraResources:
+  - from: "node_modules/ffmpeg-static/ffmpeg"
+    to: "ffmpeg"
+  - from: "node_modules/ffprobe-static/ffprobe"
+    to: "ffprobe"
+
 mac:
-  category: public.app-category.video
-  target: dmg
+  category: public.app-category.utilities
+  target:
+    - dmg
+  icon: public/icon.png
+  
+dmg:
+  contents:
+    - x: 110
+      y: 150
+    - x: 240
+      y: 150
+      type: link
+      path: /Applications
+
 win:
   target: nsis
 

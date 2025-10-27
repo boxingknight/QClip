@@ -1,13 +1,18 @@
 {
   "name": "clipforge",
   "version": "1.0.0",
-  "description": "Desktop video editor MVP",
+  "description": "Simple desktop video editor for quick trims and exports",
   "main": "main.js",
+  "author": "ClipForge Team",
+  "homepage": "https://github.com/yourusername/clipforge",
   "scripts": {
     "build": "webpack --mode development",
+    "build:app": "webpack --mode production",
     "start": "npm run build && electron .",
     "dev": "npm run build && electron .",
-    "package": "electron-builder"
+    "package": "electron-builder",
+    "package:mac": "electron-builder --mac",
+    "dist": "npm run build:app && npm run package"
   },
   "keywords": [],
   "author": "",
