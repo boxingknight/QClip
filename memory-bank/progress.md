@@ -1,7 +1,7 @@
 # ClipForge - Progress Tracking
 
-**Status:** ✅ Day 1 Complete - Moving to Day 2  
-**Progress:** 50% (16/72 hours, PRs 1-4 complete)  
+**Status:** 🚧 Day 2 In Progress - Timeline Complete  
+**Progress:** 56% (20/72 hours, PRs 1-5 complete)  
 **Last Updated:** October 27, 2025
 
 ---
@@ -15,6 +15,7 @@
 - ✅ **PR #2 - File Import:** Import videos via Browse Files button
 - ✅ **PR #3 - Video Player:** Play/pause controls, time display, clip selection
 - ✅ **PR #4 - FFmpeg Export:** Export videos to MP4 with progress tracking
+- ✅ **PR #5 - Timeline Component:** Visual timeline with selection and highlighting
 
 ### Current Capabilities:
 - Import MP4/MOV video files via Browse Files
@@ -87,18 +88,18 @@
 ---
 
 ### Phase 2: Core Editing (Day 2) - 18 hours
-**Status:** 📋 Not started  
+**Status:** 🚧 IN PROGRESS - Timeline Complete  
 **Deadline:** End of Day 2 (Oct 28) - MVP CHECKPOINT
 
-#### PR #5: Timeline Component - 4 hours
-- [ ] Create Timeline component
-- [ ] Display clip on timeline
-- [ ] Calculate clip width by duration
-- [ ] Add clip selection
-- [ ] Style timeline layout
-- [ ] Handle empty timeline state
-- [ ] Connect timeline to clips
-- [ ] Add timeline metadata
+#### PR #5: Timeline Component - 4 hours ✅ COMPLETE
+- [x] Create Timeline component
+- [x] Display clip on timeline
+- [x] Calculate clip width by duration
+- [x] Add clip selection
+- [x] Style timeline layout
+- [x] Handle empty timeline state
+- [x] Connect timeline to clips
+- [x] Add timeline metadata
 
 #### PR #6: Trim Functionality - 6 hours
 - [ ] Create TrimControls component
@@ -185,8 +186,8 @@
 | #2 | File Import | ✅ COMPLETE | 4 | ~2h |
 | #3 | Video Player | ✅ COMPLETE | 4 | ~1.5h |
 | #4 | FFmpeg Export | ✅ COMPLETE | 4 | ~1h |
-| #5 | Timeline | 📋 NOT STARTED | 4 | - |
-| #6 | Trim Controls | 📋 NOT STARTED | 6 | - |
+| #5 | Timeline | ✅ COMPLETE | 4 | ~1.5h |
+| #6 | Trim Controls | ⏳ NEXT | 6 | - |
 | #7 | UI Polish | 📋 NOT STARTED | 4 | - |
 | #8 | Bug Fixes | 📋 NOT STARTED | 4 | - |
 | #9 | Packaging | 📋 NOT STARTED | 4 | - |
