@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Export APIs
   exportVideo: (inputPath, outputPath, trimData) => 
-    ipcRenderer.invoke('export-video', { inputPath, outputPath, trimData }),
+    ipcRenderer.invoke('export-video', inputPath, outputPath, trimData),
   
   showSaveDialog: () => ipcRenderer.invoke('show-save-dialog'),
   

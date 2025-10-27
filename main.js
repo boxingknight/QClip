@@ -54,13 +54,19 @@ ipcMain.handle('get-file-absolute-path', async (event, filePath) => {
 });
 
 // Export video handler
-ipcMain.handle('export-video', async (event, { inputPath, outputPath, trimData }) => {
+ipcMain.handle('export-video', async (event, inputPath, outputPath, trimData) => {
   try {
     console.log('Export request received:', { inputPath, outputPath, trimData });
     
+    // Convert trim data (inPoint/outPoint) to FFmpeg format (startTime/duration)
+    const startTime = trimData?.inPoint || 0;
+    const duration = trimData?.outPoint ? (trimData.outPoint - trimData.inPoint) : undefined;
+    
+    console.log('Trim settings:', { startTime, duration });
+    
     await exportVideo(inputPath, outputPath, {
-      startTime: trimData?.startTime || 0,
-      duration: trimData?.duration,
+      startTime: startTime,
+      duration: duration,
       onProgress: (progress) => {
         // Send progress to renderer
         event.sender.send('export-progress-update', progress);

@@ -48,7 +48,7 @@ const ExportPanel = ({ currentClip, trimData }) => {
       const result = await window.electronAPI.exportVideo(
         currentClip.path,
         dialogResult.filePath,
-        trimData || {} // Pass trim data if available
+        trimData // Pass trim data if available
       );
 
       if (result.success) {
