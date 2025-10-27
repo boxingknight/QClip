@@ -39,7 +39,7 @@ function App() {
         }
       }));
     }
-  }, [selectedClip?.id, clipTrims]);
+  }, [selectedClip?.id, selectedClip?.duration, clipTrims]);
 
   const handleImport = (newClips) => {
     console.log('Importing clips:', newClips);
