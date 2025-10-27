@@ -98,6 +98,24 @@ ipcMain.handle('export-timeline', async (event, clips, clipTrims, outputPath) =>
   }
 });
 
+// Get temp file path for trimmed clip
+ipcMain.handle('get-temp-trim-path', async (event, clipId) => {
+  try {
+    const tempDir = path.join(os.tmpdir(), 'clipforge-trims');
+    // Ensure directory exists
+    const fs = require('fs');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    const tempPath = path.join(tempDir, `${clipId}_trimmed.mp4`);
+    console.log('Generated temp path:', tempPath);
+    return tempPath;
+  } catch (error) {
+    console.error('Get temp path error:', error);
+    throw error;
+  }
+});
+
 // Render trimmed clip
 ipcMain.handle('render-trimmed-clip', async (event, inputPath, outputPath, trimData) => {
   try {

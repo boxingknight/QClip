@@ -67,6 +67,29 @@ const ClipBlock = ({ clip, widthPercent, isSelected, onSelect, trimData, onSetIn
   const trimmedRegionLeft = hasTrim ? (trimData.inPoint / clip.duration) * 100 : 0;
   const trimmedRegionWidth = hasTrim ? ((trimData.outPoint - trimData.inPoint) / clip.duration) * 100 : 0;
 
+  const handleDrag = (e, isInHandle) => {
+    if (!isSelected || !hasTrim) return;
+    
+    e.stopPropagation();
+    e.preventDefault();
+    
+    const rect = e.currentTarget.closest('.clip-block').getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    const time = (percent / 100) * clip.duration;
+    
+    if (isInHandle) {
+      onSetInPoint(time);
+    } else {
+      onSetOutPoint(time);
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isSelected || !hasTrim) return;
+    // Dragging will be handled by onMouseMove on the handle itself
+  };
+
   const handleTimelineClick = (e) => {
     if (!isSelected || !hasTrim) return;
     
@@ -75,16 +98,11 @@ const ClipBlock = ({ clip, widthPercent, isSelected, onSelect, trimData, onSetIn
     const percent = (x / rect.width) * 100;
     const time = (percent / 100) * clip.duration;
     
-    // Toggle between IN and OUT based on which side of highlighted region
-    if (percent < trimmedRegionLeft) {
-      // Click before highlighted - set IN
+    // Click to set trim point
+    if (percent < trimmedRegionLeft + (trimmedRegionWidth / 2)) {
       onSetInPoint(time);
-    } else if (percent > trimmedRegionLeft + trimmedRegionWidth) {
-      // Click after highlighted - set OUT
-      onSetOutPoint(time);
     } else {
-      // Click in highlighted region - do nothing or could set IN
-      // (user probably wants to see the trim preview)
+      onSetOutPoint(time);
     }
   };
 
@@ -117,7 +135,25 @@ const ClipBlock = ({ clip, widthPercent, isSelected, onSelect, trimData, onSetIn
                 left: `${trimmedRegionLeft}%`,
                 width: `${trimmedRegionWidth}%`
               }}
-            />
+            >
+              {/* Draggable IN Handle */}
+              <div
+                className="trim-handle trim-handle-in"
+                style={{ left: 0 }}
+                onMouseDown={(e) => handleDrag(e, true)}
+                onMouseMove={(e) => handleDrag(e, true)}
+                title="Drag to adjust IN point"
+              />
+              
+              {/* Draggable OUT Handle */}
+              <div
+                className="trim-handle trim-handle-out"
+                style={{ right: 0 }}
+                onMouseDown={(e) => handleDrag(e, false)}
+                onMouseMove={(e) => handleDrag(e, false)}
+                title="Drag to adjust OUT point"
+              />
+            </div>
           )}
           
           {/* Right darkened region (after out-point) */}

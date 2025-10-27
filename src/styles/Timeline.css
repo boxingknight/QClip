@@ -153,7 +153,34 @@
 }
 
 .clip-block.trim-active .trim-highlighted {
-  cursor: all-scroll;
+  cursor: default;
+}
+
+/* Trim Handles */
+.trim-handle {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 12px;
+  background: rgba(59, 130, 246, 0.8);
+  border: 2px solid white;
+  cursor: ew-resize;
+  z-index: 10;
+}
+
+.trim-handle-in {
+  left: -6px;
+  border-left: 4px solid #10b981;
+}
+
+.trim-handle-out {
+  right: -6px;
+  border-right: 4px solid #ef4444;
+}
+
+.trim-handle:hover {
+  background: rgba(59, 130, 246, 1);
+  width: 14px;
 }
 
 .trim-darken {

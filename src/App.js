@@ -144,9 +144,8 @@ function App() {
       setIsRendering(true);
       setRenderProgress(0);
       
-      // Generate temp path
-      const tempDir = require('path').join(require('os').tmpdir(), 'clipforge-trims');
-      const tempPath = require('path').join(tempDir, `${selectedClip.id}_trimmed.mp4`);
+      // Generate temp path (renderer-safe approach)
+      const tempPath = await window.electronAPI.getTempTrimPath(selectedClip.id);
       
       // Listen for progress updates
       const removeListener = window.electronAPI.onRenderProgress((progress) => {

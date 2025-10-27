@@ -20,6 +20,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   renderTrimmedClip: (inputPath, outputPath, trimData) =>
     ipcRenderer.invoke('render-trimmed-clip', inputPath, outputPath, trimData),
   
+  getTempTrimPath: (clipId) =>
+    ipcRenderer.invoke('get-temp-trim-path', clipId),
+  
   showSaveDialog: () => ipcRenderer.invoke('show-save-dialog'),
   
   onExportProgress: (callback) => {
