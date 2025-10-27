@@ -163,9 +163,43 @@ function App() {
       removeListener(); // Clean up listener
       
       if (result.success) {
-        // TODO: Update clip state in Phase 3
-        alert('Trim successful! Implementing state update next...');
-        console.log('Trimmed clip created at:', result.outputPath);
+        // Update clip state to use trimmed file
+        const trimmedDuration = trimData.outPoint - trimData.inPoint;
+        const trimStartOffset = trimData.inPoint;
+        
+        setClips(prev => prev.map(c =>
+          c.id === selectedClip.id
+            ? {
+                ...c,
+                trimmedPath: result.outputPath,
+                isTrimmed: true,
+                duration: trimmedDuration,
+                trimStartOffset: trimStartOffset
+              }
+            : c
+        ));
+        
+        // Update selected clip
+        setSelectedClip(prev => ({
+          ...prev,
+          trimmedPath: result.outputPath,
+          isTrimmed: true,
+          duration: trimmedDuration,
+          trimStartOffset: trimStartOffset
+        }));
+        
+        // Clear trim marks (now applied)
+        setClipTrims(prev => {
+          const next = { ...prev };
+          delete next[selectedClip.id];
+          return next;
+        });
+        
+        console.log('Trim applied - clip updated:', {
+          trimmedPath: result.outputPath,
+          duration: trimmedDuration,
+          trimStartOffset: trimStartOffset
+        });
       } else {
         alert(`Trim failed: ${result.error}`);
       }
