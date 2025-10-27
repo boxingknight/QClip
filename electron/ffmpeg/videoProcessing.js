@@ -102,9 +102,6 @@ async function exportVideo(inputPath, outputPath, options = {}) {
   });
 }
 
-const fs = require('fs');
-const path = require('path');
-
 /**
  * Export entire timeline with all clips concatenated
  * Uses FFmpeg concat demuxer for proper multi-clip export
