@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ImportPanel from './components/ImportPanel';
 import VideoPlayer from './components/VideoPlayer';
+import ExportPanel from './components/ExportPanel';
 import './App.css';
 
 function App() {
@@ -87,6 +88,9 @@ function App() {
           onTimeUpdate={handleVideoTimeUpdate}
           selectedClip={selectedClip}
         />
+        
+        {/* Export Panel */}
+        <ExportPanel currentClip={selectedClip} />
       </div>
     </div>
   );

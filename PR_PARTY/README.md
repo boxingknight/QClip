@@ -162,6 +162,37 @@ Initialized complete Electron + React project structure with all dependencies, c
 
 ---
 
+### PR#6: Trim Controls 📋 PLANNED
+**Status:** 📋 PLANNING COMPLETE  
+**Timeline:** 6 hours estimated  
+**Priority:** Critical - Day 2, Hours 21-26  
+**Complexity:** MEDIUM-HIGH  
+**Dependencies:** PR #3 (Player), PR #5 (Timeline)  
+**Target Date:** Day 2 (Tuesday, Oct 28)
+
+**What We're Building:**
+Trim control component that allows users to set in-point and out-point on selected video clips, enabling precise segment extraction. Users can scrub to a position, mark it as trim start, scrub to another position, mark it as trim end, and export only that trimmed segment. This transforms ClipForge from a simple player into a functional video editor.
+
+**Documents Created:**
+- ✅ `PR06_TRIM_CONTROLS.md` (~15,000 words) - Technical specification
+- ✅ `PR06_IMPLEMENTATION_CHECKLIST.md` (~12,000 words) - Step-by-step tasks
+- ✅ `PR06_README.md` (~6,000 words) - Quick start guide
+- ✅ `PR06_PLANNING_SUMMARY.md` (~3,000 words) - Executive overview
+- ✅ `PR06_TESTING_GUIDE.md` (~4,000 words) - Testing strategy
+
+**Total Documentation:** ~40,000 words
+
+**Summary:** Trim controls enable non-destructive editing by marking in/out points that are applied during export. This PR implements a full trim workflow: Set In/Out buttons, visual trim indicators on timeline, state management, FFmpeg integration for trimmed export, and comprehensive validation. The critical feature that makes ClipForge a real video editor.
+
+**Key Decisions:**
+- App-level trim state for single source of truth
+- Time update callback from VideoPlayer to parent
+- Visual indicators on timeline + text times in controls
+- Auto-reset trim on clip selection
+- Comprehensive validation with helpful error messages
+
+---
+
 ### PR#5: Timeline Component 📋 PLANNED
 **Status:** 📋 PLANNING COMPLETE  
 **Timeline:** 4 hours estimated  
@@ -309,23 +340,23 @@ A visual timeline component that displays imported video clips horizontally with
 - ✅ PR#4: FFmpeg Export (4 hours)
 - ✅ PR#5: Timeline (4 hours) - **PLANNING COMPLETE**
 - 📋 PR#6: Trim Controls (6 hours)
-- 📋 PR#7: UI Polish (4 hours)
+- ✅ PR#7: UI Polish (4-6 hours) - **PLANNING COMPLETE**
 - 📋 PR#8: Bug Fixes (4 hours)
 - 📋 PR#9: Packaging (4 hours)
 - 📋 PR#10: Documentation (10 hours)
 
 **Total Planned:** 48 hours + 24 hours buffer = 72 hours
 
-**Planning Progress:** 50% (5 of 10 PRs documented)
+**Planning Progress:** 60% (6 of 10 PRs documented)
 
 ---
 
 ## Total Documentation
 
 ### Current Stats
-- **Files:** 18 documents (2 PRs completed + 3 planned)
-- **Words:** ~55,000 words
-- **Planning Time:** ~4 hours invested
+- **Files:** 23 documents (2 PRs completed + 4 planned)
+- **Words:** ~82,000 words
+- **Planning Time:** ~6 hours invested
 - **Implementation Time:** ~4.5 hours
 - **ROI:** Excellent (fast, bug-free implementation)
 
@@ -400,21 +431,50 @@ See `PR05_PLANNING_SUMMARY.md` for details.
 
 ---
 
-### PR #7: UI Polish & Layout 📋 UPCOMING
-**Status:** 📋 Not Planned Yet  
-**Timeline:** 4 hours estimated  
-**Priority:** Day 2, Hours 27-30
+### PR#7: UI Polish & Layout 📋 PLANNED
+**Status:** 📋 PLANNING COMPLETE  
+**Timeline:** 4-6 hours estimated  
+**Priority:** Day 2, Hours 27-30  
+**Complexity:** MEDIUM  
+**Dependencies:** PR #2, PR #3, PR #4, PR #5, PR #6  
+**Target Date:** Day 2 (Tuesday, Oct 28)
 
-**What:** Polish UI with consistent styling, color scheme, and responsive layout.
+**What We're Building:**
+Polish the entire UI with consistent styling, cohesive layout, professional dark theme, and modern design patterns. Transform ClipForge from functional to submission-ready.
+
+**Documents Created:**
+- ✅ `PR07_UI_POLISH.md` (~12,000 words) - Technical specification
+- ✅ `PR07_IMPLEMENTATION_CHECKLIST.md` (~8,000 words) - Step-by-step tasks
+- ✅ `PR07_README.md` (~5,000 words) - Quick start guide
+- ✅ `PR07_PLANNING_SUMMARY.md` (~4,000 words) - Executive overview
+- ✅ `PR07_TESTING_GUIDE.md` (~4,000 words) - Testing strategy
+
+**Total Documentation:** ~33,000 words
+
+**Summary:** Implement a professional dark theme with CSS variables, CSS Grid layout, consistent button styling, smooth transitions, empty states, loading states, and polished component design. This PR transforms ClipForge into a professional, demo-ready video editor.
 
 ---
 
-### PR #8: Bug Fixes & Error Handling 📋 UPCOMING
-**Status:** 📋 Not Planned Yet  
+### PR #8: Bug Fixes & Error Handling ✅ PLANNING COMPLETE
+**Status:** ✅ PLANNING COMPLETE  
 **Timeline:** 4 hours estimated  
-**Priority:** Day 2, Hours 31-34
+**Priority:** Day 2, Hours 31-34  
+**Complexity:** MEDIUM  
+**Dependencies:** PRs #1-6 (Timeline, Trim)
 
-**What:** Fix bugs, add error handling, and improve error messages.
+**What We're Building:**
+Comprehensive error handling and stability improvements across all components. Adds error boundaries, improves error messages, adds video metadata extraction, handles edge cases, prevents memory leaks, and adds debugging infrastructure. This is the "cleanup and hardening" PR that makes the app production-ready.
+
+**Documents Created:**
+- ✅ `PR08_ERROR_HANDLING.md` (~10,000 words) - Technical specification
+- ✅ `PR08_IMPLEMENTATION_CHECKLIST.md` (~8,000 words) - Step-by-step tasks
+- ✅ `PR08_README.md` (~3,000 words) - Quick start guide
+- ✅ `PR08_PLANNING_SUMMARY.md` (~2,000 words) - Executive overview
+- ✅ `PR08_TESTING_GUIDE.md` (~4,000 words) - Testing strategy
+
+**Total Documentation:** ~27,000 words
+
+**Summary:** This PR transforms the app from a working demo into a production-ready application by adding comprehensive error handling, memory leak fixes, trim validation, video metadata extraction, and structured logging. It ensures the app never crashes and provides helpful error messages to users.
 
 ---
 
@@ -494,6 +554,55 @@ PR_PARTY/
 
 ---
 
+### PR #6: Trim Controls
+
+**To start implementation:**
+1. Read `PR06_README.md` (quick orientation)
+2. Follow `PR06_IMPLEMENTATION_CHECKLIST.md` (step-by-step)
+3. Reference `PR06_TRIM_CONTROLS.md` (architecture details)
+
+**Key files to create:**
+- `src/components/TrimControls.js`
+- `src/styles/TrimControls.css`
+
+**Key files to modify:**
+- `src/App.js` (add trimData and currentTime state)
+- `src/components/VideoPlayer.js` (add onTimeUpdate callback)
+- `src/components/Timeline.js` (add trim indicators)
+- `src/components/ExportPanel.js` (use trimData for export)
+- `electron/ffmpeg/videoProcessing.js` (add trim support)
+
+**Estimated time:** 6 hours  
+**Critical dependency:** PR #3, PR #5 must be complete
+
+---
+
+### PR #8: Error Handling & Bug Fixes
+
+**To start implementation:**
+1. Read `PR08_README.md` (quick orientation)
+2. Follow `PR08_IMPLEMENTATION_CHECKLIST.md` (step-by-step)
+3. Reference `PR08_ERROR_HANDLING.md` (architecture details)
+
+**Key files to create:**
+- `src/components/ErrorBoundary.js`
+- `src/components/ErrorFallback.js`
+- `src/utils/logger.js`
+- `src/utils/videoMetadata.js`
+- `src/utils/trimValidation.js`
+
+**Key files to modify:**
+- `src/App.js` (wrap with ErrorBoundary)
+- `src/components/ImportPanel.js` (enhance error handling)
+- `src/components/VideoPlayer.js` (add cleanup + errors)
+- `src/components/TrimControls.js` (add validation)
+- `src/components/ExportPanel.js` (enhance error handling)
+
+**Estimated time:** 4 hours  
+**Critical dependency:** PRs #1-6 must be complete
+
+---
+
 ## Success Metrics
 
 ### Documentation Effectiveness:
@@ -504,7 +613,7 @@ PR_PARTY/
 
 ### Project Progress:
 - **PRs planned:** 10
-- **PRs documented:** 5 (PRs #1, #2, #3, #4, #5)
+- **PRs documented:** 6 (PRs #1, #2, #3, #4, #5, #8)
 - **PRs complete:** 2 (PRs #1, #2)
 - **Hours allocated:** 72
 - **Hours used:** 4.5
@@ -524,10 +633,21 @@ PR_PARTY/
 7. ⏳ Create Complete Summary
 8. ⏳ Update this README
 
+### For PR #8 Implementation:
+1. ✅ Planning complete (2 hours invested)
+2. ⏳ Verify PRs #1-6 complete
+3. ⏳ Create implementation branch
+4. ⏳ Follow step-by-step checklist
+5. ⏳ Test error scenarios after each phase
+6. ⏳ Complete implementation
+7. ⏳ Create Complete Summary
+8. ⏳ Update this README
+
 ### For Future PRs:
-1. Plan PR #6: Trim Controls
+1. ✅ Plan PR #6: Trim Controls - COMPLETE
 2. Plan PR #7: UI Polish
-3. Continue through all 10 PRs
+3. Plan PR #9: Packaging
+4. Plan PR #10: Documentation
 
 ---
 
