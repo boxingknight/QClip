@@ -133,8 +133,49 @@ function App() {
 
   const handleApplyTrim = async () => {
     if (!selectedClip) return;
-    // TODO: Implement in Phase 2
-    alert('Apply Trim - Coming in Phase 2!');
+    
+    const trimData = clipTrims[selectedClip.id];
+    if (!trimData || trimData.inPoint >= trimData.outPoint) {
+      alert('Invalid trim settings. Please set valid IN and OUT points.');
+      return;
+    }
+
+    try {
+      setIsRendering(true);
+      setRenderProgress(0);
+      
+      // Generate temp path
+      const tempDir = require('path').join(require('os').tmpdir(), 'clipforge-trims');
+      const tempPath = require('path').join(tempDir, `${selectedClip.id}_trimmed.mp4`);
+      
+      // Listen for progress updates
+      const removeListener = window.electronAPI.onRenderProgress((progress) => {
+        setRenderProgress(progress.percent || 0);
+      });
+      
+      // Render trimmed clip
+      const result = await window.electronAPI.renderTrimmedClip(
+        selectedClip.path,
+        tempPath,
+        trimData
+      );
+      
+      removeListener(); // Clean up listener
+      
+      if (result.success) {
+        // TODO: Update clip state in Phase 3
+        alert('Trim successful! Implementing state update next...');
+        console.log('Trimmed clip created at:', result.outputPath);
+      } else {
+        alert(`Trim failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Apply trim error:', error);
+      alert('Failed to apply trim. Please try again.');
+    } finally {
+      setIsRendering(false);
+      setRenderProgress(0);
+    }
   };
 
   const handleVideoTimeUpdate = (data) => {

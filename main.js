@@ -1,6 +1,7 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
-const { exportVideo, exportTimeline } = require('./electron/ffmpeg/videoProcessing');
+const { exportVideo, exportTimeline, renderTrimmedClip } = require('./electron/ffmpeg/videoProcessing');
+const os = require('os');
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -93,6 +94,23 @@ ipcMain.handle('export-timeline', async (event, clips, clipTrims, outputPath) =>
     return { success: true, outputPath: result };
   } catch (error) {
     console.error('Timeline export error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Render trimmed clip
+ipcMain.handle('render-trimmed-clip', async (event, inputPath, outputPath, trimData) => {
+  try {
+    console.log('Render trim request:', { inputPath, outputPath, trimData });
+    
+    await renderTrimmedClip(inputPath, outputPath, trimData, (progress) => {
+      // Send progress to renderer
+      event.sender.send('render-progress-update', progress);
+    });
+    
+    return { success: true, outputPath };
+  } catch (error) {
+    console.error('Render trim error:', error);
     return { success: false, error: error.message };
   }
 });
