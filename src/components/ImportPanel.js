@@ -11,7 +11,8 @@ const ImportPanel = ({ onImport, isImporting }) => {
   const handleDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragOver(true);
+    // Disable drag-over visual for now since it doesn't work in Electron contextIsolation
+    // setIsDragOver(true);
   };
 
   const handleDragLeave = (e) => {
@@ -25,8 +26,12 @@ const ImportPanel = ({ onImport, isImporting }) => {
     e.stopPropagation();
     setIsDragOver(false);
     
-    const files = Array.from(e.dataTransfer.files);
-    await processFiles(files);
+    // Drag-and-drop file paths are not available with contextIsolation enabled
+    // For MVP, use the "Browse Files" button instead
+    setError('Please use the "Browse Files" button to import videos. Drag-and-drop coming soon!');
+    
+    // const files = Array.from(e.dataTransfer.files);
+    // await processFiles(files);
   };
 
   // File picker handler using Electron dialog
@@ -127,8 +132,8 @@ const ImportPanel = ({ onImport, isImporting }) => {
             <path d="M8 13V11H16V13H8Z" fill="#666"/>
             <path d="M8 17V15H16V17H8Z" fill="#666"/>
           </svg>
-          <h3>Drag video files here</h3>
-          <p className="or-text">or</p>
+          <h3>Import Video Files</h3>
+          <p className="or-text"></p>
           <input
             type="file"
             ref={fileInputRef}
