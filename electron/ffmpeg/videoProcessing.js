@@ -53,12 +53,20 @@ function updateFFmpegPaths() {
   try {
     const ffmpegStats = fs.statSync(paths.ffmpeg);
     const ffprobeStats = fs.statSync(paths.ffprobe);
-    console.log('[FFmpeg DEBUG] ffmpeg is file:', ffmpegStats.isFile());
-    console.log('[FFmpeg DEBUG] ffprobe is file:', ffprobeStats.isFile());
-    console.log('[FFmpeg DEBUG] ffmpeg size:', ffmpegStats.size);
-    console.log('[FFmpeg DEBUG] ffprobe size:', ffprobeStats.size);
+    console.log('[FFmpeg DEBUG] ffmpeg path:', paths.ffmpeg);
+    console.log('[FFmpeg DEBUG] ffprobe path:', paths.ffprobe);
+    console.log('[FFmpeg DEBUG] ffmpeg is file:', ffmpegStats.isFile(), 'size:', ffmpegStats.size);
+    console.log('[FFmpeg DEBUG] ffprobe is file:', ffprobeStats.isFile(), 'size:', ffprobeStats.size);
+    
+    // Check if it's actually executable
+    if (!ffmpegStats.isFile()) {
+      console.error('[FFmpeg DEBUG ERROR] ffmpeg path is NOT a file!');
+    }
+    if (!ffprobeStats.isFile()) {
+      console.error('[FFmpeg DEBUG ERROR] ffprobe path is NOT a file!');
+    }
   } catch (e) {
-    console.error('[FFmpeg DEBUG ERROR]', e.message);
+    console.error('[FFmpeg DEBUG ERROR]', e.message, 'path:', e.path);
   }
   
   ffmpeg.setFfmpegPath(paths.ffmpeg);
@@ -246,12 +254,10 @@ async function renderTrimmedClip(inputPath, outputPath, trimData, onProgress) {
       const startTime = trimData.inPoint || 0;
       const duration = trimData.outPoint - trimData.inPoint;
       
-      console.log(`[TRIM] Rendering trimmed clip: ${startTime}s - ${trimData.outPoint}s`);
-      console.log(`[TRIM] Duration: ${duration}s`);
-      console.log(`[TRIM] Input: ${inputPath}`);
-      console.log(`[TRIM] Output: ${outputPath}`);
-      console.log(`[TRIM] FFmpeg path: ${ffmpeg.ffmpegPath}`);
-      console.log(`[TRIM] FFprobe path: ${ffmpeg.ffprobePath}`);
+    console.log(`[TRIM] Rendering trimmed clip: ${startTime}s - ${trimData.outPoint}s`);
+    console.log(`[TRIM] Duration: ${duration}s`);
+    console.log(`[TRIM] Input: ${inputPath}`);
+    console.log(`[TRIM] Output: ${outputPath}`);
       
       // Ensure temp directory exists
       const outputDir = path.dirname(outputPath);
