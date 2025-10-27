@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import '../styles/VideoPlayer.css';
 
-const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, trimData }) => {
+const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -11,7 +11,12 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, trimData }) => {
 
   // Handle video source changes
   useEffect(() => {
-    if (!videoSrc) {
+    // Use trimmed path if available, otherwise use original
+    const effectiveSrc = selectedClip?.isTrimmed && selectedClip?.trimmedPath
+      ? `file://${selectedClip.trimmedPath}`
+      : videoSrc;
+
+    if (!effectiveSrc) {
       // Reset player state when no video
       setCurrentTime(0);
       setDuration(0);
@@ -28,10 +33,11 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, trimData }) => {
     if (video) {
       setIsLoading(true);
       setError(null);
-      video.src = videoSrc;
+      video.src = effectiveSrc;
       video.load();
+      console.log('Loading video:', effectiveSrc);
     }
-  }, [videoSrc]);
+  }, [videoSrc, selectedClip?.trimmedPath]);
 
   // Event handlers
   const handleLoadedMetadata = () => {
@@ -53,27 +59,6 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, trimData }) => {
     const video = videoRef.current;
     if (video) {
       const current = video.currentTime;
-      
-      // Enforce trim boundaries during playback
-      if (trimData) {
-        const { inPoint, outPoint } = trimData;
-        
-        // If we've passed the out point, pause
-        if (current >= outPoint) {
-          video.pause();
-          setCurrentTime(outPoint);
-          setIsPlaying(false);
-          return;
-        }
-        
-        // If we're before the in point, seek to in point
-        if (current < inPoint) {
-          video.currentTime = inPoint;
-          setCurrentTime(inPoint);
-          return;
-        }
-      }
-      
       setCurrentTime(current);
       // Notify parent of time update
       onTimeUpdate?.({
@@ -178,14 +163,8 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, trimData }) => {
       <div className="time-display">
         <span>{formatTime(currentTime)}</span>
         <span className="separator">/</span>
-        <span>{trimData && trimData.outPoint < duration ? formatTime(trimData.outPoint - trimData.inPoint) : formatTime(duration)}</span>
+        <span>{formatTime(duration)}</span>
       </div>
-      
-      {trimData && (trimData.inPoint > 0 || trimData.outPoint < duration) && (
-        <div className="trim-indicator">
-          Trim: {formatTime(trimData.inPoint)} - {formatTime(trimData.outPoint)}
-        </div>
-      )}
       </div>
       
       {selectedClip && (
