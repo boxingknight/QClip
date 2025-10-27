@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/ExportPanel.css';
 
-const ExportPanel = ({ currentClip }) => {
+const ExportPanel = ({ currentClip, trimData }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('');
@@ -44,11 +44,11 @@ const ExportPanel = ({ currentClip }) => {
 
       setStatus('Exporting video...');
       
-      // Call export API
+      // Call export API with trim data
       const result = await window.electronAPI.exportVideo(
         currentClip.path,
         dialogResult.filePath,
-        {} // No trim data yet (for PR #6)
+        trimData || {} // Pass trim data if available
       );
 
       if (result.success) {

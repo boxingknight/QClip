@@ -2,7 +2,7 @@ import React from 'react';
 import '../styles/Timeline.css';
 import { formatDuration } from '../utils/timeHelpers';
 
-const Timeline = ({ clips, selectedClip, onSelectClip }) => {
+const Timeline = ({ clips, selectedClip, onSelectClip, trimData }) => {
   // Empty state
   if (!clips || clips.length === 0) {
     return (
@@ -34,6 +34,8 @@ const Timeline = ({ clips, selectedClip, onSelectClip }) => {
             ? ((clip.duration || 0) / totalDuration) * 100 
             : 100;
           
+          const clipTrimData = selectedClip?.id === clip.id ? trimData : null;
+          
           return (
             <ClipBlock
               key={clip.id}
@@ -41,6 +43,7 @@ const Timeline = ({ clips, selectedClip, onSelectClip }) => {
               widthPercent={widthPercent}
               isSelected={selectedClip?.id === clip.id}
               onSelect={() => onSelectClip(clip)}
+              trimData={clipTrimData}
             />
           );
         })}
@@ -49,13 +52,62 @@ const Timeline = ({ clips, selectedClip, onSelectClip }) => {
   );
 };
 
-const ClipBlock = ({ clip, widthPercent, isSelected, onSelect }) => {
+const ClipBlock = ({ clip, widthPercent, isSelected, onSelect, trimData }) => {
+  // Calculate trim overlay positions
+  const hasTrim = trimData && clip.duration;
+  const leftDarkenPercent = hasTrim && trimData.inPoint > 0
+    ? (trimData.inPoint / clip.duration) * 100
+    : 0;
+  const rightDarkenPercent = hasTrim && trimData.outPoint < clip.duration
+    ? ((clip.duration - trimData.outPoint) / clip.duration) * 100
+    : 0;
+  const trimmedRegionLeft = hasTrim ? (trimData.inPoint / clip.duration) * 100 : 0;
+  const trimmedRegionWidth = hasTrim ? ((trimData.outPoint - trimData.inPoint) / clip.duration) * 100 : 0;
+
   return (
     <div
       className={`clip-block ${isSelected ? 'selected' : ''}`}
       style={{ width: `${Math.max(widthPercent, 10)}%` }}
       onClick={onSelect}
     >
+      {/* Trim Overlay */}
+      {hasTrim && (
+        <div className="trim-overlay">
+          {/* Left darkened region (before in-point) */}
+          {leftDarkenPercent > 0 && (
+            <div
+              className="trim-darken"
+              style={{ 
+                width: `${leftDarkenPercent}%`,
+                left: 0
+              }}
+            />
+          )}
+          
+          {/* Trimmed region (highlighted) */}
+          {trimmedRegionWidth > 0 && (
+            <div 
+              className="trim-highlighted"
+              style={{
+                left: `${trimmedRegionLeft}%`,
+                width: `${trimmedRegionWidth}%`
+              }}
+            />
+          )}
+          
+          {/* Right darkened region (after out-point) */}
+          {rightDarkenPercent > 0 && (
+            <div
+              className="trim-darken"
+              style={{ 
+                width: `${rightDarkenPercent}%`,
+                right: 0
+              }}
+            />
+          )}
+        </div>
+      )}
+      
       <div className="clip-info">
         <span className="clip-name" title={clip.name}>
           {clip.name}

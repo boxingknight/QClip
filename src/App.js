@@ -3,12 +3,14 @@ import ImportPanel from './components/ImportPanel';
 import VideoPlayer from './components/VideoPlayer';
 import ExportPanel from './components/ExportPanel';
 import Timeline from './components/Timeline';
+import TrimControls from './components/TrimControls';
 import './App.css';
 
 function App() {
   const [clips, setClips] = useState([]);
   const [selectedClip, setSelectedClip] = useState(null);
   const [currentVideoTime, setCurrentVideoTime] = useState(0);
+  const [trimData, setTrimData] = useState({ inPoint: 0, outPoint: 0 });
   const [importStatus, setImportStatus] = useState({
     loading: false,
     error: null,
@@ -22,6 +24,16 @@ function App() {
       console.log('IPC test:', result);
     }
   }, []);
+
+  // Initialize trim data when selected clip changes
+  useEffect(() => {
+    if (selectedClip && selectedClip.duration) {
+      setTrimData({
+        inPoint: 0,
+        outPoint: selectedClip.duration
+      });
+    }
+  }, [selectedClip?.id]);
 
   const handleImport = (newClips) => {
     console.log('Importing clips:', newClips);
@@ -47,6 +59,42 @@ function App() {
     // Find the latest version of the clip from the clips array
     const freshClip = clips.find(c => c.id === clip.id) || clip;
     setSelectedClip(freshClip);
+    
+    // Reset trim data when selecting a new clip
+    if (freshClip && freshClip.duration) {
+      setTrimData({
+        inPoint: 0,
+        outPoint: freshClip.duration
+      });
+    }
+  };
+
+  // Trim Control Handlers
+  const handleSetInPoint = () => {
+    if (!selectedClip) return;
+    
+    setTrimData(prev => ({
+      ...prev,
+      inPoint: currentVideoTime
+    }));
+  };
+
+  const handleSetOutPoint = () => {
+    if (!selectedClip) return;
+    
+    setTrimData(prev => ({
+      ...prev,
+      outPoint: currentVideoTime
+    }));
+  };
+
+  const handleResetTrim = () => {
+    if (!selectedClip) return;
+    
+    setTrimData({
+      inPoint: 0,
+      outPoint: selectedClip.duration || 0
+    });
   };
 
   const handleVideoTimeUpdate = (data) => {
@@ -87,8 +135,22 @@ function App() {
             selectedClip={selectedClip}
           />
           
+          {/* Trim Controls */}
+          <TrimControls
+            currentTime={currentVideoTime}
+            duration={selectedClip?.duration || 0}
+            inPoint={trimData.inPoint}
+            outPoint={trimData.outPoint}
+            onSetInPoint={handleSetInPoint}
+            onSetOutPoint={handleSetOutPoint}
+            onResetTrim={handleResetTrim}
+          />
+          
           {/* Export Panel */}
-          <ExportPanel currentClip={selectedClip} />
+          <ExportPanel 
+            currentClip={selectedClip}
+            trimData={trimData}
+          />
         </div>
         
         {/* Timeline - Always at bottom */}
@@ -96,6 +158,7 @@ function App() {
           clips={clips}
           selectedClip={selectedClip}
           onSelectClip={handleClipSelect}
+          trimData={trimData}
         />
       </div>
     </div>
