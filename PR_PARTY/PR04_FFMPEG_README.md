@@ -466,3 +466,4 @@ The architecture is solid (FFmpeg + Electron IPC + React), the patterns are esta
 
 *"Export is where your editing work becomes real. Make it count."*
 
+

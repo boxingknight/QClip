@@ -14,8 +14,8 @@ function createWindow() {
     }
   });
 
-  // Always load from webpack dev server (assume development mode)
-  mainWindow.loadURL('http://localhost:3000');
+  // Load from built file
+  mainWindow.loadFile('dist/index.html');
   
   // Open DevTools
   mainWindow.webContents.openDevTools();

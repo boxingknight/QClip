@@ -10,12 +10,6 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     globalObject: 'this'
   },
-  devServer: {
-    static: path.resolve(__dirname, 'dist'),
-    port: 3000,
-    hot: false,
-    liveReload: false
-  },
   plugins: [
     new HtmlWebpackPlugin({
       template: './src/index.html',
