@@ -1,12 +1,13 @@
 .timeline {
   width: 100%;
-  min-height: 140px;
+  height: 100%;
   background: var(--color-bg-dark, #1e293b);
   border-top: 2px solid var(--color-border, #334155);
-  padding: 16px;
+  padding: 12px;
   overflow-x: auto;
   overflow-y: hidden;
   z-index: 1;
+  grid-column: 1 / -1; /* Span full width */
 }
 
 .timeline-header {

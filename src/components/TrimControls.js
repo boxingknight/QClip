@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import '../styles/TrimControls.css';
 
 const TrimControls = ({
@@ -10,6 +10,8 @@ const TrimControls = ({
   onSetOutPoint,
   onResetTrim
 }) => {
+  const [draggingHandle, setDraggingHandle] = useState(null);
+  
   // Calculate trim duration
   const trimDuration = outPoint - inPoint;
   
@@ -24,63 +26,103 @@ const TrimControls = ({
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
+  // Calculate slider positions (0-100%)
+  const inPointPercent = duration > 0 ? (inPoint / duration) * 100 : 0;
+  const outPointPercent = duration > 0 ? (outPoint / duration) * 100 : 100;
+
+  const handleSliderStart = (handle) => {
+    setDraggingHandle(handle);
+  };
+
+  const handleSliderMove = (e) => {
+    if (!draggingHandle) return;
+    
+    const slider = e.currentTarget;
+    const rect = slider.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    const newTime = (percent / 100) * duration;
+    
+    if (draggingHandle === 'in') {
+      onSetInPoint(newTime);
+    } else if (draggingHandle === 'out') {
+      onSetOutPoint(newTime);
+    }
+  };
+
+  const handleSliderEnd = () => {
+    setDraggingHandle(null);
+  };
+
   return (
     <div className="trim-controls">
-      <h3 className="trim-controls-title">Trim Controls</h3>
+      <h3 className="trim-controls-title">Trim</h3>
       
       {/* Current Time Display */}
       <div className="trim-time-display">
-        <span className="label">Current Time:</span>
+        <span className="time-label">Time:</span>
         <span className="time">{formatDuration(currentTime)}</span>
         <span className="separator">/</span>
         <span className="duration">{formatDuration(duration)}</span>
       </div>
 
-      {/* Trim Points */}
-      <div className="trim-points">
-        {/* In Point */}
-        <div className="trim-point">
-          <label>In Point:</label>
-          <span className="time-value">{formatDuration(inPoint)}</span>
-          <button
-            className="btn-set"
-            onClick={onSetInPoint}
-            disabled={currentTime >= outPoint || currentTime < 0}
-            title="Set trim start to current position"
+      {/* Visual Slider */}
+      <div className="trim-slider-container">
+        <div 
+          className="trim-slider-track"
+          onMouseMove={handleSliderMove}
+          onMouseUp={handleSliderEnd}
+          onMouseLeave={handleSliderEnd}
+        >
+          {/* Background */}
+          <div className="slider-background" />
+          
+          {/* Trimmed region (highlighted) */}
+          <div 
+            className="slider-trimmed"
+            style={{
+              left: `${inPointPercent}%`,
+              width: `${outPointPercent - inPointPercent}%`
+            }}
+          />
+          
+          {/* In Point Handle */}
+          <div
+            className="slider-handle slider-handle-in"
+            style={{ left: `${inPointPercent}%` }}
+            onMouseDown={() => handleSliderStart('in')}
           >
-            Set In
-          </button>
-        </div>
-
-        {/* Out Point */}
-        <div className="trim-point">
-          <label>Out Point:</label>
-          <span className="time-value">{formatDuration(outPoint)}</span>
-          <button
-            className="btn-set"
-            onClick={onSetOutPoint}
-            disabled={currentTime <= inPoint || currentTime > duration}
-            title="Set trim end to current position"
+            <span className="handle-label">IN</span>
+            <span className="handle-time">{formatDuration(inPoint)}</span>
+          </div>
+          
+          {/* Out Point Handle */}
+          <div
+            className="slider-handle slider-handle-out"
+            style={{ left: `${outPointPercent}%` }}
+            onMouseDown={() => handleSliderStart('out')}
           >
-            Set Out
-          </button>
+            <span className="handle-label">OUT</span>
+            <span className="handle-time">{formatDuration(outPoint)}</span>
+          </div>
         </div>
       </div>
 
-      {/* Trim Duration */}
-      <div className="trim-duration">
-        <label>Trim Duration:</label>
-        <span className={isValid ? 'duration-value' : 'duration-value error'}>
-          {formatDuration(trimDuration)}
-        </span>
-      </div>
-
-      {/* Error Message */}
-      {!isValid && (
-        <div className="trim-error">
-          ⚠️ In point must be before out point
+      {/* Trim Info */}
+      <div className="trim-info">
+        <div className="trim-info-item">
+          <label>In:</label>
+          <span>{formatDuration(inPoint)}</span>
         </div>
-      )}
+        <div className="trim-info-item">
+          <label>Duration:</label>
+          <span className={isValid ? '' : 'error'}>{formatDuration(trimDuration)}</span>
+        </div>
+        <div className="trim-info-item">
+          <label>Out:</label>
+          <span>{formatDuration(outPoint)}</span>
+        </div>
+      </div>
 
       {/* Reset Button */}
       <button
@@ -88,7 +130,7 @@ const TrimControls = ({
         onClick={onResetTrim}
         title="Reset trim to full clip"
       >
-        Reset Trim
+        Reset
       </button>
     </div>
   );
