@@ -70,21 +70,25 @@ function App() {
   };
 
   // Trim Control Handlers
-  const handleSetInPoint = () => {
+  const handleSetInPoint = (time) => {
     if (!selectedClip) return;
+    
+    const trimTime = time !== undefined ? time : currentVideoTime;
     
     setTrimData(prev => ({
       ...prev,
-      inPoint: currentVideoTime
+      inPoint: trimTime
     }));
   };
 
-  const handleSetOutPoint = () => {
+  const handleSetOutPoint = (time) => {
     if (!selectedClip) return;
+    
+    const trimTime = time !== undefined ? time : currentVideoTime;
     
     setTrimData(prev => ({
       ...prev,
-      outPoint: currentVideoTime
+      outPoint: trimTime
     }));
   };
 

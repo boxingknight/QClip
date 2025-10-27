@@ -50,6 +50,14 @@ const TrimControls = ({
     }
   };
 
+  const handleSetInPoint = () => {
+    onSetInPoint(currentTime);
+  };
+
+  const handleSetOutPoint = () => {
+    onSetOutPoint(currentTime);
+  };
+
   const handleSliderEnd = () => {
     setDraggingHandle(null);
   };
