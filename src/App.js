@@ -99,20 +99,7 @@ function App() {
     
     const trimTime = time !== undefined ? time : currentVideoTime;
     
-    // Only validate bounds, not relationships (user might set points out of order)
-    if (trimTime < 0) {
-      logger.warn('Invalid in point: negative time');
-      alert('In point cannot be negative');
-      return;
-    }
-    
-    // Only validate duration if it's available (not 0/unset)
-    if (selectedClip.duration && trimTime > selectedClip.duration) {
-      logger.warn('Invalid in point: exceeds duration');
-      alert('In point exceeds video duration');
-      return;
-    }
-    
+    // No validation - just set the value (validation happens when applying)
     logger.debug('Setting in point', { clipId: selectedClip.id, inPoint: trimTime });
     
     setClipTrims(prev => ({
@@ -129,20 +116,7 @@ function App() {
     
     const trimTime = time !== undefined ? time : currentVideoTime;
     
-    // Only validate bounds, not relationships (user might set points out of order)
-    if (trimTime < 0) {
-      logger.warn('Invalid out point: negative time');
-      alert('Out point cannot be negative');
-      return;
-    }
-    
-    // Only validate duration if it's available (not 0/unset)
-    if (selectedClip.duration && trimTime > selectedClip.duration) {
-      logger.warn('Invalid out point: exceeds duration');
-      alert('Out point exceeds video duration');
-      return;
-    }
-    
+    // No validation - just set the value (validation happens when applying)
     logger.debug('Setting out point', { clipId: selectedClip.id, outPoint: trimTime });
     
     setClipTrims(prev => ({
