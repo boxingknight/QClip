@@ -2,9 +2,9 @@
 
 **Date Completed:** October 27, 2025  
 **Time Taken:** ~1.5 hours (estimated: 4 hours)  
-**Status:** ✅ COMPLETE  
-**Branch:** feature/pr05-timeline  
-**Commits:** 3
+**Status:** ✅ COMPLETE (with known CSS visibility issue)  
+**Branch:** feature/pr05-timeline → merged to main  
+**Commits:** 6
 
 ---
 
@@ -369,6 +369,12 @@ docs(pr05): add planning documents for PR#6, PR#8, PR#9
 - No trim indicators overlay
 - No multi-track support
 - No clip deletion from timeline
+
+**Known Issue:**
+- Timeline clip blocks may have visibility/layout issues requiring CSS debugging
+- Timeline header displays correctly ("2 clips • 5:48 total")
+- Core functionality works (data passing, selection logic)
+- CSS styling needs refinement for full visibility
 
 **These are post-MVP features.**
 
