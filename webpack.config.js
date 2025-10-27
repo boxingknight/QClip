@@ -13,7 +13,8 @@ module.exports = {
   devServer: {
     static: path.resolve(__dirname, 'dist'),
     port: 3000,
-    hot: true
+    hot: false,
+    liveReload: false
   },
   plugins: [
     new HtmlWebpackPlugin({
@@ -44,6 +45,15 @@ module.exports = {
   },
   resolve: {
     extensions: ['.js', '.jsx']
+  },
+  externals: {
+    'events': 'commonjs events'
+  },
+  node: {
+    __dirname: false,
+    __filename: false,
+    global: true,
+    globalThis: true
   }
 };
 
