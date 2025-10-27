@@ -246,9 +246,12 @@ async function renderTrimmedClip(inputPath, outputPath, trimData, onProgress) {
       const startTime = trimData.inPoint || 0;
       const duration = trimData.outPoint - trimData.inPoint;
       
-      console.log(`Rendering trimmed clip: ${startTime}s - ${trimData.outPoint}s`);
-      console.log(`Duration: ${duration}s`);
-      console.log(`Output: ${outputPath}`);
+      console.log(`[TRIM] Rendering trimmed clip: ${startTime}s - ${trimData.outPoint}s`);
+      console.log(`[TRIM] Duration: ${duration}s`);
+      console.log(`[TRIM] Input: ${inputPath}`);
+      console.log(`[TRIM] Output: ${outputPath}`);
+      console.log(`[TRIM] FFmpeg path: ${ffmpeg.ffmpegPath}`);
+      console.log(`[TRIM] FFprobe path: ${ffmpeg.ffprobePath}`);
       
       // Ensure temp directory exists
       const outputDir = path.dirname(outputPath);
