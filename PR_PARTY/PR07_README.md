@@ -386,3 +386,4 @@ Even if functionality is perfect, poor UI will hurt your submission. This PR tra
 ---
 
 **You've got this!** Polish the UI and make ClipForge submission-ready! 💪
+

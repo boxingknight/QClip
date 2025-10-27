@@ -295,3 +295,4 @@ This PR will transform ClipForge from functional to professional. The dark theme
 ---
 
 *"Good design is not about looking flashy - it's about showing intentionality and care. A polished UI communicates that you built a real product, not just a prototype."*
+

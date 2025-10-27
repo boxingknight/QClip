@@ -12,13 +12,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Export APIs
   exportVideo: (inputPath, outputPath, trimData) => 
-    ipcRenderer.invoke('export-video', { inputPath, outputPath, trimData }),
+    ipcRenderer.invoke('export-video', inputPath, outputPath, trimData),
+  
+  exportTimeline: (clips, clipTrims, outputPath) =>
+    ipcRenderer.invoke('export-timeline', clips, clipTrims, outputPath),
+  
+  renderTrimmedClip: (inputPath, outputPath, trimData) =>
+    ipcRenderer.invoke('render-trimmed-clip', inputPath, outputPath, trimData),
+  
+  getTempTrimPath: (clipId) =>
+    ipcRenderer.invoke('get-temp-trim-path', clipId),
   
   showSaveDialog: () => ipcRenderer.invoke('show-save-dialog'),
   
   onExportProgress: (callback) => {
     const handler = (event, progress) => callback(progress);
     ipcRenderer.on('export-progress-update', handler);
+    return () => ipcRenderer.removeListener('export-progress-update', handler);
+  },
+  
+  onRenderProgress: (callback) => {
+    const handler = (event, progress) => callback(progress);
+    ipcRenderer.on('render-progress-update', handler);
     
     // Return unsubscribe function
     return () => ipcRenderer.removeListener('export-progress-update', handler);

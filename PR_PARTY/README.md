@@ -10,7 +10,55 @@ Welcome to the PR_PARTY! This directory contains comprehensive documentation for
 
 ## Latest PRs
 
-### PR#03: Video Player Component ✅ COMPLETE
+### PR#06.1: Destructive Trim ✅ COMPLETE
+**Status**: ✅ COMPLETE  
+**Timeline**: 4 hours actual  
+**Priority**: HIGH  
+**Complexity**: MEDIUM  
+**Completed**: October 27, 2025  
+**Branch**: `feature/pr06-trim-controls`
+
+**What We Built:**
+Timeline-based destructive trim system where users trim clips directly on the timeline. All controls consolidated into timeline for professional video editor UX. Trim marks are draft until "Apply Trim" is clicked, which renders a new trimmed file and updates the clip in state.
+
+**Documents Created:**
+- `PR06.1_DESTRUCTIVE_TRIM.md` (Technical Specification)
+- `PR06.1_IMPLEMENTATION_CHECKLIST.md` (Implementation tasks)
+- `PR06.1_IMPLEMENTATION_SUMMARY.md` (Actual implementation summary)
+- `PR06.1_README.md` (Quick start guide)
+- `PR06.1_PLANNING_SUMMARY.md` (Executive overview)
+- `PR06.1_TESTING_GUIDE.md` (Testing strategy)
+
+**Total Documentation**: ~35,000 words
+
+**What Was Actually Built:**
+- Interactive timeline trimming (click to set, drag to adjust)
+- Draggable IN/OUT handles on green highlight region
+- Apply Trim button in timeline header (with progress)
+- Reset button to clear trim marks
+- FFmpeg rendering creates trimmed file
+- State updates to use trimmed file
+- Player shows trimmed segment automatically
+- Multi-clip export concatenates all clips
+- Clean handle release with global mouse listeners
+
+**Key Implementation Decisions:**
+- Timeline-based controls (not sidebar) - more professional
+- Removed TrimControls component entirely
+- Consolidated all trim UI into timeline
+- Global mouse listeners for clean drag/release
+- IPC-based temp path generation (renderer can't use require)
+
+**Bugs Fixed:**
+1. Apply button always disabled → Fixed trim data initialization
+2. ReferenceError require → Created IPC handler for paths
+3. Sticky trim handles → Added global mouse listeners
+4. Trim overlay without handles → Fixed conditional rendering
+5. Export only first clip → Implemented FFmpeg concat
+
+---
+
+### PR#06: Trim Controls ✅ COMPLETE (Under Refactor)
 **Status:** ✅ COMPLETE  
 **Timeline:** 3-4 hours estimated / ~1.5 hours actual  
 **Completed:** October 27, 2025  

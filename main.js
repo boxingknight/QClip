@@ -1,6 +1,7 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
-const { exportVideo } = require('./electron/ffmpeg/videoProcessing');
+const { exportVideo, exportTimeline, renderTrimmedClip } = require('./electron/ffmpeg/videoProcessing');
+const os = require('os');
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -54,13 +55,19 @@ ipcMain.handle('get-file-absolute-path', async (event, filePath) => {
 });
 
 // Export video handler
-ipcMain.handle('export-video', async (event, { inputPath, outputPath, trimData }) => {
+ipcMain.handle('export-video', async (event, inputPath, outputPath, trimData) => {
   try {
     console.log('Export request received:', { inputPath, outputPath, trimData });
     
+    // Convert trim data (inPoint/outPoint) to FFmpeg format (startTime/duration)
+    const startTime = trimData?.inPoint || 0;
+    const duration = trimData?.outPoint ? (trimData.outPoint - trimData.inPoint) : undefined;
+    
+    console.log('Trim settings:', { startTime, duration });
+    
     await exportVideo(inputPath, outputPath, {
-      startTime: trimData?.startTime || 0,
-      duration: trimData?.duration,
+      startTime: startTime,
+      duration: duration,
       onProgress: (progress) => {
         // Send progress to renderer
         event.sender.send('export-progress-update', progress);
@@ -70,6 +77,58 @@ ipcMain.handle('export-video', async (event, { inputPath, outputPath, trimData }
     return { success: true, outputPath };
   } catch (error) {
     console.error('Export error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Export entire timeline
+ipcMain.handle('export-timeline', async (event, clips, clipTrims, outputPath) => {
+  try {
+    console.log('Export timeline request:', { clips: clips.length, outputPath });
+    
+    const result = await exportTimeline(clips, clipTrims, outputPath, (progress) => {
+      // Send progress to renderer
+      event.sender.send('export-progress-update', progress);
+    });
+    
+    return { success: true, outputPath: result };
+  } catch (error) {
+    console.error('Timeline export error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Get temp file path for trimmed clip
+ipcMain.handle('get-temp-trim-path', async (event, clipId) => {
+  try {
+    const tempDir = path.join(os.tmpdir(), 'clipforge-trims');
+    // Ensure directory exists
+    const fs = require('fs');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    const tempPath = path.join(tempDir, `${clipId}_trimmed.mp4`);
+    console.log('Generated temp path:', tempPath);
+    return tempPath;
+  } catch (error) {
+    console.error('Get temp path error:', error);
+    throw error;
+  }
+});
+
+// Render trimmed clip
+ipcMain.handle('render-trimmed-clip', async (event, inputPath, outputPath, trimData) => {
+  try {
+    console.log('Render trim request:', { inputPath, outputPath, trimData });
+    
+    await renderTrimmedClip(inputPath, outputPath, trimData, (progress) => {
+      // Send progress to renderer
+      event.sender.send('render-progress-update', progress);
+    });
+    
+    return { success: true, outputPath };
+  } catch (error) {
+    console.error('Render trim error:', error);
     return { success: false, error: error.message };
   }
 });

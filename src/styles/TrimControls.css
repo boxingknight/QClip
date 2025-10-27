@@ -1,0 +1,241 @@
+.trim-controls {
+  padding: 12px 0;
+  background: transparent;
+  border: none;
+}
+
+.trim-controls-title {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary, #f1f5f9);
+}
+
+/* Current Time Display */
+.trim-time-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.trim-time-display .time-label {
+  color: var(--color-text-secondary, #94a3b8);
+  font-size: 12px;
+}
+
+.trim-time-display .time {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-primary, #3b82f6);
+}
+
+.trim-time-display .separator {
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+.trim-time-display .duration {
+  color: var(--color-text-primary, #f1f5f9);
+}
+
+/* Slider Container */
+.trim-slider-container {
+  margin-bottom: 12px;
+}
+
+.trim-slider-track {
+  position: relative;
+  width: 100%;
+  height: 80px;
+  cursor: pointer;
+}
+
+.slider-background {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 4px;
+}
+
+.slider-trimmed {
+  position: absolute;
+  top: 20px;
+  height: 40px;
+  background: var(--color-primary, #3b82f6);
+  border-radius: 4px;
+  z-index: 1;
+}
+
+/* Handles */
+.slider-handle {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 80px;
+  background: white;
+  border: 2px solid var(--color-primary, #3b82f6);
+  border-radius: 4px;
+  cursor: ew-resize;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 4px;
+  user-select: none;
+  transform: translateX(-50%);
+}
+
+.slider-handle:hover {
+  background: var(--color-primary, #3b82f6);
+}
+
+.handle-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-primary, #3b82f6);
+  background: white;
+  padding: 2px 4px;
+  border-radius: 2px;
+  margin-bottom: 2px;
+}
+
+.slider-handle:hover .handle-label {
+  color: white;
+  background: white;
+}
+
+.handle-time {
+  font-size: 10px;
+  color: var(--color-text-secondary, #94a3b8);
+  margin-top: 2px;
+}
+
+.slider-handle-in {
+  border-color: #10b981;
+}
+
+.slider-handle-in .handle-label {
+  color: #10b981;
+}
+
+.slider-handle-out {
+  border-color: #ef4444;
+}
+
+.slider-handle-out .handle-label {
+  color: #ef4444;
+}
+
+/* Trim Info */
+.trim-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 11px;
+}
+
+.trim-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trim-info-item label {
+  color: var(--color-text-secondary, #94a3b8);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.trim-info-item span {
+  color: var(--color-text-primary, #f1f5f9);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.trim-info-item span.error {
+  color: var(--color-error, #ef4444);
+}
+
+/* Reset Button */
+.trim-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btn-reset {
+  flex: 1;
+  padding: 8px;
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--color-text-primary, #f1f5f9);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.btn-reset:hover {
+  background: rgba(148, 163, 184, 0.2);
+  border-color: var(--color-text-secondary, #94a3b8);
+}
+
+.btn-apply {
+  flex: 1;
+  padding: 8px;
+  background: var(--color-primary, #3b82f6);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.btn-apply:hover:not(:disabled) {
+  background: var(--color-primary-hover, #2563eb);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn-apply:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-apply.disabled,
+.btn-apply:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(148, 163, 184, 0.2);
+}
+
+/* Render Progress */
+.render-progress {
+  margin-top: 12px;
+  padding: 8px;
+  background: var(--color-surface, #1e293b);
+  border-radius: 4px;
+}
+
+.render-progress-bar {
+  height: 6px;
+  background: var(--color-primary, #3b82f6);
+  border-radius: 3px;
+  transition: width 200ms ease;
+}
+
+.render-progress-text {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--color-text-secondary, #94a3b8);
+  text-align: center;
+}

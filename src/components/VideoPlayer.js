@@ -11,7 +11,12 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
 
   // Handle video source changes
   useEffect(() => {
-    if (!videoSrc) {
+    // Use trimmed path if available, otherwise use original
+    const effectiveSrc = selectedClip?.isTrimmed && selectedClip?.trimmedPath
+      ? `file://${selectedClip.trimmedPath}`
+      : videoSrc;
+
+    if (!effectiveSrc) {
       // Reset player state when no video
       setCurrentTime(0);
       setDuration(0);
@@ -28,10 +33,11 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
     if (video) {
       setIsLoading(true);
       setError(null);
-      video.src = videoSrc;
+      video.src = effectiveSrc;
       video.load();
+      console.log('Loading video:', effectiveSrc);
     }
-  }, [videoSrc]);
+  }, [videoSrc, selectedClip?.trimmedPath]);
 
   // Event handlers
   const handleLoadedMetadata = () => {
@@ -154,11 +160,11 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
           {isPlaying ? '⏸' : '▶'}
         </button>
         
-        <div className="time-display">
-          <span>{formatTime(currentTime)}</span>
-          <span className="separator">/</span>
-          <span>{formatTime(duration)}</span>
-        </div>
+      <div className="time-display">
+        <span>{formatTime(currentTime)}</span>
+        <span className="separator">/</span>
+        <span>{formatTime(duration)}</span>
+      </div>
       </div>
       
       {selectedClip && (

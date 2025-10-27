@@ -1,19 +1,66 @@
 .timeline {
   width: 100%;
-  min-height: 140px;
+  height: 100%;
   background: var(--color-bg-dark, #1e293b);
   border-top: 2px solid var(--color-border, #334155);
-  padding: 16px;
+  padding: 12px;
   overflow-x: auto;
   overflow-y: hidden;
   z-index: 1;
+  grid-column: 1 / -1; /* Span full width */
 }
 
 .timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 12px;
   font-size: 13px;
   color: #94a3b8;
   font-weight: 500;
+}
+
+.timeline-trim-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-timeline-reset,
+.btn-timeline-apply {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.btn-timeline-reset {
+  background: rgba(148, 163, 184, 0.1);
+  color: #f1f5f9;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.btn-timeline-reset:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.2);
+  border-color: #94a3b8;
+}
+
+.btn-timeline-apply {
+  background: #3b82f6;
+  color: white;
+  border: none;
+}
+
+.btn-timeline-apply:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.btn-timeline-apply.disabled,
+.btn-timeline-apply:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(148, 163, 184, 0.2);
 }
 
 .timeline-info {
@@ -134,3 +181,72 @@
   background: var(--color-border-hover, #666);
 }
 
+/* Trim Overlay Styles */
+.trim-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 6px;
+  pointer-events: auto;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.clip-block.trim-active {
+  cursor: default;
+}
+
+.clip-block.trim-active .trim-highlighted {
+  cursor: default;
+}
+
+/* Trim Handles */
+.trim-handle {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 12px;
+  background: rgba(59, 130, 246, 0.8);
+  border: 2px solid white;
+  cursor: ew-resize;
+  z-index: 10;
+}
+
+.trim-handle-in {
+  left: -6px;
+  border-left: 4px solid #10b981;
+}
+
+.trim-handle-out {
+  right: -6px;
+  border-right: 4px solid #ef4444;
+}
+
+.trim-handle:hover {
+  background: rgba(59, 130, 246, 1);
+  width: 14px;
+}
+
+.trim-darken {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1;
+}
+
+.trim-highlighted {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(34, 197, 94, 0.3);
+  border: 2px solid rgba(34, 197, 94, 0.8);
+  z-index: 2;
+}
+
+.clip-block.selected .trim-highlighted {
+  background: rgba(34, 197, 94, 0.5);
+  border-color: rgba(34, 197, 94, 1);
+}

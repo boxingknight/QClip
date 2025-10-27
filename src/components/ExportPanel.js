@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/ExportPanel.css';
 
-const ExportPanel = ({ currentClip }) => {
+const ExportPanel = ({ currentClip, allClips, clipTrims }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('');
@@ -22,8 +22,8 @@ const ExportPanel = ({ currentClip }) => {
   }, []);
 
   const handleExport = async () => {
-    if (!currentClip) {
-      setError('No clip selected');
+    if (!allClips || allClips.length === 0) {
+      setError('No clips to export');
       return;
     }
 
@@ -42,13 +42,14 @@ const ExportPanel = ({ currentClip }) => {
         return;
       }
 
-      setStatus('Exporting video...');
+      setStatus(`Exporting ${allClips.length} clips...`);
       
-      // Call export API
-      const result = await window.electronAPI.exportVideo(
-        currentClip.path,
-        dialogResult.filePath,
-        {} // No trim data yet (for PR #6)
+      // Export entire timeline with all trimmed clips
+      // Pass all clips and their trim data for concatenation
+      const result = await window.electronAPI.exportTimeline(
+        allClips,
+        clipTrims,
+        dialogResult.filePath
       );
 
       if (result.success) {
