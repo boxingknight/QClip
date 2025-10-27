@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportVideo: (inputPath, outputPath, trimData) => 
     ipcRenderer.invoke('export-video', inputPath, outputPath, trimData),
   
+  exportTimeline: (clips, clipTrims, outputPath) =>
+    ipcRenderer.invoke('export-timeline', clips, clipTrims, outputPath),
+  
   showSaveDialog: () => ipcRenderer.invoke('show-save-dialog'),
   
   onExportProgress: (callback) => {

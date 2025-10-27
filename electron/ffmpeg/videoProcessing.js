@@ -62,5 +62,48 @@ async function exportVideo(inputPath, outputPath, options = {}) {
   });
 }
 
-module.exports = { exportVideo };
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * Export entire timeline with all clips concatenated
+ * @param {Array} clips - Array of clip objects
+ * @param {Object} clipTrims - Object mapping clip IDs to trim data
+ * @param {string} outputPath - Destination file
+ * @param {Function} onProgress - Progress callback
+ * @returns {Promise<string>} Output file path
+ */
+async function exportTimeline(clips, clipTrims, outputPath, onProgress) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      console.log('Starting timeline export with', clips.length, 'clips');
+      
+      if (!clips || clips.length === 0) {
+        reject(new Error('No clips to export'));
+        return;
+      }
+
+      // For MVP: Export first clip with its trim
+      // TODO: Implement proper concatenation for multi-clip timelines
+      const firstClip = clips[0];
+      const trimData = clipTrims[firstClip.id] || { inPoint: 0, outPoint: firstClip.duration };
+      
+      console.log('Exporting clip:', firstClip.name);
+      console.log('Trim data:', trimData);
+      
+      await exportVideo(firstClip.path, outputPath, {
+        startTime: trimData.inPoint,
+        duration: trimData.outPoint - trimData.inPoint,
+        onProgress
+      });
+      
+      resolve(outputPath);
+    } catch (error) {
+      console.error('Timeline export error:', error);
+      reject(error);
+    }
+  });
+}
+
+module.exports = { exportVideo, exportTimeline };
 

@@ -172,6 +172,7 @@ function App() {
           videoSrc={selectedClip?.path ? `file://${selectedClip.path}` : null}
           onTimeUpdate={handleVideoTimeUpdate}
           selectedClip={selectedClip}
+          trimData={getCurrentTrimData()}
         />
       </div>
       

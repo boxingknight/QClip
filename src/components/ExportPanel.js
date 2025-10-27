@@ -44,16 +44,12 @@ const ExportPanel = ({ currentClip, allClips, clipTrims }) => {
 
       setStatus(`Exporting ${allClips.length} clips...`);
       
-      // Export all clips with their trim settings
-      // For MVP, we'll export just the selected/current clip with trim
-      // Future enhancement: concat all trimmed clips into one video
-      const clipToExport = currentClip || allClips[0];
-      const trimData = clipTrims[clipToExport.id] || { inPoint: 0, outPoint: clipToExport.duration };
-      
-      const result = await window.electronAPI.exportVideo(
-        clipToExport.path,
-        dialogResult.filePath,
-        trimData
+      // Export entire timeline with all trimmed clips
+      // Pass all clips and their trim data for concatenation
+      const result = await window.electronAPI.exportTimeline(
+        allClips,
+        clipTrims,
+        dialogResult.filePath
       );
 
       if (result.success) {

@@ -1,6 +1,6 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
-const { exportVideo } = require('./electron/ffmpeg/videoProcessing');
+const { exportVideo, exportTimeline } = require('./electron/ffmpeg/videoProcessing');
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -76,6 +76,23 @@ ipcMain.handle('export-video', async (event, inputPath, outputPath, trimData) =>
     return { success: true, outputPath };
   } catch (error) {
     console.error('Export error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Export entire timeline
+ipcMain.handle('export-timeline', async (event, clips, clipTrims, outputPath) => {
+  try {
+    console.log('Export timeline request:', { clips: clips.length, outputPath });
+    
+    const result = await exportTimeline(clips, clipTrims, outputPath, (progress) => {
+      // Send progress to renderer
+      event.sender.send('export-progress-update', progress);
+    });
+    
+    return { success: true, outputPath: result };
+  } catch (error) {
+    console.error('Timeline export error:', error);
     return { success: false, error: error.message };
   }
 });

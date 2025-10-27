@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import '../styles/VideoPlayer.css';
 
-const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
+const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, trimData }) => {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -53,6 +53,27 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
     const video = videoRef.current;
     if (video) {
       const current = video.currentTime;
+      
+      // Enforce trim boundaries during playback
+      if (trimData) {
+        const { inPoint, outPoint } = trimData;
+        
+        // If we've passed the out point, pause
+        if (current >= outPoint) {
+          video.pause();
+          setCurrentTime(outPoint);
+          setIsPlaying(false);
+          return;
+        }
+        
+        // If we're before the in point, seek to in point
+        if (current < inPoint) {
+          video.currentTime = inPoint;
+          setCurrentTime(inPoint);
+          return;
+        }
+      }
+      
       setCurrentTime(current);
       // Notify parent of time update
       onTimeUpdate?.({
@@ -154,11 +175,17 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
           {isPlaying ? '⏸' : '▶'}
         </button>
         
-        <div className="time-display">
-          <span>{formatTime(currentTime)}</span>
-          <span className="separator">/</span>
-          <span>{formatTime(duration)}</span>
+      <div className="time-display">
+        <span>{formatTime(currentTime)}</span>
+        <span className="separator">/</span>
+        <span>{trimData && trimData.outPoint < duration ? formatTime(trimData.outPoint - trimData.inPoint) : formatTime(duration)}</span>
+      </div>
+      
+      {trimData && (trimData.inPoint > 0 || trimData.outPoint < duration) && (
+        <div className="trim-indicator">
+          Trim: {formatTime(trimData.inPoint)} - {formatTime(trimData.outPoint)}
         </div>
+      )}
       </div>
       
       {selectedClip && (
