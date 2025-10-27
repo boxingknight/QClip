@@ -17,9 +17,8 @@ function getFFmpegPaths() {
     // Production: use bundled binaries
     const resourcesPath = process.resourcesPath;
     const ffmpegPath = path.join(resourcesPath, 'ffmpeg');
-    // Use architecture-specific ffprobe
-    const arch = process.arch === 'arm64' ? 'ffprobe-arm64' : 'ffprobe-x64';
-    const ffprobePath = path.join(resourcesPath, arch);
+    // Note: ffprobe-static only provides x86_64 binaries, use the x64 version
+    const ffprobePath = path.join(resourcesPath, 'ffprobe-x64');
     
     console.log('[FFmpeg] Using production paths:', { resourcesPath, ffmpegPath, ffprobePath });
     
