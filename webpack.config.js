@@ -1,12 +1,14 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { DefinePlugin } = require('webpack');
 
 module.exports = {
   entry: './src/index.js',
   target: 'electron-renderer',
   output: {
     filename: 'bundle.js',
-    path: path.resolve(__dirname, 'dist')
+    path: path.resolve(__dirname, 'dist'),
+    globalObject: 'this'
   },
   devServer: {
     static: path.resolve(__dirname, 'dist'),
@@ -17,6 +19,9 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: './src/index.html',
       filename: 'index.html'
+    }),
+    new DefinePlugin({
+      'global': 'globalThis'
     })
   ],
   module: {
