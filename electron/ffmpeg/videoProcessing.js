@@ -105,5 +105,65 @@ async function exportTimeline(clips, clipTrims, outputPath, onProgress) {
   });
 }
 
-module.exports = { exportVideo, exportTimeline };
+/**
+ * Render a trimmed clip (creates a new file with trim applied)
+ * @param {string} inputPath - Source video file
+ * @param {string} outputPath - Destination file
+ * @param {Object} trimData - Trim data { inPoint, outPoint }
+ * @param {Function} onProgress - Progress callback
+ * @returns {Promise<string>} Output file path
+ */
+async function renderTrimmedClip(inputPath, outputPath, trimData, onProgress) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const startTime = trimData.inPoint || 0;
+      const duration = trimData.outPoint - trimData.inPoint;
+      
+      console.log(`Rendering trimmed clip: ${startTime}s - ${trimData.outPoint}s`);
+      console.log(`Duration: ${duration}s`);
+      console.log(`Output: ${outputPath}`);
+      
+      // Ensure temp directory exists
+      const outputDir = path.dirname(outputPath);
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+        console.log(`Created temp directory: ${outputDir}`);
+      }
+      
+      ffmpeg(inputPath)
+        .setStartTime(startTime)
+        .setDuration(duration)
+        .videoCodec('libx264')
+        .audioCodec('aac')
+        .outputOptions([
+          '-preset ultrafast',  // Fast rendering for MVP
+          '-crf 23',
+          '-avoid_negative_ts make_zero'
+        ])
+        .on('progress', (progress) => {
+          console.log('Render progress:', progress.percent + '%', progress.timemark);
+          if (onProgress) {
+            onProgress({
+              percent: progress.percent || 0,
+              timemark: progress.timemark || '00:00:00'
+            });
+          }
+        })
+        .on('end', () => {
+          console.log('Trimmed clip rendered successfully');
+          resolve(outputPath);
+        })
+        .on('error', (err) => {
+          console.error('FFmpeg render error:', err);
+          reject(new Error(`Failed to render trimmed clip: ${err.message}`));
+        })
+        .save(outputPath);
+    } catch (error) {
+      console.error('Render trimmed clip error:', error);
+      reject(error);
+    }
+  });
+}
+
+module.exports = { exportVideo, exportTimeline, renderTrimmedClip };
 
