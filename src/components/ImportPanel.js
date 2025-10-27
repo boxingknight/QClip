@@ -52,8 +52,24 @@ const ImportPanel = ({ onImport, isImporting }) => {
         continue;
       }
       
-      // Get absolute path from Electron (file.path is provided by Electron)
-      const filePath = file.path || file.name;
+      // Get absolute path from Electron
+      // In Electron, file.path from drag-drop should be absolute
+      let filePath = file.path;
+      
+      console.log('File object:', {
+        name: file.name,
+        path: file.path,
+        size: file.size,
+        type: file.type
+      });
+      
+      // If path is not absolute (doesn't start with /), it's just the filename
+      // We need to handle this case
+      if (!filePath || (!filePath.startsWith('/') && !filePath.startsWith('\\'))) {
+        console.warn('Invalid file path detected:', filePath);
+        // Skip this file or use the name as fallback
+        filePath = null;
+      }
       
       const clip = {
         id: generateClipId(),
