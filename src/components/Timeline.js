@@ -2,7 +2,7 @@ import React from 'react';
 import '../styles/Timeline.css';
 import { formatDuration } from '../utils/timeHelpers';
 
-const Timeline = ({ clips, selectedClip, onSelectClip, clipTrims }) => {
+const Timeline = ({ clips, selectedClip, onSelectClip, clipTrims, onSetInPoint, onSetOutPoint }) => {
   // Empty state
   if (!clips || clips.length === 0) {
     return (
@@ -45,6 +45,8 @@ const Timeline = ({ clips, selectedClip, onSelectClip, clipTrims }) => {
               isSelected={selectedClip?.id === clip.id}
               onSelect={() => onSelectClip(clip)}
               trimData={clipTrimData}
+              onSetInPoint={onSetInPoint}
+              onSetOutPoint={onSetOutPoint}
             />
           );
         })}
@@ -53,7 +55,7 @@ const Timeline = ({ clips, selectedClip, onSelectClip, clipTrims }) => {
   );
 };
 
-const ClipBlock = ({ clip, widthPercent, isSelected, onSelect, trimData }) => {
+const ClipBlock = ({ clip, widthPercent, isSelected, onSelect, trimData, onSetInPoint, onSetOutPoint }) => {
   // Calculate trim overlay positions
   const hasTrim = trimData && clip.duration;
   const leftDarkenPercent = hasTrim && trimData.inPoint > 0
@@ -65,15 +67,37 @@ const ClipBlock = ({ clip, widthPercent, isSelected, onSelect, trimData }) => {
   const trimmedRegionLeft = hasTrim ? (trimData.inPoint / clip.duration) * 100 : 0;
   const trimmedRegionWidth = hasTrim ? ((trimData.outPoint - trimData.inPoint) / clip.duration) * 100 : 0;
 
+  const handleTimelineClick = (e) => {
+    if (!isSelected || !hasTrim) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percent = (x / rect.width) * 100;
+    const time = (percent / 100) * clip.duration;
+    
+    // Toggle between IN and OUT based on which side of highlighted region
+    if (percent < trimmedRegionLeft) {
+      // Click before highlighted - set IN
+      onSetInPoint(time);
+    } else if (percent > trimmedRegionLeft + trimmedRegionWidth) {
+      // Click after highlighted - set OUT
+      onSetOutPoint(time);
+    } else {
+      // Click in highlighted region - do nothing or could set IN
+      // (user probably wants to see the trim preview)
+    }
+  };
+
   return (
     <div
-      className={`clip-block ${isSelected ? 'selected' : ''}`}
+      className={`clip-block ${isSelected ? 'selected' : ''} ${isSelected && hasTrim ? 'trim-active' : ''}`}
       style={{ width: `${Math.max(widthPercent, 10)}%` }}
       onClick={onSelect}
+      onDoubleClick={handleTimelineClick}
     >
       {/* Trim Overlay */}
-      {hasTrim && (
-        <div className="trim-overlay">
+      {hasTrim && isSelected && (
+        <div className="trim-overlay" onClick={handleTimelineClick}>
           {/* Left darkened region (before in-point) */}
           {leftDarkenPercent > 0 && (
             <div

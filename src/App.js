@@ -286,6 +286,8 @@ function App() {
         selectedClip={selectedClip}
         onSelectClip={handleClipSelect}
         clipTrims={clipTrims}
+        onSetInPoint={handleSetInPoint}
+        onSetOutPoint={handleSetOutPoint}
       />
     </div>
   );
