@@ -14,17 +14,11 @@ function createWindow() {
     }
   });
 
-  // Load from webpack dev server in development
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:3000');
-  } else {
-    mainWindow.loadFile('src/index.html');
-  }
-
-  // Open DevTools in development
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.webContents.openDevTools();
-  }
+  // Always load from webpack dev server (assume development mode)
+  mainWindow.loadURL('http://localhost:3000');
+  
+  // Open DevTools
+  mainWindow.webContents.openDevTools();
 }
 
 app.on('ready', createWindow);
