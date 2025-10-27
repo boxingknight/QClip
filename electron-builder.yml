@@ -1,0 +1,16 @@
+appId: com.clipforge.app
+productName: ClipForge
+directories:
+  output: dist
+files:
+  - dist/bundle.js
+  - src/index.html
+  - main.js
+  - preload.js
+  - package.json
+mac:
+  category: public.app-category.video
+  target: dmg
+win:
+  target: nsis
+

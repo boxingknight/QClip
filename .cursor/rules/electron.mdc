@@ -1,0 +1,1178 @@
+---
+alwaysApply: true
+---
+# Cursor Rules for ClipForge - Electron Video Editor
+
+## Project Context
+ClipForge is a desktop video editor built with Electron, React, and FFmpeg. Focus on shipping a functional MVP in 72 hours with clean, maintainable code and modern UI/UX.
+
+---
+
+## Code Style & Standards
+
+### General Principles
+- Write clean, readable code that prioritizes functionality over perfection
+- Use clear, descriptive variable and function names
+- Add comments for complex logic, especially FFmpeg operations and IPC communication
+- Keep functions small and focused (single responsibility)
+- Prefer functional components with hooks over class components
+
+### JavaScript/React Standards
+```javascript
+// ✅ Good: Clear, descriptive naming
+const handleVideoImport = async (file) => {
+  if (!isValidVideoFile(file)) {
+    showError('Please select a valid MP4 or MOV file');
+    return;
+  }
+  // Process file...
+};
+
+// ❌ Bad: Unclear naming
+const doThing = (f) => {
+  // ...
+};
+```
+
+### File Organization
+- One component per file
+- Co-locate styles with components (ComponentName.js + ComponentName.css)
+- Keep utility functions in separate `/utils` folder
+- Electron-specific code in `/electron` folder
+- Components in `/src/components` folder
+
+### Naming Conventions
+- **Components**: PascalCase (e.g., `VideoPlayer.js`, `ImportPanel.js`)
+- **Utilities**: camelCase (e.g., `fileHelpers.js`, `videoProcessor.js`)
+- **CSS files**: Match component name (e.g., `VideoPlayer.css`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `MAX_FILE_SIZE`, `SUPPORTED_FORMATS`)
+
+---
+
+## Electron Best Practices
+
+### Process Separation
+```javascript
+// ✅ Good: Clear separation between main and renderer
+// main.js - Main process
+const { app, BrowserWindow, ipcMain } = require('electron');
+
+ipcMain.handle('export-video', async (event, inputPath, outputPath) => {
+  // Handle in main process with access to Node.js APIs
+  return await exportVideo(inputPath, outputPath);
+});
+
+// renderer (React) - Use IPC through preload
+const handleExport = async () => {
+  const result = await window.electronAPI.exportVideo(inputPath, outputPath);
+};
+```
+
+### Security Best Practices
+```javascript
+// ✅ Good: Use contextBridge in preload.js
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  importVideo: (filePath) => ipcRenderer.invoke('import-video', filePath),
+  exportVideo: (input, output) => ipcRenderer.invoke('export-video', input, output),
+  selectFile: () => ipcRenderer.invoke('select-file')
+});
+
+// ❌ Bad: Exposing entire ipcRenderer
+contextBridge.exposeInMainWorld('electronAPI', {
+  ipcRenderer: ipcRenderer // Never do this!
+});
+```
+
+### Context Isolation
+- Always enable `contextIsolation: true` in BrowserWindow
+- Always enable `nodeIntegration: false`
+- Use preload scripts with contextBridge for all IPC
+- Never expose Node.js APIs directly to renderer
+
+### Window Management
+```javascript
+// ✅ Good: Proper window configuration
+function createWindow() {
+  const mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
+    }
+  });
+
+  // Handle window close
+  mainWindow.on('close', (e) => {
+    // Check for unsaved changes
+    if (hasUnsavedChanges) {
+      e.preventDefault();
+      // Show dialog
+    }
+  });
+}
+```
+
+### File Path Handling
+```javascript
+// ✅ Good: Use file:// protocol for local files
+const videoPath = `file://${filePath}`;
+videoElement.src = videoPath;
+
+// ✅ Good: Use path.join for cross-platform paths
+const ffmpegPath = path.join(process.resourcesPath, 'ffmpeg', 'ffmpeg');
+
+// ❌ Bad: Hardcoded paths
+const ffmpegPath = '/usr/local/bin/ffmpeg'; // Won't work on Windows
+```
+
+### IPC Communication Patterns
+```javascript
+// ✅ Good: Use invoke/handle for async operations
+// Main process
+ipcMain.handle('process-video', async (event, videoPath) => {
+  try {
+    const result = await processVideo(videoPath);
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Renderer process
+const result = await window.electronAPI.processVideo(path);
+if (result.success) {
+  // Handle success
+} else {
+  // Handle error
+}
+
+// ✅ Good: Use send/on for progress updates
+// Main process
+ipcMain.on('start-export', (event, data) => {
+  exportVideo(data, (progress) => {
+    event.sender.send('export-progress', progress);
+  });
+});
+
+// Renderer process
+window.electronAPI.onExportProgress((progress) => {
+  setExportProgress(progress);
+});
+```
+
+---
+
+## React Best Practices
+
+### Component Structure
+```javascript
+// ✅ Good: Clean functional component with hooks
+import React, { useState, useEffect } from 'react';
+import './VideoPlayer.css';
+
+const VideoPlayer = ({ videoPath, onTimeUpdate }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    if (!videoPath) return;
+    
+    // Load video
+    videoRef.current.src = videoPath;
+    
+    // Cleanup on unmount
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.src = '';
+      }
+    };
+  }, [videoPath]);
+
+  const handlePlayPause = () => {
+    if (isPlaying) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  return (
+    <div className="video-player">
+      <video
+        ref={videoRef}
+        onTimeUpdate={(e) => {
+          setCurrentTime(e.target.currentTime);
+          onTimeUpdate?.(e.target.currentTime);
+        }}
+      />
+      <button onClick={handlePlayPause}>
+        {isPlaying ? 'Pause' : 'Play'}
+      </button>
+    </div>
+  );
+};
+
+export default VideoPlayer;
+```
+
+### State Management
+```javascript
+// ✅ Good: Lift state to parent when shared
+// App.js
+const [clips, setClips] = useState([]);
+const [selectedClip, setSelectedClip] = useState(null);
+const [trimData, setTrimData] = useState({ inPoint: 0, outPoint: 0 });
+
+// Pass down as props
+<Timeline clips={clips} selectedClip={selectedClip} onSelectClip={setSelectedClip} />
+<VideoPlayer clip={selectedClip} />
+<TrimControls trimData={trimData} onUpdateTrim={setTrimData} />
+```
+
+### Hooks Usage
+```javascript
+// ✅ Good: Custom hooks for reusable logic
+const useVideoMetadata = (videoPath) => {
+  const [metadata, setMetadata] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!videoPath) return;
+
+    setLoading(true);
+    window.electronAPI.getVideoMetadata(videoPath)
+      .then(setMetadata)
+      .catch(setError)
+      .finally(() => setLoading(false));
+  }, [videoPath]);
+
+  return { metadata, loading, error };
+};
+
+// Usage
+const { metadata, loading, error } = useVideoMetadata(selectedClip?.path);
+```
+
+### Event Handlers
+```javascript
+// ✅ Good: Descriptive handler names with proper error handling
+const handleVideoImport = async (files) => {
+  try {
+    setIsImporting(true);
+    
+    for (const file of files) {
+      if (!isValidVideoFormat(file.name)) {
+        showError(`${file.name} is not a supported format`);
+        continue;
+      }
+
+      const metadata = await window.electronAPI.getVideoMetadata(file.path);
+      const newClip = {
+        id: generateId(),
+        name: file.name,
+        path: file.path,
+        duration: metadata.duration
+      };
+
+      setClips(prev => [...prev, newClip]);
+    }
+  } catch (error) {
+    console.error('Import failed:', error);
+    showError('Failed to import video. Please try again.');
+  } finally {
+    setIsImporting(false);
+  }
+};
+```
+
+### Prop Types & Validation
+```javascript
+// ✅ Good: Clear prop expectations with defaults
+const Timeline = ({ 
+  clips = [], 
+  selectedClipId = null, 
+  onSelectClip = () => {},
+  trimData = null 
+}) => {
+  // Component implementation
+};
+
+// Or use PropTypes
+import PropTypes from 'prop-types';
+
+Timeline.propTypes = {
+  clips: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    path: PropTypes.string.isRequired,
+    duration: PropTypes.number.isRequired
+  })),
+  selectedClipId: PropTypes.string,
+  onSelectClip: PropTypes.func.isRequired
+};
+```
+
+---
+
+## UI/UX Best Practices
+
+### Modern Design Principles
+- **Minimalism**: Clean interfaces with ample whitespace
+- **Consistency**: Use design system with consistent colors, spacing, and typography
+- **Feedback**: Always provide visual feedback for user actions
+- **Accessibility**: Ensure keyboard navigation and screen reader support
+
+### Design System
+```css
+/* ✅ Good: Define design tokens */
+:root {
+  /* Colors */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-secondary: #64748b;
+  --color-success: #10b981;
+  --color-error: #ef4444;
+  --color-warning: #f59e0b;
+  
+  /* Background & Surface */
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-surface-hover: #334155;
+  
+  /* Text */
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-disabled: #475569;
+  
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+```
+
+### Button Styles
+```css
+/* ✅ Good: Consistent button system */
+.btn {
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-secondary);
+}
+
+.btn-icon {
+  padding: var(--space-sm);
+  aspect-ratio: 1;
+}
+```
+
+### Layout Patterns
+```css
+/* ✅ Good: Modern layout with flexbox/grid */
+.app-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr 300px;
+  grid-template-rows: auto 1fr 200px;
+  grid-template-areas:
+    "header header header"
+    "sidebar main controls"
+    "timeline timeline timeline";
+  height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+.header {
+  grid-area: header;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.sidebar {
+  grid-area: sidebar;
+  padding: var(--space-lg);
+  border-right: 1px solid var(--color-surface);
+  overflow-y: auto;
+}
+
+.main {
+  grid-area: main;
+  padding: var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.controls {
+  grid-area: controls;
+  padding: var(--space-lg);
+  border-left: 1px solid var(--color-surface);
+}
+
+.timeline {
+  grid-area: timeline;
+  padding: var(--space-md);
+  border-top: 1px solid var(--color-surface);
+  background: var(--color-surface);
+}
+```
+
+### Loading States
+```javascript
+// ✅ Good: Clear loading states
+const VideoPlayer = ({ videoPath }) => {
+  const [loading, setLoading] = useState(true);
+
+  return (
+    <div className="video-player">
+      {loading && (
+        <div className="loading-overlay">
+          <div className="spinner"></div>
+          <p>Loading video...</p>
+        </div>
+      )}
+      <video
+        src={videoPath}
+        onLoadedMetadata={() => setLoading(false)}
+        onError={() => {
+          setLoading(false);
+          showError('Failed to load video');
+        }}
+      />
+    </div>
+  );
+};
+```
+
+```css
+/* Spinner animation */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-surface);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+```
+
+### Empty States
+```javascript
+// ✅ Good: Helpful empty states
+const Timeline = ({ clips }) => {
+  if (clips.length === 0) {
+    return (
+      <div className="empty-state">
+        <div className="empty-state-icon">
+          <svg>...</svg>
+        </div>
+        <h3>No clips yet</h3>
+        <p>Import a video file to get started</p>
+        <button className="btn-primary" onClick={onImportClick}>
+          Import Video
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="timeline">
+      {/* Timeline content */}
+    </div>
+  );
+};
+```
+
+### Error States
+```javascript
+// ✅ Good: User-friendly error messages
+const ErrorMessage = ({ error, onRetry, onDismiss }) => {
+  return (
+    <div className="error-message" role="alert">
+      <div className="error-icon">⚠️</div>
+      <div className="error-content">
+        <h4>Something went wrong</h4>
+        <p>{error.message || 'An unexpected error occurred'}</p>
+      </div>
+      <div className="error-actions">
+        {onRetry && (
+          <button className="btn-secondary" onClick={onRetry}>
+            Try Again
+          </button>
+        )}
+        <button className="btn-icon" onClick={onDismiss}>
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+};
+```
+
+### Interactive Feedback
+```css
+/* ✅ Good: Visual feedback for interactions */
+.clip {
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.clip:hover {
+  background: var(--color-surface-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.clip.selected {
+  background: var(--color-primary);
+  color: white;
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.clip:active {
+  transform: translateY(0);
+}
+
+/* Drag-and-drop feedback */
+.drop-zone {
+  border: 2px dashed var(--color-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  transition: all var(--transition-fast);
+}
+
+.drop-zone.drag-over {
+  border-color: var(--color-primary);
+  background: rgba(59, 130, 246, 0.1);
+  transform: scale(1.02);
+}
+```
+
+### Animations
+```css
+/* ✅ Good: Subtle, purposeful animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.clip-enter {
+  animation: fadeIn var(--transition-base);
+}
+
+/* Smooth transitions */
+.video-player video {
+  transition: opacity var(--transition-base);
+}
+
+.video-player.loading video {
+  opacity: 0.3;
+}
+
+/* Progress bar animation */
+.progress-bar {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  transition: width var(--transition-fast);
+}
+
+.progress-indeterminate {
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+```
+
+### Accessibility
+```javascript
+// ✅ Good: Accessible components
+const PlayButton = ({ isPlaying, onClick, disabled }) => {
+  return (
+    <button
+      className="btn-icon"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={isPlaying ? 'Pause video' : 'Play video'}
+      aria-pressed={isPlaying}
+    >
+      {isPlaying ? '⏸' : '▶'}
+    </button>
+  );
+};
+
+// ✅ Good: Keyboard navigation
+const Timeline = ({ clips, selectedClipId, onSelectClip }) => {
+  const handleKeyDown = (e, clipId) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelectClip(clipId);
+    }
+  };
+
+  return (
+    <div className="timeline">
+      {clips.map(clip => (
+        <div
+          key={clip.id}
+          className={`clip ${selectedClipId === clip.id ? 'selected' : ''}`}
+          onClick={() => onSelectClip(clip.id)}
+          onKeyDown={(e) => handleKeyDown(e, clip.id)}
+          tabIndex={0}
+          role="button"
+          aria-label={`Select clip: ${clip.name}`}
+        >
+          {clip.name}
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+### Responsive Design
+```css
+/* ✅ Good: Responsive layout */
+@media (max-width: 1024px) {
+  .app-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "main"
+      "controls"
+      "timeline";
+  }
+
+  .sidebar {
+    display: none;
+  }
+}
+
+/* Ensure minimum sizes */
+.video-player {
+  min-width: 320px;
+  min-height: 180px;
+  max-width: 100%;
+}
+```
+
+---
+
+## FFmpeg Best Practices
+
+### FFmpeg Command Construction
+```javascript
+// ✅ Good: Clear FFmpeg command with error handling
+const exportVideo = (inputPath, outputPath, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const { startTime = 0, duration, onProgress } = options;
+
+    let command = ffmpeg(inputPath)
+      .setFfmpegPath(ffmpegPath)
+      .setFfprobePath(ffprobePath);
+
+    // Apply trim if specified
+    if (startTime > 0) {
+      command = command.setStartTime(startTime);
+    }
+
+    if (duration) {
+      command = command.setDuration(duration);
+    }
+
+    command
+      .output(outputPath)
+      .videoCodec('libx264')
+      .audioCodec('aac')
+      .on('progress', (progress) => {
+        if (onProgress) {
+          onProgress({
+            percent: progress.percent,
+            currentTime: progress.timemark
+          });
+        }
+      })
+      .on('end', () => {
+        console.log('Export completed successfully');
+        resolve(outputPath);
+      })
+      .on('error', (err) => {
+        console.error('FFmpeg error:', err);
+        reject(new Error(`Export failed: ${err.message}`));
+      })
+      .run();
+  });
+};
+```
+
+### Progress Tracking
+```javascript
+// ✅ Good: Real-time progress updates via IPC
+// Main process
+ipcMain.handle('export-video', async (event, inputPath, outputPath, trimData) => {
+  try {
+    const result = await exportVideo(inputPath, outputPath, {
+      startTime: trimData.inPoint,
+      duration: trimData.outPoint - trimData.inPoint,
+      onProgress: (progress) => {
+        // Send progress to renderer
+        event.sender.send('export-progress', progress);
+      }
+    });
+    
+    return { success: true, outputPath: result };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Renderer process
+const handleExport = async () => {
+  setIsExporting(true);
+  
+  // Listen for progress updates
+  const removeListener = window.electronAPI.onExportProgress((progress) => {
+    setExportProgress(progress.percent);
+  });
+
+  const result = await window.electronAPI.exportVideo(
+    inputPath,
+    outputPath,
+    trimData
+  );
+
+  removeListener(); // Clean up listener
+  setIsExporting(false);
+
+  if (result.success) {
+    showSuccess('Video exported successfully!');
+  } else {
+    showError(`Export failed: ${result.error}`);
+  }
+};
+```
+
+### Metadata Extraction
+```javascript
+// ✅ Good: Extract video metadata with ffprobe
+const getVideoMetadata = (videoPath) => {
+  return new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(videoPath, (err, metadata) => {
+      if (err) {
+        reject(new Error(`Failed to read video metadata: ${err.message}`));
+        return;
+      }
+
+      const videoStream = metadata.streams.find(s => s.codec_type === 'video');
+      const audioStream = metadata.streams.find(s => s.codec_type === 'audio');
+
+      resolve({
+        duration: metadata.format.duration,
+        width: videoStream?.width,
+        height: videoStream?.height,
+        fps: eval(videoStream?.r_frame_rate), // e.g., "30/1" -> 30
+        codec: videoStream?.codec_name,
+        hasAudio: !!audioStream,
+        fileSize: metadata.format.size
+      });
+    });
+  });
+};
+```
+
+---
+
+## Error Handling Best Practices
+
+### Comprehensive Error Handling
+```javascript
+// ✅ Good: Structured error handling
+class VideoProcessingError extends Error {
+  constructor(message, code, details = {}) {
+    super(message);
+    this.name = 'VideoProcessingError';
+    this.code = code;
+    this.details = details;
+  }
+}
+
+const validateVideoFile = (filePath) => {
+  const ext = path.extname(filePath).toLowerCase();
+  const supportedFormats = ['.mp4', '.mov', '.webm'];
+
+  if (!supportedFormats.includes(ext)) {
+    throw new VideoProcessingError(
+      'Unsupported file format',
+      'UNSUPPORTED_FORMAT',
+      { extension: ext, supportedFormats }
+    );
+  }
+
+  if (!fs.existsSync(filePath)) {
+    throw new VideoProcessingError(
+      'File not found',
+      'FILE_NOT_FOUND',
+      { filePath }
+    );
+  }
+
+  const stats = fs.statSync(filePath);
+  const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
+
+  if (stats.size > maxSize) {
+    throw new VideoProcessingError(
+      'File too large',
+      'FILE_TOO_LARGE',
+      { size: stats.size, maxSize }
+    );
+  }
+};
+
+// Usage
+try {
+  validateVideoFile(filePath);
+  await processVideo(filePath);
+} catch (error) {
+  if (error instanceof VideoProcessingError) {
+    switch (error.code) {
+      case 'UNSUPPORTED_FORMAT':
+        showError(`Please select a supported format: ${error.details.supportedFormats.join(', ')}`);
+        break;
+      case 'FILE_TOO_LARGE':
+        showError('File is too large. Maximum size is 2GB.');
+        break;
+      default:
+        showError(error.message);
+    }
+  } else {
+    console.error('Unexpected error:', error);
+    showError('An unexpected error occurred. Please try again.');
+  }
+}
+```
+
+### User-Friendly Error Messages
+```javascript
+// ✅ Good: Translate technical errors to user-friendly messages
+const getErrorMessage = (error) => {
+  const errorMap = {
+    'ENOENT': 'The file could not be found. It may have been moved or deleted.',
+    'EACCES': 'Permission denied. Please check file permissions.',
+    'ENOSPC': 'Not enough disk space to complete the operation.',
+    'FFMPEG_ERROR': 'Video processing failed. Please ensure the file is not corrupted.',
+    'UNSUPPORTED_CODEC': 'This video format is not supported. Try converting it to MP4 first.',
+  };
+
+  return errorMap[error.code] || error.message || 'An unknown error occurred.';
+};
+```
+
+---
+
+## Performance Optimization
+
+### Video Player Optimization
+```javascript
+// ✅ Good: Efficient video player with cleanup
+const VideoPlayer = ({ videoPath }) => {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    if (!videoPath || !videoRef.current) return;
+
+    // Load video
+    videoRef.current.src = videoPath;
+    videoRef.current.load();
+
+    // Cleanup function
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.removeAttribute('src');
+        videoRef.current.load(); // Release memory
+      }
+    };
+  }, [videoPath]);
+
+  return <video ref={videoRef} />;
+};
+```
+
+### Debounce & Throttle
+```javascript
+// ✅ Good: Debounce expensive operations
+const useDebouncedCallback = (callback, delay) => {
+  const timeoutRef = useRef(null);
+
+  return useCallback((...args) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      callback(...args);
+    }, delay);
+  }, [callback, delay]);
+};
+
+// Usage: Debounce timeline scrubbing
+const handleTimelineSeek = useDebouncedCallback((time) => {
+  videoRef.current.currentTime = time;
+}, 100);
+```
+
+### Memory Management
+```javascript
+// ✅ Good: Clean up resources
+useEffect(() => {
+  const cleanup = [];
+
+  // Register cleanup for video elements
+  const videos = document.querySelectorAll('video');
+  videos.forEach(video => {
+    cleanup.push(() => {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    });
+  });
+
+  return () => {
+    cleanup.forEach(fn => fn());
+  };
+}, []);
+```
+
+---
+
+## Testing & Debugging
+
+### Console Logging
+```javascript
+// ✅ Good: Structured logging
+const logger = {
+  info: (message, data = {}) => {
+    console.log(`[INFO] ${message}`, data);
+  },
+  error: (message, error, data = {}) => {
+    console.error(`[ERROR] ${message}`, {
+      error: error.message,
+      stack: error.stack,
+      ...data
+    });
+  },
+  debug: (message, data = {}) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[DEBUG] ${message}`, data);
+    }
+  }
+};
+
+// Usage
+logger.info('Video imported', { path: videoPath, duration: metadata.duration });
+logger.error('Export failed', error, { inputPath, outputPath });
+```
+
+### Development Tools
+```javascript
+// ✅ Good: Enable dev tools in development
+if (process.env.NODE_ENV === 'development') {
+  mainWindow.webContents.openDevTools();
+}
+
+// Hot reload in development
+if (process.env.NODE_ENV === 'development') {
+  require('electron-reload')(__dirname);
+}
+```
+
+---
+
+## Git Commit Best Practices
+
+### Commit Messages
+```
+✅ Good commit messages:
+feat: Add video import with drag-and-drop
+fix: Resolve FFmpeg path issue on Windows
+refactor: Extract timeline logic into custom hook
+style: Update button hover states
+docs: Add setup instructions to README
+
+❌ Bad commit messages:
+updated stuff
+bug fix
+wip
+changes
+```
+
+### Commit Frequency
+- Commit after completing each subtask
+- Don't commit broken code
+- Test before committing
+- Keep commits focused and atomic
+
+---
+
+## Priority Reminders
+
+### Time Management
+1. **Functionality > Perfection**: Ship working features, polish later
+2. **Test Early**: Don't wait until the end to test FFmpeg export
+3. **Package Early**: Test packaged app on Day 2, not Day 3
+4. **MVP First**: Focus on core requirements before stretch goals
+
+### Critical Path
+1. Project Setup (must work)
+2. Import + Player (must work)
+3. FFmpeg Export (must work - test early!)
+4. Timeline + Trim (must work)
+5. Packaging (must work - test early!)
+6. Polish (nice to have)
+7. Documentation (required for submission)
+
+---
+
+## Quick Reference Commands
+
+### Development
+```bash
+# Start development
+npm start
+
+# Build for production
+npm run build
+
+# Package app
+npm run package
+
+# Install dependencies
+npm install
+
+# Clean install
+rm -rf node_modules package-lock.json && npm install
+```
+
+### Debugging
+```javascript
+// Inspect main process
+console.log('Main process:', process.type);
+
+// Inspect renderer process
+console.log('Renderer process:', process.type);
+
+// Check Electron version
+console.log('Electron version:', process.versions.electron);
+
+// Check FFmpeg paths
+console.log('FFmpeg path:', ffmpegPath);
+console.log('FFprobe path:', ffprobePath);
+```
+
+---
+
+## Final Checklist Before Each PR
+
+- [ ] Code follows style guidelines
+- [ ] No console errors
+- [ ] All features work as expected
+- [ ] Error handling implemented
+- [ ] Loading states added
+- [ ] UI is responsive
+- [ ] Accessibility considered
+- [ ] Memory leaks checked
+- [ ] Comments added for complex logic
+- [ ] Files organized properly
+- [ ] Tested in both dev and packaged app
+
+---
+
+**Remember**: You have 72 hours. Focus on shipping a working MVP with clean, maintainable code. Perfect is the enemy of done.
