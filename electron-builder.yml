@@ -25,7 +25,6 @@ mac:
   target:
     - dmg
   icon: public/icon.png
-  identity: null
   hardenedRuntime: false
   gatekeeperAssess: false
   
