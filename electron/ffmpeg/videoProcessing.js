@@ -67,11 +67,7 @@ const path = require('path');
 
 /**
  * Export entire timeline with all clips concatenated
- * @param {Array} clips - Array of clip objects
- * @param {Object} clipTrims - Object mapping clip IDs to trim data
- * @param {string} outputPath - Destination file
- * @param {Function} onProgress - Progress callback
- * @returns {Promise<string>} Output file path
+ * Uses FFmpeg concat demuxer for proper multi-clip export
  */
 async function exportTimeline(clips, clipTrims, outputPath, onProgress) {
   return new Promise(async (resolve, reject) => {
@@ -83,18 +79,80 @@ async function exportTimeline(clips, clipTrims, outputPath, onProgress) {
         return;
       }
 
-      // For MVP: Export first clip with its trim
-      // TODO: Implement proper concatenation for multi-clip timelines
-      const firstClip = clips[0];
-      const trimData = clipTrims[firstClip.id] || { inPoint: 0, outPoint: firstClip.duration };
+      // If only one clip, use simple export
+      if (clips.length === 1) {
+        const clip = clips[0];
+        const trimData = clipTrims[clip.id] || { inPoint: 0, outPoint: clip.duration };
+        
+        await exportVideo(clip.isTrimmed ? clip.trimmedPath : clip.path, outputPath, {
+          startTime: clip.isTrimmed ? 0 : trimData.inPoint,
+          duration: clip.isTrimmed ? clip.duration : (trimData.outPoint - trimData.inPoint),
+          onProgress
+        });
+        
+        return resolve(outputPath);
+      }
+
+      // Multiple clips - render trimmed versions first, then concatenate
+      const tempFiles = [];
       
-      console.log('Exporting clip:', firstClip.name);
-      console.log('Trim data:', trimData);
+      for (let i = 0; i < clips.length; i++) {
+        const clip = clips[i];
+        const trimData = clipTrims[clip.id] || { inPoint: 0, outPoint: clip.duration };
+        
+        // Skip if no trim needed
+        if (clip.isTrimmed) {
+          tempFiles.push({ path: clip.trimmedPath, duration: clip.duration });
+          continue;
+        }
+        
+        // Render trimmed version
+        const tempPath = path.join(path.dirname(outputPath), `temp_${i}.mp4`);
+        await renderTrimmedClip(clip.path, tempPath, trimData, (progress) => {
+          // Progress for this clip
+          if (onProgress) {
+            onProgress({ percent: ((i / clips.length) * 100) + (progress.percent / clips.length) });
+          }
+        });
+        tempFiles.push({ path: tempPath, duration: trimData.outPoint - trimData.inPoint });
+      }
       
-      await exportVideo(firstClip.path, outputPath, {
-        startTime: trimData.inPoint,
-        duration: trimData.outPoint - trimData.inPoint,
-        onProgress
+      // Create concat file
+      const concatFile = path.join(path.dirname(outputPath), 'concat.txt');
+      let concatContent = '';
+      tempFiles.forEach(file => {
+        concatContent += `file '${file.path}'\n`;
+      });
+      fs.writeFileSync(concatFile, concatContent);
+      
+      // Concatenate all clips
+      await new Promise((concatResolve, concatReject) => {
+        ffmpeg(concatFile)
+          .inputOptions(['-f', 'concat', '-safe', '0'])
+          .videoCodec('libx264')
+          .audioCodec('aac')
+          .outputOptions(['-preset fast', '-crf 23'])
+          .on('progress', (progress) => {
+            if (onProgress) {
+              onProgress({ percent: 90 + (progress.percent * 0.1) });
+            }
+          })
+          .on('end', () => {
+            // Cleanup temp files
+            tempFiles.forEach(file => {
+              if (file.path.includes('temp_')) {
+                try {
+                  fs.unlinkSync(file.path);
+                } catch (e) {}
+              }
+            });
+            try {
+              fs.unlinkSync(concatFile);
+            } catch (e) {}
+            concatResolve();
+          })
+          .on('error', concatReject)
+          .save(outputPath);
       });
       
       resolve(outputPath);

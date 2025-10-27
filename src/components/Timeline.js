@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import '../styles/Timeline.css';
 import { formatDuration } from '../utils/timeHelpers';
 
@@ -56,6 +56,8 @@ const Timeline = ({ clips, selectedClip, onSelectClip, clipTrims, onSetInPoint, 
 };
 
 const ClipBlock = ({ clip, widthPercent, isSelected, onSelect, trimData, onSetInPoint, onSetOutPoint }) => {
+  const [draggingHandle, setDraggingHandle] = useState(null);
+  
   // Calculate trim overlay positions
   const hasTrim = trimData && clip.duration;
   const leftDarkenPercent = hasTrim && trimData.inPoint > 0
@@ -67,28 +69,71 @@ const ClipBlock = ({ clip, widthPercent, isSelected, onSelect, trimData, onSetIn
   const trimmedRegionLeft = hasTrim ? (trimData.inPoint / clip.duration) * 100 : 0;
   const trimmedRegionWidth = hasTrim ? ((trimData.outPoint - trimData.inPoint) / clip.duration) * 100 : 0;
 
-  const handleDrag = (e, isInHandle) => {
+  // Drag start
+  const handleDragStart = (e, isInHandle) => {
     if (!isSelected || !hasTrim) return;
-    
     e.stopPropagation();
     e.preventDefault();
+    setDraggingHandle(isInHandle ? 'in' : 'out');
+  };
+
+  // Drag move - only when dragging
+  const handleDragMove = (e) => {
+    if (!draggingHandle || !isSelected || !hasTrim) return;
     
-    const rect = e.currentTarget.closest('.clip-block').getBoundingClientRect();
+    const clipBlock = e.currentTarget.closest('.clip-block');
+    if (!clipBlock) return;
+    
+    const rect = clipBlock.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
     const time = (percent / 100) * clip.duration;
     
-    if (isInHandle) {
+    if (draggingHandle === 'in') {
       onSetInPoint(time);
     } else {
       onSetOutPoint(time);
     }
   };
 
-  const handleMouseMove = (e) => {
-    if (!isSelected || !hasTrim) return;
-    // Dragging will be handled by onMouseMove on the handle itself
+  // Drag end
+  const handleDragEnd = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setDraggingHandle(null);
   };
+
+  // Add mouse listeners when dragging
+  React.useEffect(() => {
+    if (draggingHandle) {
+      const handleGlobalMouseMove = (e) => {
+        const clipBlock = document.querySelector(`.clip-block.selected`);
+        if (!clipBlock) return;
+        const rect = clipBlock.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+        const time = (percent / 100) * clip.duration;
+        
+        if (draggingHandle === 'in') {
+          onSetInPoint(time);
+        } else {
+          onSetOutPoint(time);
+        }
+      };
+
+      const handleGlobalMouseUp = () => {
+        setDraggingHandle(null);
+      };
+
+      window.addEventListener('mousemove', handleGlobalMouseMove);
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+
+      return () => {
+        window.removeEventListener('mousemove', handleGlobalMouseMove);
+        window.removeEventListener('mouseup', handleGlobalMouseUp);
+      };
+    }
+  }, [draggingHandle, onSetInPoint, onSetOutPoint]);
 
   const handleTimelineClick = (e) => {
     if (!isSelected || !hasTrim) return;
@@ -140,8 +185,7 @@ const ClipBlock = ({ clip, widthPercent, isSelected, onSelect, trimData, onSetIn
               <div
                 className="trim-handle trim-handle-in"
                 style={{ left: 0 }}
-                onMouseDown={(e) => handleDrag(e, true)}
-                onMouseMove={(e) => handleDrag(e, true)}
+                onMouseDown={(e) => handleDragStart(e, true)}
                 title="Drag to adjust IN point"
               />
               
@@ -149,8 +193,7 @@ const ClipBlock = ({ clip, widthPercent, isSelected, onSelect, trimData, onSetIn
               <div
                 className="trim-handle trim-handle-out"
                 style={{ right: 0 }}
-                onMouseDown={(e) => handleDrag(e, false)}
-                onMouseMove={(e) => handleDrag(e, false)}
+                onMouseDown={(e) => handleDragStart(e, false)}
                 title="Drag to adjust OUT point"
               />
             </div>
