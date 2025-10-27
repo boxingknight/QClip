@@ -10,7 +10,47 @@ Welcome to the PR_PARTY! This directory contains comprehensive documentation for
 
 ## Latest PRs
 
-### PR#03: Video Player Component ✅ COMPLETE
+### PR#06.1: Destructive Trim Refactor 📋 PLANNED
+**Status**: 📋 PLANNED (Planning Complete)  
+**Timeline**: 4-6 hours estimated  
+**Priority**: HIGH  
+**Complexity**: MEDIUM-HIGH  
+**Dependencies**: PR#06 (current trim system)  
+
+**What's Being Built:**
+Complete refactor of trim system from non-destructive marks to destructive iMovie-style trimming. Trimming a clip permanently deletes excess footage, updates the clip in state, and refreshes the timeline to show the actual trimmed length.
+
+**Documents Created:**
+- `PR06.1_DESTRUCTIVE_TRIM.md` (Technical Specification ~12,000 words)
+- `PR06.1_IMPLEMENTATION_CHECKLIST.md` (Step-by-step tasks ~8,000 words)
+- `PR06.1_README.md` (Quick start guide ~4,000 words)
+- `PR06.1_PLANNING_SUMMARY.md` (Executive overview ~2,000 words)
+- `PR06.1_TESTING_GUIDE.md` (Testing strategy ~3,000 words)
+
+**Total Documentation**: ~29,000 words
+
+**Summary:**
+Users expect "trim" to delete parts of the video, not just mark them. This refactor transforms ClipForge from a confusing non-destructive system (trim marks that don't affect playback) to an intuitive destructive system (trimming permanently deletes excess footage). When user clicks "Apply Trim", the system renders a new trimmed video file, replaces the original clip in state with the shorter version, and updates the timeline to show the actual trimmed length. This matches iMovie/Photos behavior where what you see is what you get.
+
+**Key Decisions:**
+- Destructive trim on user confirmation (most intuitive)
+- Render trimmed clip using FFmpeg with progress feedback
+- Store trimmed files in temp directory with cleanup
+- Two-state system: draft marks → applied trimmed clip
+- Player uses trimmed file, timeline shows actual duration
+
+**Implementation Approach:**
+1. Add "Apply Trim" button to TrimControls
+2. Create renderTrimmedClip() function using FFmpeg
+3. Update clip state: add trimmedPath, update duration
+4. Player uses trimmed file (no trim boundaries needed)
+5. Timeline shows actual durations (no overlays)
+6. Export simplified (no trim data needed)
+7. Clear trim marks after applying
+
+---
+
+### PR#06: Trim Controls ✅ COMPLETE (Under Refactor)
 **Status:** ✅ COMPLETE  
 **Timeline:** 3-4 hours estimated / ~1.5 hours actual  
 **Completed:** October 27, 2025  
