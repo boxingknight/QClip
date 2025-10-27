@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/ExportPanel.css';
 
-const ExportPanel = ({ currentClip, trimData }) => {
+const ExportPanel = ({ currentClip, allClips, clipTrims }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('');
@@ -22,8 +22,8 @@ const ExportPanel = ({ currentClip, trimData }) => {
   }, []);
 
   const handleExport = async () => {
-    if (!currentClip) {
-      setError('No clip selected');
+    if (!allClips || allClips.length === 0) {
+      setError('No clips to export');
       return;
     }
 
@@ -42,13 +42,18 @@ const ExportPanel = ({ currentClip, trimData }) => {
         return;
       }
 
-      setStatus('Exporting video...');
+      setStatus(`Exporting ${allClips.length} clips...`);
       
-      // Call export API with trim data
+      // Export all clips with their trim settings
+      // For MVP, we'll export just the selected/current clip with trim
+      // Future enhancement: concat all trimmed clips into one video
+      const clipToExport = currentClip || allClips[0];
+      const trimData = clipTrims[clipToExport.id] || { inPoint: 0, outPoint: clipToExport.duration };
+      
       const result = await window.electronAPI.exportVideo(
-        currentClip.path,
+        clipToExport.path,
         dialogResult.filePath,
-        trimData // Pass trim data if available
+        trimData
       );
 
       if (result.success) {

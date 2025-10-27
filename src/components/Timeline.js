@@ -2,7 +2,7 @@ import React from 'react';
 import '../styles/Timeline.css';
 import { formatDuration } from '../utils/timeHelpers';
 
-const Timeline = ({ clips, selectedClip, onSelectClip, trimData }) => {
+const Timeline = ({ clips, selectedClip, onSelectClip, clipTrims }) => {
   // Empty state
   if (!clips || clips.length === 0) {
     return (
@@ -34,7 +34,8 @@ const Timeline = ({ clips, selectedClip, onSelectClip, trimData }) => {
             ? ((clip.duration || 0) / totalDuration) * 100 
             : 100;
           
-          const clipTrimData = selectedClip?.id === clip.id ? trimData : null;
+          // Get this clip's trim data
+          const clipTrimData = clipTrims[clip.id] || { inPoint: 0, outPoint: clip.duration || 0 };
           
           return (
             <ClipBlock

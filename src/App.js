@@ -10,7 +10,8 @@ function App() {
   const [clips, setClips] = useState([]);
   const [selectedClip, setSelectedClip] = useState(null);
   const [currentVideoTime, setCurrentVideoTime] = useState(0);
-  const [trimData, setTrimData] = useState({ inPoint: 0, outPoint: 0 });
+  // Store trim data per clip
+  const [clipTrims, setClipTrims] = useState({});
   const [importStatus, setImportStatus] = useState({
     loading: false,
     error: null,
@@ -25,15 +26,18 @@ function App() {
     }
   }, []);
 
-  // Initialize trim data when selected clip changes
+  // Initialize trim data for clip if it doesn't exist
   useEffect(() => {
-    if (selectedClip && selectedClip.duration) {
-      setTrimData({
-        inPoint: 0,
-        outPoint: selectedClip.duration
-      });
+    if (selectedClip && !clipTrims[selectedClip.id] && selectedClip.duration) {
+      setClipTrims(prev => ({
+        ...prev,
+        [selectedClip.id]: {
+          inPoint: 0,
+          outPoint: selectedClip.duration
+        }
+      }));
     }
-  }, [selectedClip?.id]);
+  }, [selectedClip?.id, clipTrims]);
 
   const handleImport = (newClips) => {
     console.log('Importing clips:', newClips);
@@ -41,6 +45,20 @@ function App() {
     
     // Add to existing clips
     setClips(prev => [...prev, ...newClips]);
+    
+    // Initialize trim data for new clips (full clip by default)
+    setClipTrims(prev => {
+      const newTrims = { ...prev };
+      newClips.forEach(clip => {
+        if (clip.duration) {
+          newTrims[clip.id] = {
+            inPoint: 0,
+            outPoint: clip.duration
+          };
+        }
+      });
+      return newTrims;
+    });
     
     // Select the first imported clip if none selected
     if (!selectedClip && newClips.length > 0) {
@@ -59,14 +77,15 @@ function App() {
     // Find the latest version of the clip from the clips array
     const freshClip = clips.find(c => c.id === clip.id) || clip;
     setSelectedClip(freshClip);
-    
-    // Reset trim data when selecting a new clip
-    if (freshClip && freshClip.duration) {
-      setTrimData({
-        inPoint: 0,
-        outPoint: freshClip.duration
-      });
-    }
+  };
+  
+  // Get current clip's trim data
+  const getCurrentTrimData = () => {
+    if (!selectedClip) return { inPoint: 0, outPoint: 0 };
+    return clipTrims[selectedClip.id] || { 
+      inPoint: 0, 
+      outPoint: selectedClip.duration || 0 
+    };
   };
 
   // Trim Control Handlers
@@ -75,9 +94,12 @@ function App() {
     
     const trimTime = time !== undefined ? time : currentVideoTime;
     
-    setTrimData(prev => ({
+    setClipTrims(prev => ({
       ...prev,
-      inPoint: trimTime
+      [selectedClip.id]: {
+        ...prev[selectedClip.id],
+        inPoint: trimTime
+      }
     }));
   };
 
@@ -86,19 +108,25 @@ function App() {
     
     const trimTime = time !== undefined ? time : currentVideoTime;
     
-    setTrimData(prev => ({
+    setClipTrims(prev => ({
       ...prev,
-      outPoint: trimTime
+      [selectedClip.id]: {
+        ...prev[selectedClip.id],
+        outPoint: trimTime
+      }
     }));
   };
 
   const handleResetTrim = () => {
     if (!selectedClip) return;
     
-    setTrimData({
-      inPoint: 0,
-      outPoint: selectedClip.duration || 0
-    });
+    setClipTrims(prev => ({
+      ...prev,
+      [selectedClip.id]: {
+        inPoint: 0,
+        outPoint: selectedClip.duration || 0
+      }
+    }));
   };
 
   const handleVideoTimeUpdate = (data) => {
@@ -152,15 +180,16 @@ function App() {
         <TrimControls
           currentTime={currentVideoTime}
           duration={selectedClip?.duration || 0}
-          inPoint={trimData.inPoint}
-          outPoint={trimData.outPoint}
+          inPoint={getCurrentTrimData().inPoint}
+          outPoint={getCurrentTrimData().outPoint}
           onSetInPoint={handleSetInPoint}
           onSetOutPoint={handleSetOutPoint}
           onResetTrim={handleResetTrim}
         />
         <ExportPanel 
           currentClip={selectedClip}
-          trimData={trimData}
+          allClips={clips}
+          clipTrims={clipTrims}
         />
       </div>
       
@@ -169,7 +198,7 @@ function App() {
         clips={clips}
         selectedClip={selectedClip}
         onSelectClip={handleClipSelect}
-        trimData={trimData}
+        clipTrims={clipTrims}
       />
     </div>
   );
