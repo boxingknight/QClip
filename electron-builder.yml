@@ -13,10 +13,12 @@ files:
   - "!electron/ffmpeg/*.js.map"
 
 extraResources:
-  - from: "node_modules/ffmpeg-static/ffmpeg"
+  - from: "node_modules/ffmpeg-static"
     to: "ffmpeg"
-  - from: "node_modules/ffprobe-static/ffprobe"
+    filter: ["**/*"]
+  - from: "node_modules/ffprobe-static"
     to: "ffprobe"
+    filter: ["**/*"]
 
 mac:
   category: public.app-category.utilities
