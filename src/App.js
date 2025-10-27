@@ -44,7 +44,9 @@ function App() {
   };
 
   const handleClipSelect = (clip) => {
-    setSelectedClip(clip);
+    // Find the latest version of the clip from the clips array
+    const freshClip = clips.find(c => c.id === clip.id) || clip;
+    setSelectedClip(freshClip);
   };
 
   const handleVideoTimeUpdate = (data) => {
@@ -52,11 +54,16 @@ function App() {
     
     // Update the selected clip's duration if we have it
     if (selectedClip && data?.duration && selectedClip.duration !== data.duration) {
+      const updatedDuration = data.duration;
+      
       setClips(prev => prev.map(clip => 
         clip.id === selectedClip.id 
-          ? { ...clip, duration: data.duration }
+          ? { ...clip, duration: updatedDuration }
           : clip
       ));
+      
+      // Update selectedClip reference to maintain consistency
+      setSelectedClip(prev => prev ? { ...prev, duration: updatedDuration } : null);
     }
   };
 
