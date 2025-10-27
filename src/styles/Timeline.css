@@ -1,0 +1,128 @@
+.timeline {
+  height: 140px;
+  background: var(--color-bg-dark, #1a1a1a);
+  border-top: 2px solid var(--color-border, #333);
+  padding: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.timeline-header {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary, #999);
+}
+
+.timeline-info {
+  font-weight: 500;
+}
+
+.timeline-clips {
+  display: flex;
+  gap: 4px;
+  height: 100px;
+}
+
+.clip-block {
+  background: var(--color-surface-hover, #2a2a2a);
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  position: relative;
+  user-select: none;
+}
+
+.clip-block:hover:not(.selected) {
+  background: var(--color-surface, #333);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+.clip-block:active {
+  transform: translateY(0);
+}
+
+.clip-block.selected {
+  border-color: var(--color-primary, #3b82f6);
+  background: var(--color-primary, #3b82f6);
+  color: white;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.clip-block.selected .clip-duration {
+  opacity: 0.9;
+}
+
+.clip-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+}
+
+.clip-name {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.clip-duration {
+  font-size: 11px;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
+/* Empty state styles */
+.timeline-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary, #999);
+  height: 200px;
+}
+
+.timeline-empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.timeline-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--color-text-primary, #fff);
+}
+
+.timeline-empty-hint {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+/* Scrollbar styling for timeline */
+.timeline::-webkit-scrollbar {
+  height: 8px;
+}
+
+.timeline::-webkit-scrollbar-track {
+  background: var(--color-bg-darker, #141414);
+}
+
+.timeline::-webkit-scrollbar-thumb {
+  background: var(--color-border, #555);
+  border-radius: 4px;
+}
+
+.timeline::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-hover, #666);
+}
+
