@@ -8,6 +8,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // File import APIs
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
-  getFileAbsolutePath: (path) => ipcRenderer.invoke('get-file-absolute-path', path)
+  getFileAbsolutePath: (path) => ipcRenderer.invoke('get-file-absolute-path', path),
+  
+  // Export APIs
+  exportVideo: (inputPath, outputPath, trimData) => 
+    ipcRenderer.invoke('export-video', { inputPath, outputPath, trimData }),
+  
+  showSaveDialog: () => ipcRenderer.invoke('show-save-dialog'),
+  
+  onExportProgress: (callback) => {
+    const handler = (event, progress) => callback(progress);
+    ipcRenderer.on('export-progress-update', handler);
+    
+    // Return unsubscribe function
+    return () => ipcRenderer.removeListener('export-progress-update', handler);
+  }
 });
 

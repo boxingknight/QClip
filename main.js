@@ -1,5 +1,6 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
+const { exportVideo } = require('./electron/ffmpeg/videoProcessing');
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -50,5 +51,40 @@ ipcMain.handle('open-file-dialog', async () => {
 
 ipcMain.handle('get-file-absolute-path', async (event, filePath) => {
   return path.resolve(filePath);
+});
+
+// Export video handler
+ipcMain.handle('export-video', async (event, { inputPath, outputPath, trimData }) => {
+  try {
+    console.log('Export request received:', { inputPath, outputPath, trimData });
+    
+    await exportVideo(inputPath, outputPath, {
+      startTime: trimData?.startTime || 0,
+      duration: trimData?.duration,
+      onProgress: (progress) => {
+        // Send progress to renderer
+        event.sender.send('export-progress-update', progress);
+      }
+    });
+    
+    return { success: true, outputPath };
+  } catch (error) {
+    console.error('Export error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Save dialog for export
+ipcMain.handle('show-save-dialog', async () => {
+  const result = await dialog.showSaveDialog({
+    filters: [{ name: 'Video', extensions: ['mp4'] }],
+    defaultPath: 'export.mp4'
+  });
+  
+  if (result.canceled) {
+    return { canceled: true };
+  }
+  
+  return { filePath: result.filePath };
 });
 

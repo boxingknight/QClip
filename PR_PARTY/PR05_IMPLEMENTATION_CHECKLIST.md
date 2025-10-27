@@ -725,3 +725,4 @@ const handleImportClip = (clip) => {
 **Ready to start!** Begin with Phase 1, Step 1.1: Create Timeline Component. 🚀
 
 
+

@@ -358,3 +358,4 @@ The timeline is the bridge that makes everything work together.
 **Remember:** Start simple (placeholder), then add features incrementally (empty state, clip display, selection, integration). You've got this!
 
 
+
