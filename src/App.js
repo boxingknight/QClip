@@ -98,22 +98,17 @@ function App() {
     if (!selectedClip) return;
     
     const trimTime = time !== undefined ? time : currentVideoTime;
-    const currentTrim = clipTrims[selectedClip.id] || {
-      inPoint: 0,
-      outPoint: selectedClip.duration || 0
-    };
     
-    // Validate in point
-    const validation = validateInPoint(trimTime, currentTrim.outPoint, selectedClip.duration || 0);
+    // Only validate bounds, not relationships (user might set points out of order)
+    if (trimTime < 0) {
+      logger.warn('Invalid in point: negative time');
+      alert('In point cannot be negative');
+      return;
+    }
     
-    if (!validation.valid) {
-      logger.warn('Invalid in point set', { 
-        inPoint: trimTime, 
-        outPoint: currentTrim.outPoint, 
-        duration: selectedClip.duration,
-        error: validation.error 
-      });
-      alert(validation.error);
+    if (trimTime > (selectedClip.duration || 0)) {
+      logger.warn('Invalid in point: exceeds duration');
+      alert('In point exceeds video duration');
       return;
     }
     
@@ -132,22 +127,17 @@ function App() {
     if (!selectedClip) return;
     
     const trimTime = time !== undefined ? time : currentVideoTime;
-    const currentTrim = clipTrims[selectedClip.id] || {
-      inPoint: 0,
-      outPoint: selectedClip.duration || 0
-    };
     
-    // Validate out point
-    const validation = validateOutPoint(currentTrim.inPoint, trimTime, selectedClip.duration || 0);
+    // Only validate bounds, not relationships (user might set points out of order)
+    if (trimTime < 0) {
+      logger.warn('Invalid out point: negative time');
+      alert('Out point cannot be negative');
+      return;
+    }
     
-    if (!validation.valid) {
-      logger.warn('Invalid out point set', { 
-        inPoint: currentTrim.inPoint, 
-        outPoint: trimTime, 
-        duration: selectedClip.duration,
-        error: validation.error 
-      });
-      alert(validation.error);
+    if (trimTime > (selectedClip.duration || 0)) {
+      logger.warn('Invalid out point: exceeds duration');
+      alert('Out point exceeds video duration');
       return;
     }
     
