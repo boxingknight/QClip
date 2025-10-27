@@ -6,6 +6,13 @@ const fs = require('fs');
 function getFFmpegPaths() {
   const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development';
   
+  console.log('[FFmpeg] Environment check:', { 
+    NODE_ENV: process.env.NODE_ENV, 
+    isDev, 
+    resourcesPath: process.resourcesPath,
+    isPackaged: process.resourcesPath !== undefined
+  });
+  
   if (isDev || !process.resourcesPath) {
     // Development: use node_modules
     console.log('[FFmpeg] Using development paths (node_modules)');
@@ -33,6 +40,10 @@ function getFFmpegPaths() {
         console.error('Failed to list directory:', e.message);
       }
       throw new Error(`FFmpeg binary not found at ${ffmpegPath}. Make sure extraResources is configured in electron-builder.yml`);
+    }
+    
+    if (!fs.existsSync(ffprobePath)) {
+      console.error('[FFmpeg ERROR] FFprobe binary not found at:', ffprobePath);
     }
     
     return {
