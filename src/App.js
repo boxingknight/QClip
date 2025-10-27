@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ImportPanel from './components/ImportPanel';
 import VideoPlayer from './components/VideoPlayer';
 import ExportPanel from './components/ExportPanel';
+import Timeline from './components/Timeline';
 import './App.css';
 
 function App() {
@@ -48,6 +49,15 @@ function App() {
 
   const handleVideoTimeUpdate = (data) => {
     setCurrentVideoTime(data?.currentTime || 0);
+    
+    // Update the selected clip's duration if we have it
+    if (selectedClip && data?.duration && selectedClip.duration !== data.duration) {
+      setClips(prev => prev.map(clip => 
+        clip.id === selectedClip.id 
+          ? { ...clip, duration: data.duration }
+          : clip
+      ));
+    }
   };
 
   return (
@@ -62,25 +72,12 @@ function App() {
           isImporting={importStatus.loading}
         />
         
-        {clips.length > 0 && (
-          <div className="imported-clips">
-            <h3>Imported Clips ({clips.length})</h3>
-            <ul>
-              {clips.map(clip => (
-                <li 
-                  key={clip.id} 
-                  className={`clip-item ${selectedClip?.id === clip.id ? 'selected' : ''}`}
-                  onClick={() => handleClipSelect(clip)}
-                >
-                  <strong>{clip.name}</strong>
-                  <span className="clip-size">
-                    {clip.fileSize > 0 ? `(${(clip.fileSize / (1024 * 1024)).toFixed(2)} MB)` : ''}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* Timeline */}
+        <Timeline 
+          clips={clips}
+          selectedClip={selectedClip}
+          onSelectClip={handleClipSelect}
+        />
 
         {/* Video Player */}
         <VideoPlayer 
