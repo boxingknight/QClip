@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { validateFile, generateClipId } from '../utils/fileHelpers';
+import { logger } from '../utils/logger';
 import './ImportPanel.css';
 
 const ImportPanel = ({ onImport, isImporting }) => {
@@ -37,15 +38,20 @@ const ImportPanel = ({ onImport, isImporting }) => {
   // File picker handler using Electron dialog
   const handleFilePicker = async () => {
     if (!window.electronAPI) {
+      logger.error('Electron API not available');
       setError('Electron API not available');
       return;
     }
     
     try {
+      logger.info('Opening file dialog');
+      
       // Use Electron's file dialog
       const filePaths = await window.electronAPI.openFileDialog();
       
       if (filePaths && filePaths.length > 0) {
+        logger.info('Files selected', { count: filePaths.length });
+        
         // Convert file paths to file-like objects
         const files = filePaths.map(filePath => {
           const fileName = filePath.split('/').pop() || filePath;
@@ -58,10 +64,12 @@ const ImportPanel = ({ onImport, isImporting }) => {
         });
         
         await processFiles(files);
+      } else {
+        logger.info('File selection canceled by user');
       }
     } catch (error) {
-      console.error('Error opening file dialog:', error);
-      setError('Failed to open file dialog');
+      logger.error('Error opening file dialog', error, { force: true });
+      setError('Failed to open file dialog. Please try again.');
     }
   };
 
@@ -69,50 +77,66 @@ const ImportPanel = ({ onImport, isImporting }) => {
   const processFiles = async (files) => {
     if (files.length === 0) return;
     
+    logger.info('Processing imported files', { count: files.length });
+    
     const validClips = [];
     setError(null);
     
     for (const file of files) {
-      // Validate file extension
-      const ext = file.name.split('.').pop().toLowerCase();
-      if (ext !== 'mp4' && ext !== 'mov') {
-        setError(`${file.name} is not a supported format (MP4 or MOV only)`);
+      try {
+        // Validate file extension
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (ext !== 'mp4' && ext !== 'mov') {
+          logger.warn('Unsupported file extension', { fileName: file.name, extension: ext });
+          setError(`${file.name} is not a supported format (MP4 or MOV only)`);
+          continue;
+        }
+        
+        // Get absolute path
+        let filePath = file.path;
+        
+        logger.debug('Processing file', { 
+          name: file.name, 
+          path: file.path, 
+          size: file.size, 
+          type: file.type 
+        });
+        
+        // Validate that we have a path
+        if (!filePath) {
+          logger.error('No path for file', null, { fileName: file.name });
+          setError(`Failed to get path for ${file.name}`);
+          continue;
+        }
+        
+        const clip = {
+          id: generateClipId(),
+          name: file.name,
+          path: filePath,
+          duration: 0, // Will be extracted during playback
+          inPoint: 0,
+          outPoint: 0,
+          fileSize: file.size
+        };
+        
+        validClips.push(clip);
+        logger.debug('Clip created', { clipId: clip.id, name: clip.name });
+      } catch (error) {
+        logger.error('Error processing file', error, { fileName: file.name });
+        setError(`Error processing ${file.name}: ${error.message}`);
         continue;
       }
-      
-      // Get absolute path
-      let filePath = file.path;
-      
-      console.log('File object:', {
-        name: file.name,
-        path: file.path,
-        size: file.size,
-        type: file.type
-      });
-      
-      // Validate that we have a path
-      if (!filePath) {
-        console.error('No path for file:', file.name);
-        setError(`Failed to get path for ${file.name}`);
-        continue;
-      }
-      
-      const clip = {
-        id: generateClipId(),
-        name: file.name,
-        path: filePath,
-        duration: 0, // Will be extracted during playback
-        inPoint: 0,
-        outPoint: 0,
-        fileSize: file.size
-      };
-      
-      validClips.push(clip);
     }
     
     if (validClips.length > 0) {
+      logger.info('Import successful', { 
+        importedCount: validClips.length, 
+        totalFiles: files.length 
+      });
       onImport(validClips);
       setError(null);
+    } else {
+      logger.warn('No valid clips imported', { totalFiles: files.length });
     }
   };
 

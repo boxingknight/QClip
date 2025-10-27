@@ -3,6 +3,9 @@ import ImportPanel from './components/ImportPanel';
 import VideoPlayer from './components/VideoPlayer';
 import ExportPanel from './components/ExportPanel';
 import Timeline from './components/Timeline';
+import ErrorBoundary from './components/ErrorBoundary';
+import { logger } from './utils/logger';
+import { validateInPoint, validateOutPoint } from './utils/trimValidation';
 // Removed TrimControls - now integrated in Timeline
 import './App.css';
 
@@ -96,6 +99,9 @@ function App() {
     
     const trimTime = time !== undefined ? time : currentVideoTime;
     
+    // No validation - just set the value (validation happens when applying)
+    logger.debug('Setting in point', { clipId: selectedClip.id, inPoint: trimTime });
+    
     setClipTrims(prev => ({
       ...prev,
       [selectedClip.id]: {
@@ -109,6 +115,9 @@ function App() {
     if (!selectedClip) return;
     
     const trimTime = time !== undefined ? time : currentVideoTime;
+    
+    // No validation - just set the value (validation happens when applying)
+    logger.debug('Setting out point', { clipId: selectedClip.id, outPoint: trimTime });
     
     setClipTrims(prev => ({
       ...prev,
@@ -135,10 +144,29 @@ function App() {
     if (!selectedClip) return;
     
     const trimData = clipTrims[selectedClip.id];
-    if (!trimData || trimData.inPoint >= trimData.outPoint) {
-      alert('Invalid trim settings. Please set valid IN and OUT points.');
+    if (!trimData) {
+      logger.warn('No trim data to apply');
+      alert('Please set trim points before applying.');
       return;
     }
+    
+    // Validate trim data
+    const validation = validateInPoint(trimData.inPoint, trimData.outPoint, selectedClip.duration || 0);
+    if (!validation.valid) {
+      logger.error('Invalid trim data when applying', { 
+        trimData, 
+        duration: selectedClip.duration,
+        error: validation.error 
+      });
+      alert(validation.error);
+      return;
+    }
+    
+    logger.info('Applying trim', { 
+      clipId: selectedClip.id, 
+      inPoint: trimData.inPoint, 
+      outPoint: trimData.outPoint 
+    });
 
     try {
       setIsRendering(true);
@@ -234,53 +262,55 @@ function App() {
   };
 
   return (
-    <div className="app">
-      {/* Header */}
-      <div className="header">
-        <h1>ClipForge - Desktop Video Editor</h1>
-      </div>
+    <ErrorBoundary>
+      <div className="app">
+        {/* Header */}
+        <div className="header">
+          <h1>ClipForge - Desktop Video Editor</h1>
+        </div>
 
-      {/* Left Sidebar - Import */}
-      <div className="sidebar">
-        <ImportPanel 
-          onImport={handleImport}
-          isImporting={importStatus.loading}
-        />
-      </div>
-      
-      {/* Main Area - Video Player */}
-      <div className="main-content">
-        <VideoPlayer 
-          videoSrc={selectedClip?.path ? `file://${selectedClip.path}` : null}
-          onTimeUpdate={handleVideoTimeUpdate}
+        {/* Left Sidebar - Import */}
+        <div className="sidebar">
+          <ImportPanel 
+            onImport={handleImport}
+            isImporting={importStatus.loading}
+          />
+        </div>
+        
+        {/* Main Area - Video Player */}
+        <div className="main-content">
+          <VideoPlayer 
+            videoSrc={selectedClip?.path ? `file://${selectedClip.path}` : null}
+            onTimeUpdate={handleVideoTimeUpdate}
+            selectedClip={selectedClip}
+            trimData={getCurrentTrimData()}
+          />
+        </div>
+        
+        {/* Right Sidebar - Export Only */}
+        <div className="controls-sidebar">
+          <ExportPanel 
+            currentClip={selectedClip}
+            allClips={clips}
+            clipTrims={clipTrims}
+          />
+        </div>
+        
+        {/* Timeline - Bottom */}
+        <Timeline 
+          clips={clips}
           selectedClip={selectedClip}
-          trimData={getCurrentTrimData()}
-        />
-      </div>
-      
-      {/* Right Sidebar - Export Only */}
-      <div className="controls-sidebar">
-        <ExportPanel 
-          currentClip={selectedClip}
-          allClips={clips}
+          onSelectClip={handleClipSelect}
           clipTrims={clipTrims}
+          onSetInPoint={handleSetInPoint}
+          onSetOutPoint={handleSetOutPoint}
+          onApplyTrim={handleApplyTrim}
+          onResetTrim={handleResetTrim}
+          isRendering={isRendering}
+          renderProgress={renderProgress}
         />
       </div>
-      
-      {/* Timeline - Bottom */}
-      <Timeline 
-        clips={clips}
-        selectedClip={selectedClip}
-        onSelectClip={handleClipSelect}
-        clipTrims={clipTrims}
-        onSetInPoint={handleSetInPoint}
-        onSetOutPoint={handleSetOutPoint}
-        onApplyTrim={handleApplyTrim}
-        onResetTrim={handleResetTrim}
-        isRendering={isRendering}
-        renderProgress={renderProgress}
-      />
-    </div>
+    </ErrorBoundary>
   );
 }
 

@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { logger } from '../utils/logger';
 import '../styles/VideoPlayer.css';
 
 const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
@@ -9,8 +10,11 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Handle video source changes
+  // Handle video source changes and setup event listeners
   useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
     // Use trimmed path if available, otherwise use original
     const effectiveSrc = selectedClip?.isTrimmed && selectedClip?.trimmedPath
       ? `file://${selectedClip.trimmedPath}`
@@ -22,86 +26,97 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
       setDuration(0);
       setIsPlaying(false);
       setError(null);
-      if (videoRef.current) {
-        videoRef.current.src = '';
-      }
+      video.src = '';
       return;
     }
     
     // Update video source
-    const video = videoRef.current;
-    if (video) {
+    setIsLoading(true);
+    setError(null);
+    video.src = effectiveSrc;
+    video.load();
+    logger.debug('Loading video', { src: effectiveSrc });
+
+    // Setup event listeners
+    const handleError = (e) => {
+      logger.error('Video playback error', e.error || e, { 
+        videoPath: effectiveSrc,
+        currentSrc: video.currentSrc 
+      });
+      setError('Failed to play video. The file may be corrupted or unsupported.');
+      setIsLoading(false);
+    };
+
+    const handleLoadStart = () => {
+      logger.debug('Video loading started', { videoPath: effectiveSrc });
       setIsLoading(true);
+    };
+
+    const handleLoadedMetadata = () => {
+      if (video) {
+        setDuration(video.duration);
+        setIsLoading(false);
+        setError(null);
+        logger.debug('Video metadata loaded', { 
+          videoPath: effectiveSrc,
+          duration: video.duration 
+        });
+        
+        // Update parent with duration
+        if (selectedClip) {
+          onTimeUpdate?.({
+            currentTime: video.currentTime,
+            duration: video.duration
+          });
+        }
+      }
+    };
+
+    video.addEventListener('error', handleError);
+    video.addEventListener('loadstart', handleLoadStart);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+    // Cleanup function
+    return () => {
+      logger.debug('Cleaning up video player', { videoPath: effectiveSrc });
+      
+      // Remove event listeners
+      video.removeEventListener('error', handleError);
+      video.removeEventListener('loadstart', handleLoadStart);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      
+      // Pause and clear source
+      video.pause();
+      video.src = '';
+      video.load(); // Force unload to release memory
+      
+      // Clear state
+      setIsLoading(false);
       setError(null);
-      video.src = effectiveSrc;
-      video.load();
-      console.log('Loading video:', effectiveSrc);
-    }
+    };
   }, [videoSrc, selectedClip?.trimmedPath]);
 
-  // Event handlers
-  const handleLoadedMetadata = () => {
-    const video = videoRef.current;
-    if (video) {
-      setDuration(video.duration);
-      setIsLoading(false);
-      // Update parent with duration
-      if (selectedClip) {
-        onTimeUpdate?.({
-          currentTime: video.currentTime,
-          duration: video.duration
-        });
-      }
-    }
-  };
-
-  const handleTimeUpdate = () => {
-    const video = videoRef.current;
-    if (video) {
-      const current = video.currentTime;
-      setCurrentTime(current);
-      // Notify parent of time update
-      onTimeUpdate?.({
-        currentTime: current,
-        duration: duration
-      });
-    }
-  };
-
-  const handlePlay = () => {
-    setIsPlaying(true);
-  };
-
-  const handlePause = () => {
-    setIsPlaying(false);
-  };
-
-  const handleEnded = () => {
-    setIsPlaying(false);
-    setCurrentTime(duration);
-  };
-
-  const handleError = (e) => {
-    setError('Failed to load video. Please check the file format.');
-    setIsLoading(false);
-    console.error('Video error:', e);
-  };
+  // Note: Event handlers are now in useEffect with proper cleanup
+  // Keep inline handlers for video element compatibility
 
   const handlePlayPause = () => {
     const video = videoRef.current;
     
     if (!video || !videoSrc) {
+      logger.warn('Play/pause attempted but no video loaded');
       setError('No video loaded');
       return;
     }
     
     if (isPlaying) {
       video.pause();
+      logger.debug('Video paused');
     } else {
       video.play().catch((err) => {
+        logger.error('Play error', err, { force: true });
         setError('Failed to play video');
-        console.error('Play error:', err);
       });
+      logger.debug('Video playing');
     }
   };
 
@@ -142,12 +157,23 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
         ref={videoRef}
         src={videoSrc}
         className="video-element"
-        onLoadedMetadata={handleLoadedMetadata}
-        onTimeUpdate={handleTimeUpdate}
-        onPlay={handlePlay}
-        onPause={handlePause}
-        onEnded={handleEnded}
-        onError={handleError}
+        onTimeUpdate={() => {
+          const video = videoRef.current;
+          if (video) {
+            const current = video.currentTime;
+            setCurrentTime(current);
+            onTimeUpdate?.({
+              currentTime: current,
+              duration: duration
+            });
+          }
+        }}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => {
+          setIsPlaying(false);
+          setCurrentTime(duration);
+        }}
       />
       
       <div className="player-controls">

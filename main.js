@@ -3,6 +3,16 @@ const path = require('path');
 const { exportVideo, exportTimeline, renderTrimmedClip } = require('./electron/ffmpeg/videoProcessing');
 const os = require('os');
 
+// Global error handlers
+process.on('uncaughtException', (error) => {
+  console.error('[Main Process] Uncaught Exception:', error);
+  // Optionally crash app or recover gracefully
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Main Process] Unhandled Rejection:', reason);
+});
+
 function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1200,
