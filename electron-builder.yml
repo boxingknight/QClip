@@ -12,6 +12,10 @@ files:
   - "!electron/ffmpeg/*.map"
   - "!electron/ffmpeg/*.js.map"
 
+# Extract binaries from ASAR - CRITICAL: binaries inside ASAR can't be executed!
+asarUnpack:
+  - "electron/**/*"
+
 extraResources:
   - from: "node_modules/ffmpeg-static/ffmpeg"
     to: "ffmpeg"

@@ -13,12 +13,30 @@ function getFFmpegPaths() {
     isPackaged: process.resourcesPath !== undefined
   });
   
-  if (isDev || !process.resourcesPath) {
-    // Development: use node_modules
+  // Check if we're in a packaged app
+  const isPackaged = !!process.resourcesPath;
+  const isDev = !isPackaged || process.env.NODE_ENV === 'development';
+  
+  console.log('[FFmpeg] Environment:', { isDev, isPackaged, __dirname, resourcesPath: process.resourcesPath });
+  
+  if (isDev && !isPackaged) {
+    // Development mode - use node_modules
     console.log('[FFmpeg] Using development paths (node_modules)');
     return {
       ffmpeg: require('ffmpeg-static'),
       ffprobe: require('ffprobe-static').path
+    };
+  } else if (isPackaged) {
+    // Packaged app - use extraResources
+    const resourcesPath = process.resourcesPath;
+    const ffmpegPath = path.join(resourcesPath, 'ffmpeg');
+    const ffprobePath = path.join(resourcesPath, 'ffprobe-x64');
+    
+    console.log('[FFmpeg] Using extraResources paths:', { ffmpegPath, ffprobePath });
+    
+    return {
+      ffmpeg: ffmpegPath,
+      ffprobe: ffprobePath
     };
   } else {
     // Production: use bundled binaries
@@ -46,10 +64,26 @@ function getFFmpegPaths() {
       console.error('[FFmpeg ERROR] FFprobe binary not found at:', ffprobePath);
     }
     
-    return {
-      ffmpeg: ffmpegPath,
-      ffprobe: ffprobePath
-    };
+    // Fallback to unpacked ASAR binaries if extraResources don't exist
+    const unpackPath = path.join(__dirname, '..', 'node_modules');
+    const fallbackFfmpeg = path.join(unpackPath, 'ffmpeg-static', 'ffmpeg');
+    const fallbackFfprobe = path.join(unpackPath, 'ffprobe-static', 'bin', 'darwin', 'arm64', 'ffprobe');
+    
+    if (fs.existsSync(ffmpegPath) && fs.existsSync(ffprobePath)) {
+      console.log('[FFmpeg] Using extraResources binaries');
+      return {
+        ffmpeg: ffmpegPath,
+        ffprobe: ffprobePath
+      };
+    } else if (fs.existsSync(fallbackFfmpeg) && fs.existsSync(fallbackFfprobe)) {
+      console.log('[FFmpeg] Using unpacked ASAR binaries');
+      return {
+        ffmpeg: fallbackFfmpeg,
+        ffprobe: fallbackFfprobe
+      };
+    } else {
+      throw new Error(`Cannot find FFmpeg binaries. Checked: ${ffmpegPath}, ${fallbackFfmpeg}`);
+    }
   }
 }
 
