@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { logger } from '../utils/logger';
 import '../styles/ExportPanel.css';
 
 const ExportPanel = ({ currentClip, allClips, clipTrims }) => {
@@ -23,11 +24,13 @@ const ExportPanel = ({ currentClip, allClips, clipTrims }) => {
 
   const handleExport = async () => {
     if (!allClips || allClips.length === 0) {
+      logger.warn('Export attempted but no clips available');
       setError('No clips to export');
       return;
     }
 
     try {
+      logger.info('Starting export', { clipCount: allClips.length });
       setIsExporting(true);
       setError(null);
       setProgress(0);
@@ -37,11 +40,13 @@ const ExportPanel = ({ currentClip, allClips, clipTrims }) => {
       const dialogResult = await window.electronAPI.showSaveDialog();
       
       if (dialogResult.canceled) {
+        logger.info('Export canceled by user');
         setIsExporting(false);
         setStatus('');
         return;
       }
 
+      logger.info('Export location selected', { outputPath: dialogResult.filePath });
       setStatus(`Exporting ${allClips.length} clips...`);
       
       // Export entire timeline with all trimmed clips
@@ -53,13 +58,17 @@ const ExportPanel = ({ currentClip, allClips, clipTrims }) => {
       );
 
       if (result.success) {
+        logger.info('Export successful', { outputPath: result.outputPath });
         setStatus(`✅ Exported to ${result.outputPath}`);
         setProgress(100);
       } else {
         throw new Error(result.error);
       }
     } catch (err) {
-      console.error('Export error:', err);
+      logger.error('Export failed', err, { 
+        clipCount: allClips.length,
+        force: true 
+      });
       setError(err.message || 'Export failed. Please try again.');
       setStatus('Export failed');
       setProgress(0);
