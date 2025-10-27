@@ -17,14 +17,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
+  background: var(--color-surface);
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .empty-message {
   text-align: center;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .empty-message p {
@@ -80,9 +80,9 @@
   gap: 16px;
   margin-top: 16px;
   padding: 12px 24px;
-  background: white;
+  background: var(--color-surface);
   border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .play-pause-btn {
@@ -120,7 +120,7 @@
 
 .time-display {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  color: #333;
+  color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 500;
 }
@@ -134,7 +134,7 @@
 .video-info {
   margin-top: 12px;
   padding: 8px 16px;
-  background: white;
+  background: var(--color-surface);
   border-radius: 8px;
   width: 100%;
   text-align: center;
@@ -142,12 +142,12 @@
 
 .video-info p {
   margin: 0;
-  color: #666;
+  color: var(--color-text-secondary);
   font-size: 14px;
 }
 
 .video-info strong {
-  color: #2c3e50;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
@@ -155,8 +155,8 @@
 .trim-indicator {
   margin-top: 8px;
   padding: 6px 12px;
-  background: rgba(59, 130, 246, 0.15);
-  color: var(--color-primary, #3b82f6);
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--color-primary);
   border-radius: 4px;
   font-size: 11px;
   font-weight: 500;
