@@ -41,13 +41,22 @@ function getFFmpegPaths() {
   }
 }
 
-// Configure FFmpeg with correct paths
-const paths = getFFmpegPaths();
-ffmpeg.setFfmpegPath(paths.ffmpeg);
-ffmpeg.setFfprobePath(paths.ffprobe);
+// Get paths dynamically (don't set at module load - process.resourcesPath not available yet)
+let currentFFmpegPath = null;
+let currentFFprobePath = null;
 
-console.log('FFmpeg configured - Binary:', paths.ffmpeg);
-console.log('FFprobe configured - Binary:', paths.ffprobe);
+function updateFFmpegPaths() {
+  const paths = getFFmpegPaths();
+  ffmpeg.setFfmpegPath(paths.ffmpeg);
+  ffmpeg.setFfprobePath(paths.ffprobe);
+  currentFFmpegPath = paths.ffmpeg;
+  currentFFprobePath = paths.ffprobe;
+  console.log('FFmpeg configured - Binary:', paths.ffmpeg);
+  console.log('FFprobe configured - Binary:', paths.ffprobe);
+}
+
+// Set paths on first use, after Electron is ready
+updateFFmpegPaths();
 
 /**
  * Export video to MP4
@@ -58,6 +67,9 @@ console.log('FFprobe configured - Binary:', paths.ffprobe);
  */
 async function exportVideo(inputPath, outputPath, options = {}) {
   return new Promise((resolve, reject) => {
+    // Update paths each time to ensure correct in production
+    updateFFmpegPaths();
+    
     const { startTime, duration, onProgress } = options;
     
     console.log('Starting export:', inputPath, '->', outputPath);
@@ -109,6 +121,9 @@ async function exportVideo(inputPath, outputPath, options = {}) {
 async function exportTimeline(clips, clipTrims, outputPath, onProgress) {
   return new Promise(async (resolve, reject) => {
     try {
+      // Update paths each time to ensure correct in production
+      updateFFmpegPaths();
+      
       console.log('Starting timeline export with', clips.length, 'clips');
       
       if (!clips || clips.length === 0) {
@@ -211,6 +226,9 @@ async function exportTimeline(clips, clipTrims, outputPath, onProgress) {
 async function renderTrimmedClip(inputPath, outputPath, trimData, onProgress) {
   return new Promise(async (resolve, reject) => {
     try {
+      // Update paths each time to ensure correct in production
+      updateFFmpegPaths();
+      
       const startTime = trimData.inPoint || 0;
       const duration = trimData.outPoint - trimData.inPoint;
       
