@@ -101,6 +101,8 @@
 - [x] Connect timeline to clips
 - [x] Add timeline metadata
 
+**Note:** Timeline logic complete, CSS visibility needs refinement
+
 #### PR #6: Trim Functionality - 6 hours
 - [ ] Create TrimControls component
 - [ ] Add trim state to App
