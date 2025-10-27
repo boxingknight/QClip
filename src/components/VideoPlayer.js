@@ -53,12 +53,23 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
     };
 
     const handleLoadedMetadata = () => {
-      logger.debug('Video metadata loaded', { 
-        videoPath: effectiveSrc,
-        duration: video.duration 
-      });
-      setIsLoading(false);
-      setError(null);
+      if (video) {
+        setDuration(video.duration);
+        setIsLoading(false);
+        setError(null);
+        logger.debug('Video metadata loaded', { 
+          videoPath: effectiveSrc,
+          duration: video.duration 
+        });
+        
+        // Update parent with duration
+        if (selectedClip) {
+          onTimeUpdate?.({
+            currentTime: video.currentTime,
+            duration: video.duration
+          });
+        }
+      }
     };
 
     video.addEventListener('error', handleError);
