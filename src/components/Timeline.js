@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import '../styles/Timeline.css';
 import { formatDuration } from '../utils/timeHelpers';
 
-const Timeline = ({ clips, selectedClip, onSelectClip, clipTrims, onSetInPoint, onSetOutPoint }) => {
+const Timeline = ({ clips, selectedClip, onSelectClip, clipTrims, onSetInPoint, onSetOutPoint, onApplyTrim, onResetTrim, isRendering, renderProgress }) => {
   // Empty state
   if (!clips || clips.length === 0) {
     return (
@@ -19,6 +19,10 @@ const Timeline = ({ clips, selectedClip, onSelectClip, clipTrims, onSetInPoint, 
   // Calculate total duration for proportional widths
   const totalDuration = clips.reduce((sum, clip) => sum + (clip.duration || 0), 0);
 
+  // Get current selected clip's trim data
+  const currentTrimData = selectedClip ? (clipTrims[selectedClip.id] || { inPoint: 0, outPoint: selectedClip.duration || 0 }) : null;
+  const hasValidTrim = currentTrimData && currentTrimData.inPoint < currentTrimData.outPoint;
+
   return (
     <div className="timeline">
       <div className="timeline-header">
@@ -26,6 +30,27 @@ const Timeline = ({ clips, selectedClip, onSelectClip, clipTrims, onSetInPoint, 
           {clips.length} clip{clips.length !== 1 ? 's' : ''} • 
           {formatDuration(totalDuration)} total
         </span>
+        
+        {/* Trim Control Buttons */}
+        {selectedClip && currentTrimData && (
+          <div className="timeline-trim-controls">
+            <button
+              className="btn-timeline-reset"
+              onClick={onResetTrim}
+              title="Reset trim"
+            >
+              Reset
+            </button>
+            <button
+              className={`btn-timeline-apply ${!hasValidTrim || isRendering ? 'disabled' : ''}`}
+              onClick={onApplyTrim}
+              disabled={!hasValidTrim || isRendering}
+              title={isRendering ? 'Applying trim...' : 'Apply trim'}
+            >
+              {isRendering ? `Applying... ${Math.round(renderProgress)}%` : 'Apply Trim'}
+            </button>
+          </div>
+        )}
       </div>
       
       <div className="timeline-clips">

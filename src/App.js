@@ -3,7 +3,7 @@ import ImportPanel from './components/ImportPanel';
 import VideoPlayer from './components/VideoPlayer';
 import ExportPanel from './components/ExportPanel';
 import Timeline from './components/Timeline';
-import TrimControls from './components/TrimControls';
+// Removed TrimControls - now integrated in Timeline
 import './App.css';
 
 function App() {
@@ -258,20 +258,8 @@ function App() {
         />
       </div>
       
-      {/* Right Sidebar - Trim Controls & Export */}
+      {/* Right Sidebar - Export Only */}
       <div className="controls-sidebar">
-        <TrimControls
-          currentTime={currentVideoTime}
-          duration={selectedClip?.duration || 0}
-          inPoint={getCurrentTrimData().inPoint}
-          outPoint={getCurrentTrimData().outPoint}
-          onSetInPoint={handleSetInPoint}
-          onSetOutPoint={handleSetOutPoint}
-          onResetTrim={handleResetTrim}
-          onApplyTrim={handleApplyTrim}
-          isRendering={isRendering}
-          renderProgress={renderProgress}
-        />
         <ExportPanel 
           currentClip={selectedClip}
           allClips={clips}
@@ -287,6 +275,10 @@ function App() {
         clipTrims={clipTrims}
         onSetInPoint={handleSetInPoint}
         onSetOutPoint={handleSetOutPoint}
+        onApplyTrim={handleApplyTrim}
+        onResetTrim={handleResetTrim}
+        isRendering={isRendering}
+        renderProgress={renderProgress}
       />
     </div>
   );
