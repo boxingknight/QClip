@@ -16,9 +16,8 @@ function getFFmpegPaths() {
   } else {
     // Production: use bundled binaries
     const resourcesPath = process.resourcesPath;
-    // The binaries are in subdirectories in extraResources
-    const ffmpegPath = path.join(resourcesPath, 'ffmpeg', 'ffmpeg');
-    const ffprobePath = path.join(resourcesPath, 'ffprobe', 'bin', process.platform, process.arch, 'ffprobe');
+    const ffmpegPath = path.join(resourcesPath, 'ffmpeg');
+    const ffprobePath = path.join(resourcesPath, 'ffprobe');
     
     console.log('[FFmpeg] Using production paths:', { resourcesPath, ffmpegPath, ffprobePath });
     
@@ -27,8 +26,8 @@ function getFFmpegPaths() {
       console.error('[FFmpeg ERROR] Binary not found at:', ffmpegPath);
       // List directory contents for debugging
       try {
-        const dirContents = fs.readdirSync(path.dirname(ffmpegPath));
-        console.error('Directory contents:', dirContents);
+        const dirContents = fs.readdirSync(resourcesPath);
+        console.error('Resources directory contents:', dirContents);
       } catch (e) {
         console.error('Failed to list directory:', e.message);
       }
