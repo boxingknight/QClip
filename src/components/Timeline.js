@@ -49,7 +49,7 @@ const Timeline = ({ clips, selectedClip, onSelectClip }) => {
   );
 };
 
-const ClipBlock = ({ clip, widthPercent, isSelected, onSelect }) => {
+const ClipBlock = memo(({ clip, widthPercent, isSelected, onSelect }) => {
   return (
     <div
       className={`clip-block ${isSelected ? 'selected' : ''}`}
@@ -66,7 +66,9 @@ const ClipBlock = ({ clip, widthPercent, isSelected, onSelect }) => {
       </div>
     </div>
   );
-};
+});
+
+ClipBlock.displayName = 'ClipBlock';
 
 export default Timeline;
 
