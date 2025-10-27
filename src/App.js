@@ -4,6 +4,8 @@ import VideoPlayer from './components/VideoPlayer';
 import ExportPanel from './components/ExportPanel';
 import Timeline from './components/Timeline';
 import ErrorBoundary from './components/ErrorBoundary';
+import { logger } from './utils/logger';
+import { validateInPoint, validateOutPoint } from './utils/trimValidation';
 // Removed TrimControls - now integrated in Timeline
 import './App.css';
 
@@ -96,6 +98,26 @@ function App() {
     if (!selectedClip) return;
     
     const trimTime = time !== undefined ? time : currentVideoTime;
+    const currentTrim = clipTrims[selectedClip.id] || {
+      inPoint: 0,
+      outPoint: selectedClip.duration || 0
+    };
+    
+    // Validate in point
+    const validation = validateInPoint(trimTime, currentTrim.outPoint, selectedClip.duration || 0);
+    
+    if (!validation.valid) {
+      logger.warn('Invalid in point set', { 
+        inPoint: trimTime, 
+        outPoint: currentTrim.outPoint, 
+        duration: selectedClip.duration,
+        error: validation.error 
+      });
+      alert(validation.error);
+      return;
+    }
+    
+    logger.debug('Setting in point', { clipId: selectedClip.id, inPoint: trimTime });
     
     setClipTrims(prev => ({
       ...prev,
@@ -110,6 +132,26 @@ function App() {
     if (!selectedClip) return;
     
     const trimTime = time !== undefined ? time : currentVideoTime;
+    const currentTrim = clipTrims[selectedClip.id] || {
+      inPoint: 0,
+      outPoint: selectedClip.duration || 0
+    };
+    
+    // Validate out point
+    const validation = validateOutPoint(currentTrim.inPoint, trimTime, selectedClip.duration || 0);
+    
+    if (!validation.valid) {
+      logger.warn('Invalid out point set', { 
+        inPoint: currentTrim.inPoint, 
+        outPoint: trimTime, 
+        duration: selectedClip.duration,
+        error: validation.error 
+      });
+      alert(validation.error);
+      return;
+    }
+    
+    logger.debug('Setting out point', { clipId: selectedClip.id, outPoint: trimTime });
     
     setClipTrims(prev => ({
       ...prev,
@@ -136,10 +178,29 @@ function App() {
     if (!selectedClip) return;
     
     const trimData = clipTrims[selectedClip.id];
-    if (!trimData || trimData.inPoint >= trimData.outPoint) {
-      alert('Invalid trim settings. Please set valid IN and OUT points.');
+    if (!trimData) {
+      logger.warn('No trim data to apply');
+      alert('Please set trim points before applying.');
       return;
     }
+    
+    // Validate trim data
+    const validation = validateInPoint(trimData.inPoint, trimData.outPoint, selectedClip.duration || 0);
+    if (!validation.valid) {
+      logger.error('Invalid trim data when applying', { 
+        trimData, 
+        duration: selectedClip.duration,
+        error: validation.error 
+      });
+      alert(validation.error);
+      return;
+    }
+    
+    logger.info('Applying trim', { 
+      clipId: selectedClip.id, 
+      inPoint: trimData.inPoint, 
+      outPoint: trimData.outPoint 
+    });
 
     try {
       setIsRendering(true);
