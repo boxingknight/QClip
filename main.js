@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
 
 function createWindow() {
@@ -33,5 +33,22 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+});
+
+// IPC Handlers
+ipcMain.handle('open-file-dialog', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile', 'multiSelections'],
+    filters: [
+      { name: 'Video Files', extensions: ['mp4', 'mov'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+  
+  return result.canceled ? [] : result.filePaths;
+});
+
+ipcMain.handle('get-file-absolute-path', async (event, filePath) => {
+  return path.resolve(filePath);
 });
 
