@@ -183,22 +183,22 @@ const ClipBlock = ({ clip, widthPercent, isSelected, onSelect, trimData, onSetIn
       onClick={onSelect}
       onDoubleClick={handleTimelineClick}
     >
-      {/* Trim Overlay */}
-      {hasTrim && isSelected && (
-        <div className="trim-overlay" onClick={handleTimelineClick}>
-          {/* Left darkened region (before in-point) */}
-          {leftDarkenPercent > 0 && (
-            <div
-              className="trim-darken"
-              style={{ 
-                width: `${leftDarkenPercent}%`,
-                left: 0
-              }}
-            />
-          )}
-          
-          {/* Trimmed region (highlighted) */}
-          {trimmedRegionWidth > 0 && (
+      {/* Trim Overlay - Only show when selected and has meaningful trim */}
+      {isSelected && hasTrim && (
+        (trimmedRegionWidth > 0 && (trimData.inPoint > 0 || trimData.outPoint < clip.duration)) && (
+          <div className="trim-overlay" onClick={handleTimelineClick}>
+            {/* Left darkened region (before in-point) */}
+            {leftDarkenPercent > 0 && (
+              <div
+                className="trim-darken"
+                style={{ 
+                  width: `${leftDarkenPercent}%`,
+                  left: 0
+                }}
+              />
+            )}
+            
+            {/* Trimmed region (highlighted) */}
             <div 
               className="trim-highlighted"
               style={{
@@ -222,19 +222,19 @@ const ClipBlock = ({ clip, widthPercent, isSelected, onSelect, trimData, onSetIn
                 title="Drag to adjust OUT point"
               />
             </div>
-          )}
-          
-          {/* Right darkened region (after out-point) */}
-          {rightDarkenPercent > 0 && (
-            <div
-              className="trim-darken"
-              style={{ 
-                width: `${rightDarkenPercent}%`,
-                right: 0
-              }}
-            />
-          )}
-        </div>
+            
+            {/* Right darkened region (after out-point) */}
+            {rightDarkenPercent > 0 && (
+              <div
+                className="trim-darken"
+                style={{ 
+                  width: `${rightDarkenPercent}%`,
+                  right: 0
+                }}
+              />
+            )}
+          </div>
+        )
       )}
       
       <div className="clip-info">
