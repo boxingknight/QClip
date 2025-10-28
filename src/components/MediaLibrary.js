@@ -18,6 +18,8 @@ const MediaLibrary = () => {
     e.preventDefault();
     e.stopPropagation();
     
+    console.log('MediaLibrary: Clip clicked', { clip, clipId: clip.id });
+    
     // Select the clip for playback
     selectClip(clip.id);
     console.log('Clip selected for playback:', clip.name);

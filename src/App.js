@@ -258,12 +258,19 @@ function AppContent() {
         
         {/* Main Area - Video Player */}
         <div className="main-content">
-          <VideoPlayer 
-            videoSrc={getSelectedClip()?.path ? `file://${getSelectedClip().path}` : null}
-            onTimeUpdate={handleVideoTimeUpdate}
-            selectedClip={getSelectedClip()}
-            trimData={getCurrentTrimData()}
-          />
+          {(() => {
+            const selectedClip = getSelectedClip();
+            const videoSrc = selectedClip?.path ? `file://${selectedClip.path}` : null;
+            console.log('VideoPlayer props:', { selectedClip, videoSrc, selectedClipId });
+            return (
+              <VideoPlayer 
+                videoSrc={videoSrc}
+                onTimeUpdate={handleVideoTimeUpdate}
+                selectedClip={selectedClip}
+                trimData={getCurrentTrimData()}
+              />
+            );
+          })()}
         </div>
         
         {/* Right Sidebar - Export Only */}
