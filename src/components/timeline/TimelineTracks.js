@@ -35,6 +35,27 @@ const TimelineTracks = () => {
         // Filter clips for this track
         const trackClips = clips.filter(clip => clip.trackId === track.id);
         
+        // 🔍 DEBUG: Log clip filtering for each track
+        console.log(`[TIMELINE_TRACKS] Track: ${track.id}`, {
+          trackName: track.name,
+          totalClips: clips.length,
+          clipsOnTrack: trackClips.length,
+          allClips: clips.map(c => ({
+            id: c.id,
+            name: c.name,
+            trackId: c.trackId,
+            startTime: c.startTime,
+            duration: c.duration
+          })),
+          trackClips: trackClips.map(c => ({
+            id: c.id,
+            name: c.name,
+            trackId: c.trackId,
+            startTime: c.startTime,
+            duration: c.duration
+          }))
+        });
+        
         // Get the appropriate track component
         const TrackComponent = getTrackComponent(track);
         

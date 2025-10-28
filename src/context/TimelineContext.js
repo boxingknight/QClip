@@ -377,18 +377,51 @@ const timelineReducer = (state, action) => {
         newDuration: action.trimOut - action.trimIn
       });
       
+      // 🎯 CRITICAL: Implement ripple effect - reposition clips after trimmed clip
+      const trimmedClip = state.clips.find(c => c.id === action.clipId);
+      if (!trimmedClip) return state;
+      
+      const oldDuration = trimmedClip.duration;
+      const newDuration = action.trimOut - action.trimIn;
+      const durationDelta = newDuration - oldDuration;
+      
+      // Calculate the end time of the trimmed clip
+      const trimmedClipEndTime = trimmedClip.startTime + oldDuration;
+      
+      console.log('[TRIM_CLIP RIPPLE EFFECT]', {
+        clipId: action.clipId,
+        oldDuration,
+        newDuration,
+        durationDelta,
+        trimmedClipEndTime,
+        trackId: trimmedClip.trackId
+      });
+      
       return {
         ...state,
-        clips: state.clips.map(clip =>
-          clip.id === action.clipId
-            ? { 
-                ...clip, 
-                trimIn: action.trimIn, 
-                trimOut: action.trimOut,
-                duration: action.trimOut - action.trimIn
-              }
-            : clip
-        )
+        clips: state.clips.map(clip => {
+          if (clip.id === action.clipId) {
+            // Update the trimmed clip
+            return {
+              ...clip,
+              trimIn: action.trimIn,
+              trimOut: action.trimOut,
+              duration: newDuration
+            };
+          } else if (
+            clip.trackId === trimmedClip.trackId && 
+            clip.startTime >= trimmedClipEndTime
+          ) {
+            // 🎯 RIPPLE EFFECT: Shift clips that come after the trimmed clip
+            const newStartTime = clip.startTime + durationDelta;
+            console.log(`[RIPPLE] Moving clip ${clip.id} from ${clip.startTime}s to ${newStartTime}s`);
+            return {
+              ...clip,
+              startTime: Math.max(trimmedClip.startTime + newDuration, newStartTime)
+            };
+          }
+          return clip;
+        })
       };
 
     case 'SPLIT_CLIP':

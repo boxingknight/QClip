@@ -38,16 +38,22 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
     height: `${trackHeight - 32}px`
   };
   
-  // Debug: Log when clip duration changes
+  // Debug: Log when clip duration changes or trackId changes
   useEffect(() => {
     console.log('[CLIP RENDER]', {
       clipId: clip.id,
+      clipName: clip.name,
+      trackId: clip.trackId,
+      propTrackId: trackId,
       duration: clip.duration,
+      startTime: clip.startTime,
       trimIn: clip.trimIn,
       trimOut: clip.trimOut,
-      width: clipStyle.width
+      width: clipStyle.width,
+      left: clipStyle.left,
+      isSelected
     });
-  }, [clip.id, clip.duration, clip.trimIn, clip.trimOut, clipStyle.width]);
+  }, [clip.id, clip.name, clip.trackId, trackId, clip.duration, clip.startTime, clip.trimIn, clip.trimOut, clipStyle.width, clipStyle.left, isSelected]);
 
   // Handle clip selection
   const handleClick = useCallback((e) => {
