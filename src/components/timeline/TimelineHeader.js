@@ -5,10 +5,12 @@
  */
 
 import React from 'react';
+import { useTimeline } from '../../hooks/useTimeline';
 import './TimelineHeader.css';
 
 const TimelineHeader = ({ timelineInfo, zoom, onZoomChange }) => {
   const { totalClips, totalDuration, currentTime, zoomLevel } = timelineInfo;
+  const { magneticSnap, enableMagneticSnap, snapThreshold, setSnapThreshold } = useTimeline();
 
   const handleZoomIn = () => {
     onZoomChange(Math.min(10, zoom * 1.2));
@@ -58,6 +60,15 @@ const TimelineHeader = ({ timelineInfo, zoom, onZoomChange }) => {
       </div>
       
       <div className="timeline-header-right">
+        <button
+          className={`snap-toggle-btn ${magneticSnap ? 'active' : ''}`}
+          onClick={() => enableMagneticSnap(!magneticSnap)}
+          title={magneticSnap ? 'Disable Magnetic Snap' : 'Enable Magnetic Snap'}
+        >
+          <span className="snap-icon">🧲</span>
+          <span className="snap-label">Snap</span>
+        </button>
+        
         <div className="zoom-controls">
           <button 
             className="zoom-btn" 
