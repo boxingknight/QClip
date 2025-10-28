@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { validateFile, generateClipId } from '../utils/fileHelpers';
+import { extractVideoMetadata } from '../utils/videoMetadata';
 import { logger } from '../utils/logger';
 import MediaLibrary from './MediaLibrary';
 import './ImportPanel.css';
@@ -110,14 +111,24 @@ const ImportPanel = ({ onImport, isImporting }) => {
           continue;
         }
         
+        // Extract video metadata
+        const metadata = await extractVideoMetadata(filePath);
+        
         const clip = {
           id: generateClipId(),
           name: file.name,
           path: filePath,
-          duration: 0, // Will be extracted during playback
+          duration: metadata.duration,
+          width: metadata.width,
+          height: metadata.height,
+          fps: metadata.fps,
+          codec: metadata.codec,
+          hasAudio: metadata.hasAudio,
+          fileSize: metadata.fileSize || file.size || 0,
+          thumbnailUrl: metadata.thumbnailUrl,
           inPoint: 0,
-          outPoint: 0,
-          fileSize: file.size
+          outPoint: metadata.duration,
+          metadataError: metadata.error
         };
         
         validClips.push(clip);

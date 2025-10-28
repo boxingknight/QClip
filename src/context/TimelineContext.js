@@ -593,6 +593,15 @@ export const TimelineProvider = ({ children }) => {
 
   // Enhanced Clip Management Functions
   const addClip = (trackId, clip) => {
+    if (!trackId) {
+      console.error('addClip: trackId is required');
+      return;
+    }
+    if (!clip || typeof clip !== 'object') {
+      console.error('addClip: clip must be an object');
+      return;
+    }
+    
     dispatch({ type: 'ADD_CLIP', trackId, ...clip });
   };
 

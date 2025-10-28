@@ -5,12 +5,23 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { useTimeline } from '../hooks/useTimeline';
+import { formatFileSize, formatDuration, formatResolution } from '../utils/videoMetadata';
 import './MediaLibrary.css';
 
 const MediaLibrary = () => {
-  const { clips } = useTimeline();
+  const { clips, selectClip } = useTimeline();
   const [draggedClip, setDraggedClip] = useState(null);
   const [dragOverTrack, setDragOverTrack] = useState(null);
+
+  // Handle clip click to select for playback
+  const handleClipClick = useCallback((e, clip) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Select the clip for playback
+    selectClip(clip.id);
+    console.log('Clip selected for playback:', clip.name);
+  }, [selectClip]);
 
   // Handle drag start
   const handleDragStart = useCallback((e, clip) => {
@@ -36,22 +47,6 @@ const MediaLibrary = () => {
     setDraggedClip(null);
     setDragOverTrack(null);
   }, []);
-
-  // Format duration for display
-  const formatDuration = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Get file size for display
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
 
   // Check if clips is undefined or empty
   if (!clips || clips.length === 0) {
@@ -82,9 +77,10 @@ const MediaLibrary = () => {
             key={clip.id}
             className={`media-item ${draggedClip?.id === clip.id ? 'dragging' : ''}`}
             draggable
+            onClick={(e) => handleClipClick(e, clip)}
             onDragStart={(e) => handleDragStart(e, clip)}
             onDragEnd={handleDragEnd}
-            title={`Drag to timeline: ${clip.name}`}
+            title={`Click to play, drag to timeline: ${clip.name}`}
           >
             <div className="media-thumbnail">
               {clip.thumbnailUrl ? (
@@ -111,9 +107,10 @@ const MediaLibrary = () => {
               </div>
               <div className="media-details">
                 <span className="file-size">{formatFileSize(clip.fileSize || 0)}</span>
-                <span className="resolution">
-                  {clip.width && clip.height ? `${clip.width}×${clip.height}` : 'Unknown'}
-                </span>
+                <span className="resolution">{formatResolution(clip.width, clip.height)}</span>
+                {clip.metadataError && (
+                  <span className="metadata-error" title={clip.metadataError}>⚠️</span>
+                )}
               </div>
             </div>
             

@@ -157,7 +157,7 @@ const Track = ({ track, clips, zoom }) => {
         fileSize: sourceClip.fileSize
       };
 
-      addClip(timelineClip);
+      addClip(track.id, timelineClip);
       console.log('Clip added to timeline:', timelineClip);
     } catch (error) {
       console.error('Error handling drop:', error);
