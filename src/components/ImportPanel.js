@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { validateFile, generateClipId } from '../utils/fileHelpers';
 import { logger } from '../utils/logger';
+import MediaLibrary from './MediaLibrary';
 import './ImportPanel.css';
 
 const ImportPanel = ({ onImport, isImporting }) => {
@@ -183,6 +184,9 @@ const ImportPanel = ({ onImport, isImporting }) => {
           Importing files...
         </div>
       )}
+      
+      {/* Media Library - shows imported videos */}
+      <MediaLibrary />
     </div>
   );
 };

@@ -25,6 +25,12 @@
   opacity: 0.3;
 }
 
+.track.drag-over {
+  background: rgba(59, 130, 246, 0.2) !important;
+  border: 2px dashed #3b82f6;
+  border-radius: 6px;
+}
+
 .track-header {
   display: flex;
   align-items: center;

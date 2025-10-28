@@ -6,15 +6,18 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { useTimeline } from '../../hooks/useTimeline';
-import { timeToPixels } from '../../utils/timelineCalculations';
+import { useProject } from '../../context/ProjectContext';
+import { timeToPixels, pixelsToTime } from '../../utils/timelineCalculations';
 import Clip from './Clip';
 import './Track.css';
 
 const Track = ({ track, clips, zoom }) => {
-  const { updateTrackSettings, removeTrack } = useTimeline();
+  const { updateTrackSettings, removeTrack, addClip } = useTimeline();
+  const { clips: projectClips } = useProject();
   const [isResizing, setIsResizing] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(track.name);
+  const [isDragOver, setIsDragOver] = useState(false);
   const resizeStartRef = useRef({ y: 0, height: 0 });
   const trackRef = useRef(null);
 
@@ -104,15 +107,77 @@ const Track = ({ track, clips, zoom }) => {
     }
   }, [isResizing, handleResizeMove, handleResizeEnd]);
 
+  // Drag and drop handlers
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!track.locked) {
+      setIsDragOver(true);
+      e.dataTransfer.dropEffect = 'move';
+    }
+  }, [track.locked]);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    if (track.locked) {
+      return;
+    }
+
+    try {
+      const clipId = e.dataTransfer.getData('text/plain');
+      const sourceClip = projectClips.find(clip => clip.id === clipId);
+      
+      if (!sourceClip) {
+        console.warn('Source clip not found:', clipId);
+        return;
+      }
+
+      // Calculate drop position
+      const rect = trackRef.current.getBoundingClientRect();
+      const dropX = e.clientX - rect.left;
+      const dropTime = pixelsToTime(dropX, zoom);
+
+      // Create timeline clip from project clip
+      const timelineClip = {
+        id: `timeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: sourceClip.name,
+        path: sourceClip.path,
+        duration: sourceClip.duration || 10, // Default duration if not available
+        startTime: Math.max(0, dropTime),
+        trackId: track.id,
+        type: track.type,
+        thumbnailUrl: sourceClip.thumbnailUrl,
+        fileSize: sourceClip.fileSize
+      };
+
+      addClip(timelineClip);
+      console.log('Clip added to timeline:', timelineClip);
+    } catch (error) {
+      console.error('Error handling drop:', error);
+    }
+  }, [track.locked, track.id, track.type, projectClips, zoom, addClip]);
+
   return (
     <div 
       ref={trackRef}
-      className={`track ${track.locked ? 'locked' : ''} ${!track.visible ? 'hidden' : ''}`}
+      className={`track ${track.locked ? 'locked' : ''} ${!track.visible ? 'hidden' : ''} ${isDragOver ? 'drag-over' : ''}`}
       data-type={track.type}
       style={{ 
         height: `${track.height}px`,
         backgroundColor: track.color + '15' // Add transparency
       }}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       <div className="track-header">
         <div className="track-name-section">
