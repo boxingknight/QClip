@@ -1,6 +1,6 @@
-# ClipForge - Desktop Video Editor MVP
+# ClipForge - Desktop Video Editor
 
-A professional desktop video editor for quick clip trimming and export. Built with Electron, React, and FFmpeg in 72 hours as an MVP demonstration.
+A professional desktop video editor for quick clip trimming and export. Built with Electron, React, and FFmpeg with MVP complete and V2 development in progress.
 
 ## Features (MVP) ✅ COMPLETE
 - ✅ **Import video files** (MP4, MOV) via Browse Files button
@@ -11,6 +11,24 @@ A professional desktop video editor for quick clip trimming and export. Built wi
 - ✅ **Professional dark mode** UI with modern styling
 - ✅ **Error handling** with graceful failures and helpful messages
 - ✅ **Packaged desktop app** ready for distribution
+
+## V2 Development 🚀 IN PROGRESS
+- ✅ **State Management Refactor** - Context API foundation for V2 features
+- 📋 **UI Component Library** - Reusable components for advanced features
+- 📋 **Multi-Track Timeline** - Professional video editing capabilities
+- 📋 **Screen Recording** - Built-in recording functionality
+- 📋 **Advanced Effects** - Text overlays, transitions, filters
+- 📋 **Project Management** - Save/load projects with auto-save
+
+## Recent Updates 🔧
+
+### PR#11: State Management Refactor (October 28, 2024)
+- ✅ **Context API Implementation** - Scalable state management for V2 features
+- ✅ **FFmpeg Bug Fix** - Resolved critical trim/export functionality issue
+- ✅ **MVP Preservation** - All existing features work perfectly
+- ✅ **V2 Foundation** - Ready for advanced video editing features
+
+**Bug Fixed:** FFmpeg binary path detection in development mode - trim and export now work flawlessly!
 
 ## Quick Start
 
