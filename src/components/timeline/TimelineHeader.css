@@ -93,13 +93,18 @@
   transition: all 0.2s ease;
 }
 
-.playback-btn:hover {
+.playback-btn:hover:not(:disabled) {
   background: #475569;
   transform: translateY(-1px);
 }
 
-.playback-btn:active {
+.playback-btn:active:not(:disabled) {
   transform: translateY(0);
+}
+
+.playback-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .zoom-controls {
