@@ -37,6 +37,17 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
     width: `${timeToPixels(clip.duration, zoom)}px`,
     height: `${trackHeight - 32}px`
   };
+  
+  // Debug: Log when clip duration changes
+  useEffect(() => {
+    console.log('[CLIP RENDER]', {
+      clipId: clip.id,
+      duration: clip.duration,
+      trimIn: clip.trimIn,
+      trimOut: clip.trimOut,
+      width: clipStyle.width
+    });
+  }, [clip.id, clip.duration, clip.trimIn, clip.trimOut, clipStyle.width]);
 
   // Handle clip selection
   const handleClick = useCallback((e) => {
@@ -75,12 +86,13 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('[TRIM] Starting trim:', { 
+    console.log('🎯 [TRIM START]', { 
       side, 
       clipId: clip.id,
       currentTrimIn: clip.trimIn, 
       currentTrimOut: clip.trimOut,
-      duration: clip.duration 
+      duration: clip.duration,
+      mouseX: e.clientX
     });
     
     // Select clip if not already selected
@@ -173,15 +185,14 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
 
         // Clamp values to prevent invalid states
         newTrimOut = Math.max(dragStart.trimIn + minDuration, newTrimOut); // Can't make duration too small
-        newTrimOut = Math.min(newTrimOut, originalFullDuration); // Can't go beyond original clip end
+        // Note: We DON'T clamp to originalFullDuration because trimOut can shrink!
         
         console.log('[TRIM] Right trim:', { 
           deltaTime, 
           dragStartTrimOut: dragStart.trimOut,
           newTrimOut, 
           trimIn: dragStart.trimIn,
-          newDuration: newTrimOut - dragStart.trimIn,
-          originalFullDuration 
+          newDuration: newTrimOut - dragStart.trimIn
         });
         
         // Update clip trim points
