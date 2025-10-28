@@ -228,16 +228,7 @@ function AppContent() {
         
         {/* Timeline - Bottom */}
         <Timeline 
-          clips={clips}
-          selectedClip={getSelectedClip()}
-          onSelectClip={handleClipSelect}
-          clipTrims={clipTrims}
-          onSetInPoint={handleSetInPoint}
-          onSetOutPoint={handleSetOutPoint}
           onApplyTrim={handleApplyTrim}
-          onResetTrim={handleResetTrim}
-          isRendering={isRendering}
-          renderProgress={renderProgress}
         />
       </div>
     </ErrorBoundary>

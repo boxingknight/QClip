@@ -1,8 +1,26 @@
 import React, { useState } from 'react';
+import { useTimeline } from '../context/TimelineContext';
 import '../styles/Timeline.css';
 import { formatDuration } from '../utils/timeHelpers';
 
-const Timeline = ({ clips, selectedClip, onSelectClip, clipTrims, onSetInPoint, onSetOutPoint, onApplyTrim, onResetTrim, isRendering, renderProgress }) => {
+const Timeline = ({ onApplyTrim }) => {
+  const { 
+    clips, 
+    selectedClipId, 
+    clipTrims, 
+    isRendering, 
+    renderProgress,
+    selectClip, 
+    setInPoint, 
+    setOutPoint, 
+    resetTrim, 
+    applyTrimSuccess,
+    getSelectedClip,
+    getCurrentTrimData
+  } = useTimeline();
+
+  const selectedClip = getSelectedClip();
+  
   // Empty state
   if (!clips || clips.length === 0) {
     return (
@@ -20,8 +38,15 @@ const Timeline = ({ clips, selectedClip, onSelectClip, clipTrims, onSetInPoint, 
   const totalDuration = clips.reduce((sum, clip) => sum + (clip.duration || 0), 0);
 
   // Get current selected clip's trim data
-  const currentTrimData = selectedClip ? (clipTrims[selectedClip.id] || { inPoint: 0, outPoint: selectedClip.duration || 0 }) : null;
+  const currentTrimData = getCurrentTrimData();
   const hasValidTrim = currentTrimData && currentTrimData.inPoint < currentTrimData.outPoint;
+
+  // Handle apply trim - passed from App component
+  const handleApplyTrim = async () => {
+    if (onApplyTrim) {
+      await onApplyTrim();
+    }
+  };
 
   return (
     <div className="timeline">
@@ -36,14 +61,14 @@ const Timeline = ({ clips, selectedClip, onSelectClip, clipTrims, onSetInPoint, 
           <div className="timeline-trim-controls">
             <button
               className="btn-timeline-reset"
-              onClick={onResetTrim}
+              onClick={resetTrim}
               title="Reset trim"
             >
               Reset
             </button>
             <button
               className={`btn-timeline-apply ${!hasValidTrim || isRendering ? 'disabled' : ''}`}
-              onClick={onApplyTrim}
+              onClick={handleApplyTrim}
               disabled={!hasValidTrim || isRendering}
               title={isRendering ? 'Applying trim...' : 'Apply trim'}
             >
@@ -67,11 +92,11 @@ const Timeline = ({ clips, selectedClip, onSelectClip, clipTrims, onSetInPoint, 
               key={clip.id}
               clip={clip}
               widthPercent={widthPercent}
-              isSelected={selectedClip?.id === clip.id}
-              onSelect={() => onSelectClip(clip)}
+              isSelected={selectedClipId === clip.id}
+              onSelect={() => selectClip(clip.id)}
               trimData={clipTrimData}
-              onSetInPoint={onSetInPoint}
-              onSetOutPoint={onSetOutPoint}
+              onSetInPoint={setInPoint}
+              onSetOutPoint={setOutPoint}
             />
           );
         })}
