@@ -49,11 +49,27 @@ const ExportPanel = ({ currentClip, allClips, clipTrims }) => {
       logger.info('Export location selected', { outputPath: dialogResult.filePath });
       setStatus(`Exporting ${allClips.length} clips...`);
       
+      // 🎯 CRITICAL: Convert new timeline clip format to export format
+      // New format: clips have trimIn/trimOut directly on the object
+      // Export expects: clipTrims as { clipId: { inPoint, outPoint } }
+      const clipTrimsForExport = {};
+      allClips.forEach(clip => {
+        clipTrimsForExport[clip.id] = {
+          inPoint: clip.trimIn || 0,
+          outPoint: clip.trimOut || clip.duration
+        };
+      });
+
+      logger.info('Export trim data', { 
+        clipCount: allClips.length,
+        trims: clipTrimsForExport 
+      });
+      
       // Export entire timeline with all trimmed clips
       // Pass all clips and their trim data for concatenation
       const result = await window.electronAPI.exportTimeline(
         allClips,
-        clipTrims,
+        clipTrimsForExport,
         dialogResult.filePath
       );
 
