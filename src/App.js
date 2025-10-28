@@ -238,14 +238,28 @@ function AppContent() {
 
   const handleVideoTimeUpdate = (data) => {
     // Only update time if it's changed significantly (avoid excessive re-renders)
-    const newTime = data?.currentTime || 0;
-    if (Math.abs(newTime - playhead) > 0.1) {
-      setPlayhead(newTime);
+    const timelineTime = data?.currentTime || 0;
+    
+    // 🎯 CRITICAL FIX: Convert timeline time back to relative timeline position
+    // VideoPlayer sends timeline time (includes trimIn offset), but timeline should show relative position
+    const selectedClip = getSelectedClip();
+    const trimIn = selectedClip?.trimIn || 0;
+    const relativeTime = Math.max(0, timelineTime - trimIn);
+    
+    console.log('[App] handleVideoTimeUpdate:', {
+      timelineTime,
+      trimIn,
+      relativeTime,
+      currentPlayhead: playhead,
+      selectedClipName: selectedClip?.name
+    });
+    
+    if (Math.abs(relativeTime - playhead) > 0.1) {
+      setPlayhead(relativeTime);
     }
     
     // Update the selected clip's duration if we have it (only once)
     if (selectedClipId && data?.duration) {
-      const selectedClip = getSelectedClip();
       if (selectedClip && !selectedClip.duration) {
         updateClipDuration(selectedClipId, data.duration);
       }

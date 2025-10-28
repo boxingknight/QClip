@@ -69,41 +69,41 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
       setIsLoading(true);
     };
 
-    const handleLoadedMetadata = () => {
-      if (video) {
-        setDuration(video.duration);
-        setIsLoading(false);
-        setError(null);
-        logger.debug('Video metadata loaded', { 
-          videoPath: effectiveSrc,
-          duration: video.duration 
-        });
-        
-        // 🎯 CRITICAL: Seek to trimIn point if clip is trimmed
-        // This ensures playback starts from the visible portion on the timeline
-        const trimIn = selectedClip?.trimIn || 0;
-        if (trimIn > 0) {
-          console.log('[VideoPlayer] Seeking to trimIn:', trimIn, 'Video duration:', video.duration);
-          video.currentTime = trimIn;
-          setCurrentTime(trimIn);
-          console.log('[VideoPlayer] After seek - video.currentTime:', video.currentTime);
-        } else {
-          console.log('[VideoPlayer] No trimIn, setting currentTime to 0');
-          setCurrentTime(0);
-        }
-        
-        // Update playback context with duration
-        updatePlaybackState({ duration: video.duration });
-        
-        // Update parent with duration
-        if (selectedClip) {
-          onTimeUpdate?.({
-            currentTime: trimIn, // Start from trimIn (timeline time), not 0
-            duration: video.duration
-          });
-        }
+  const handleLoadedMetadata = () => {
+    if (video) {
+      setDuration(video.duration);
+      setIsLoading(false);
+      setError(null);
+      logger.debug('Video metadata loaded', { 
+        videoPath: effectiveSrc,
+        duration: video.duration 
+      });
+      
+      // 🎯 CRITICAL: Seek to trimIn point if clip is trimmed
+      // This ensures playback starts from the visible portion on the timeline
+      const trimIn = selectedClip?.trimIn || 0;
+      if (trimIn > 0) {
+        console.log('[VideoPlayer] Seeking to trimIn:', trimIn, 'Video duration:', video.duration);
+        video.currentTime = trimIn;
+        setCurrentTime(trimIn);
+        console.log('[VideoPlayer] After seek - video.currentTime:', video.currentTime);
+      } else {
+        console.log('[VideoPlayer] No trimIn, setting currentTime to 0');
+        setCurrentTime(0);
       }
-    };
+      
+      // Update playback context with duration
+      updatePlaybackState({ duration: video.duration });
+      
+      // 🎯 CRITICAL FIX: Reset timeline playhead to 0 when video loads
+      // This prevents scrubber from appearing in empty space
+      // The video will play from trimIn, but timeline shows 0 as starting point
+      onTimeUpdate?.({
+        currentTime: 0, // Always start timeline at 0, regardless of trimIn
+        duration: video.duration
+      });
+    }
+  };
 
     video.addEventListener('error', handleError);
     video.addEventListener('loadstart', handleLoadStart);
