@@ -7,6 +7,11 @@ import VideoPlayer from './components/VideoPlayer';
 import ExportPanel from './components/ExportPanel';
 import Timeline from './components/Timeline';
 import ErrorBoundary from './components/ErrorBoundary';
+// UI Components for PR#12
+import Modal from './components/ui/Modal';
+import { ToastContainer } from './components/ui/Toast';
+import Toolbar, { ToolbarGroups } from './components/ui/Toolbar';
+import StatusBar, { StatusBarPresets } from './components/ui/StatusBar';
 import { logger } from './utils/logger';
 import { validateInPoint, validateOutPoint } from './utils/trimValidation';
 // Removed TrimControls - now integrated in Timeline
@@ -35,7 +40,7 @@ function AppContent() {
   } = useTimeline();
   
   const { setModified } = useProject();
-  const { setImportStatus, importStatus } = useUI();
+  const { setImportStatus, importStatus, showModal, showToast } = useUI();
 
   // Test IPC communication on mount
   useEffect(() => {
@@ -44,6 +49,40 @@ function AppContent() {
       console.log('IPC test:', result);
     }
   }, []);
+
+  // Test UI components
+  const handleToolbarAction = (action, data) => {
+    console.log('Toolbar action:', action, data);
+    
+    switch (action) {
+      case 'import':
+        showToast({
+          type: 'info',
+          title: 'Import',
+          message: 'Click the Import button in the sidebar to add video files',
+          duration: 3000
+        });
+        break;
+      case 'export':
+        showModal('exportSettings', { clips: clips.length });
+        break;
+      case 'record':
+        showToast({
+          type: 'success',
+          title: 'Recording',
+          message: 'Recording feature coming in V2!',
+          duration: 3000
+        });
+        break;
+      default:
+        showToast({
+          type: 'info',
+          title: 'Action',
+          message: `${action} action triggered`,
+          duration: 2000
+        });
+    }
+  };
 
   const handleImport = (newClips) => {
     console.log('Importing clips:', newClips);
@@ -194,10 +233,18 @@ function AppContent() {
   return (
     <ErrorBoundary>
       <div className="app">
-        {/* Header */}
-        <div className="header">
-          <h1>ClipForge - Desktop Video Editor</h1>
-        </div>
+        {/* Toolbar */}
+        <Toolbar
+          title="ClipForge"
+          subtitle="Desktop Video Editor"
+          groups={[
+            ToolbarGroups.file,
+            ToolbarGroups.recording,
+            ToolbarGroups.timeline,
+            ToolbarGroups.playback
+          ]}
+          onAction={handleToolbarAction}
+        />
 
         {/* Left Sidebar - Import */}
         <div className="sidebar">
@@ -230,6 +277,48 @@ function AppContent() {
         <Timeline 
           onApplyTrim={handleApplyTrim}
         />
+
+        {/* Status Bar */}
+        <StatusBar
+          projectInfo={{
+            name: 'ClipForge Project',
+            duration: clips.reduce((total, clip) => total + (clip.duration || 0), 0),
+            clips: clips.length,
+            tracks: 1
+          }}
+          status={isRendering ? 'processing' : 'ready'}
+          progress={isRendering ? { percentage: renderProgress } : null}
+        />
+
+        {/* UI Components */}
+        <ToastContainer />
+        
+        {/* Test Modal */}
+        <Modal
+          modalName="exportSettings"
+          title="Export Settings"
+          size="medium"
+        >
+          <div style={{ padding: '20px' }}>
+            <h3>Export Configuration</h3>
+            <p>This is a test modal for the UI component library.</p>
+            <p>Clips in project: {clips.length}</p>
+            <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={() => showToast({ type: 'success', message: 'Export started!' })}
+                style={{ padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px' }}
+              >
+                Start Export
+              </button>
+              <button 
+                onClick={() => showToast({ type: 'error', message: 'Export cancelled' })}
+                style={{ padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </ErrorBoundary>
   );
