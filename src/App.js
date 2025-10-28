@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { TimelineProvider, useTimeline } from './context/TimelineContext';
+import { ProjectProvider, useProject } from './context/ProjectContext';
+import { UIProvider, useUI } from './context/UIContext';
 import ImportPanel from './components/ImportPanel';
 import VideoPlayer from './components/VideoPlayer';
 import ExportPanel from './components/ExportPanel';
@@ -9,19 +12,30 @@ import { validateInPoint, validateOutPoint } from './utils/trimValidation';
 // Removed TrimControls - now integrated in Timeline
 import './App.css';
 
-function App() {
-  const [clips, setClips] = useState([]);
-  const [selectedClip, setSelectedClip] = useState(null);
-  const [currentVideoTime, setCurrentVideoTime] = useState(0);
-  // Store trim data per clip
-  const [clipTrims, setClipTrims] = useState({});
-  const [isRendering, setIsRendering] = useState(false);
-  const [renderProgress, setRenderProgress] = useState(0);
-  const [importStatus, setImportStatus] = useState({
-    loading: false,
-    error: null,
-    lastImported: null
-  });
+// Main App component that uses contexts
+function AppContent() {
+  const { 
+    clips, 
+    selectedClipId, 
+    playhead, 
+    clipTrims, 
+    isRendering, 
+    renderProgress,
+    addClips, 
+    selectClip, 
+    setPlayhead, 
+    setInPoint, 
+    setOutPoint, 
+    resetTrim, 
+    applyTrimSuccess, 
+    setRendering,
+    updateClipDuration,
+    getSelectedClip,
+    getCurrentTrimData
+  } = useTimeline();
+  
+  const { setModified } = useProject();
+  const { setImportStatus, importStatus } = useUI();
 
   // Test IPC communication on mount
   useEffect(() => {
@@ -31,44 +45,20 @@ function App() {
     }
   }, []);
 
-  // Initialize trim data for clip if it doesn't exist
-  useEffect(() => {
-    if (selectedClip && !clipTrims[selectedClip.id] && selectedClip.duration) {
-      setClipTrims(prev => ({
-        ...prev,
-        [selectedClip.id]: {
-          inPoint: 0,
-          outPoint: selectedClip.duration
-        }
-      }));
-    }
-  }, [selectedClip?.id, selectedClip?.duration, clipTrims]);
-
   const handleImport = (newClips) => {
     console.log('Importing clips:', newClips);
     setImportStatus({ loading: true, error: null, lastImported: null });
     
-    // Add to existing clips
-    setClips(prev => [...prev, ...newClips]);
-    
-    // Initialize trim data for new clips (full clip by default)
-    setClipTrims(prev => {
-      const newTrims = { ...prev };
-      newClips.forEach(clip => {
-        if (clip.duration) {
-          newTrims[clip.id] = {
-            inPoint: 0,
-            outPoint: clip.duration
-          };
-        }
-      });
-      return newTrims;
-    });
+    // Add clips using context
+    addClips(newClips);
     
     // Select the first imported clip if none selected
-    if (!selectedClip && newClips.length > 0) {
-      setSelectedClip(newClips[0]);
+    if (!selectedClipId && newClips.length > 0) {
+      selectClip(newClips[0].id);
     }
+    
+    // Mark project as modified
+    setModified(true);
     
     // Update status
     setImportStatus({
@@ -79,71 +69,45 @@ function App() {
   };
 
   const handleClipSelect = (clip) => {
-    // Find the latest version of the clip from the clips array
-    const freshClip = clips.find(c => c.id === clip.id) || clip;
-    setSelectedClip(freshClip);
+    // Use context to select clip
+    selectClip(clip.id);
   };
   
-  // Get current clip's trim data
-  const getCurrentTrimData = () => {
-    if (!selectedClip) return { inPoint: 0, outPoint: 0 };
-    return clipTrims[selectedClip.id] || { 
-      inPoint: 0, 
-      outPoint: selectedClip.duration || 0 
-    };
-  };
-
   // Trim Control Handlers
   const handleSetInPoint = (time) => {
-    if (!selectedClip) return;
+    if (!selectedClipId) return;
     
-    const trimTime = time !== undefined ? time : currentVideoTime;
+    const trimTime = time !== undefined ? time : playhead;
     
     // No validation - just set the value (validation happens when applying)
-    logger.debug('Setting in point', { clipId: selectedClip.id, inPoint: trimTime });
+    logger.debug('Setting in point', { clipId: selectedClipId, inPoint: trimTime });
     
-    setClipTrims(prev => ({
-      ...prev,
-      [selectedClip.id]: {
-        ...prev[selectedClip.id],
-        inPoint: trimTime
-      }
-    }));
+    setInPoint(trimTime);
   };
 
   const handleSetOutPoint = (time) => {
-    if (!selectedClip) return;
+    if (!selectedClipId) return;
     
-    const trimTime = time !== undefined ? time : currentVideoTime;
+    const trimTime = time !== undefined ? time : playhead;
     
     // No validation - just set the value (validation happens when applying)
-    logger.debug('Setting out point', { clipId: selectedClip.id, outPoint: trimTime });
+    logger.debug('Setting out point', { clipId: selectedClipId, outPoint: trimTime });
     
-    setClipTrims(prev => ({
-      ...prev,
-      [selectedClip.id]: {
-        ...prev[selectedClip.id],
-        outPoint: trimTime
-      }
-    }));
+    setOutPoint(trimTime);
   };
 
   const handleResetTrim = () => {
-    if (!selectedClip) return;
+    if (!selectedClipId) return;
     
-    setClipTrims(prev => ({
-      ...prev,
-      [selectedClip.id]: {
-        inPoint: 0,
-        outPoint: selectedClip.duration || 0
-      }
-    }));
+    resetTrim();
   };
 
   const handleApplyTrim = async () => {
-    if (!selectedClip) return;
+    if (!selectedClipId) return;
     
-    const trimData = clipTrims[selectedClip.id];
+    const selectedClip = getSelectedClip();
+    const trimData = getCurrentTrimData();
+    
     if (!trimData) {
       logger.warn('No trim data to apply');
       alert('Please set trim points before applying.');
@@ -163,21 +127,20 @@ function App() {
     }
     
     logger.info('Applying trim', { 
-      clipId: selectedClip.id, 
+      clipId: selectedClipId, 
       inPoint: trimData.inPoint, 
       outPoint: trimData.outPoint 
     });
 
     try {
-      setIsRendering(true);
-      setRenderProgress(0);
+      setRendering(true, 0);
       
       // Generate temp path (renderer-safe approach)
-      const tempPath = await window.electronAPI.getTempTrimPath(selectedClip.id);
+      const tempPath = await window.electronAPI.getTempTrimPath(selectedClipId);
       
       // Listen for progress updates
       const removeListener = window.electronAPI.onRenderProgress((progress) => {
-        setRenderProgress(progress.percent || 0);
+        setRendering(true, progress.percent || 0);
       });
       
       // Render trimmed clip
@@ -194,33 +157,7 @@ function App() {
         const trimmedDuration = trimData.outPoint - trimData.inPoint;
         const trimStartOffset = trimData.inPoint;
         
-        setClips(prev => prev.map(c =>
-          c.id === selectedClip.id
-            ? {
-                ...c,
-                trimmedPath: result.outputPath,
-                isTrimmed: true,
-                duration: trimmedDuration,
-                trimStartOffset: trimStartOffset
-              }
-            : c
-        ));
-        
-        // Update selected clip
-        setSelectedClip(prev => ({
-          ...prev,
-          trimmedPath: result.outputPath,
-          isTrimmed: true,
-          duration: trimmedDuration,
-          trimStartOffset: trimStartOffset
-        }));
-        
-        // Clear trim marks (now applied)
-        setClipTrims(prev => {
-          const next = { ...prev };
-          delete next[selectedClip.id];
-          return next;
-        });
+        applyTrimSuccess(selectedClipId, result.outputPath, trimmedDuration, trimStartOffset);
         
         console.log('Trim applied - clip updated:', {
           trimmedPath: result.outputPath,
@@ -234,30 +171,23 @@ function App() {
       console.error('Apply trim error:', error);
       alert('Failed to apply trim. Please try again.');
     } finally {
-      setIsRendering(false);
-      setRenderProgress(0);
+      setRendering(false, 0);
     }
   };
 
   const handleVideoTimeUpdate = (data) => {
     // Only update time if it's changed significantly (avoid excessive re-renders)
     const newTime = data?.currentTime || 0;
-    if (Math.abs(newTime - currentVideoTime) > 0.1) {
-      setCurrentVideoTime(newTime);
+    if (Math.abs(newTime - playhead) > 0.1) {
+      setPlayhead(newTime);
     }
     
     // Update the selected clip's duration if we have it (only once)
-    if (selectedClip && data?.duration && !selectedClip.duration) {
-      const updatedDuration = data.duration;
-      
-      setClips(prev => prev.map(clip => 
-        clip.id === selectedClip.id 
-          ? { ...clip, duration: updatedDuration }
-          : clip
-      ));
-      
-      // Update selectedClip reference to maintain consistency
-      setSelectedClip(prev => prev ? { ...prev, duration: updatedDuration } : null);
+    if (selectedClipId && data?.duration) {
+      const selectedClip = getSelectedClip();
+      if (selectedClip && !selectedClip.duration) {
+        updateClipDuration(selectedClipId, data.duration);
+      }
     }
   };
 
@@ -280,9 +210,9 @@ function App() {
         {/* Main Area - Video Player */}
         <div className="main-content">
           <VideoPlayer 
-            videoSrc={selectedClip?.path ? `file://${selectedClip.path}` : null}
+            videoSrc={getSelectedClip()?.path ? `file://${getSelectedClip().path}` : null}
             onTimeUpdate={handleVideoTimeUpdate}
-            selectedClip={selectedClip}
+            selectedClip={getSelectedClip()}
             trimData={getCurrentTrimData()}
           />
         </div>
@@ -290,7 +220,7 @@ function App() {
         {/* Right Sidebar - Export Only */}
         <div className="controls-sidebar">
           <ExportPanel 
-            currentClip={selectedClip}
+            currentClip={getSelectedClip()}
             allClips={clips}
             clipTrims={clipTrims}
           />
@@ -299,7 +229,7 @@ function App() {
         {/* Timeline - Bottom */}
         <Timeline 
           clips={clips}
-          selectedClip={selectedClip}
+          selectedClip={getSelectedClip()}
           onSelectClip={handleClipSelect}
           clipTrims={clipTrims}
           onSetInPoint={handleSetInPoint}
@@ -311,6 +241,19 @@ function App() {
         />
       </div>
     </ErrorBoundary>
+  );
+}
+
+// Main App component with context providers
+function App() {
+  return (
+    <TimelineProvider>
+      <ProjectProvider>
+        <UIProvider>
+          <AppContent />
+        </UIProvider>
+      </ProjectProvider>
+    </TimelineProvider>
   );
 }
 
