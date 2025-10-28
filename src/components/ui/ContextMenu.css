@@ -1,0 +1,129 @@
+/* ContextMenu.css - Context menu styles */
+/* V2 Feature: Right-click context menus with keyboard navigation */
+
+.context-menu {
+  position: fixed;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-xs) 0;
+  min-width: 200px;
+  z-index: 1000;
+  animation: fadeInScale 0.15s ease-out;
+  user-select: none;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.context-menu-item:hover {
+  background: var(--color-surface-hover);
+}
+
+.context-menu-item:focus {
+  background: var(--color-primary);
+  color: white;
+  outline: none;
+}
+
+.context-menu-item:disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.context-menu-item:disabled:hover {
+  background: none;
+}
+
+.context-menu-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.context-menu-label {
+  flex: 1;
+}
+
+.context-menu-shortcut {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  margin-left: var(--space-sm);
+}
+
+.context-menu-separator {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-xs) 0;
+}
+
+.context-menu-group {
+  padding: var(--space-xs) 0;
+}
+
+.context-menu-group-title {
+  padding: var(--space-xs) var(--space-md);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Animations */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Keyboard navigation styles */
+.context-menu-item[data-focused="true"] {
+  background: var(--color-primary);
+  color: white;
+}
+
+.context-menu-item[data-focused="true"] .context-menu-shortcut {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .context-menu {
+    min-width: 180px;
+  }
+  
+  .context-menu-item {
+    padding: var(--space-md) var(--space-lg);
+  }
+}
+
+/* Accessibility */
+.context-menu[role="menu"] {
+  /* Screen reader support */
+}
+
+.context-menu-item[role="menuitem"] {
+  /* Menu item semantics */
+}

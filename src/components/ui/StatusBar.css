@@ -1,0 +1,172 @@
+/* StatusBar.css - Status bar component styles */
+/* V2 Feature: Real-time status information display */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  min-height: 32px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.status-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.status-label {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.status-value {
+  color: var(--color-text-secondary);
+}
+
+.status-separator {
+  width: 1px;
+  height: 16px;
+  background: var(--color-border);
+}
+
+.status-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 200px;
+}
+
+.status-progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.status-progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  transition: width var(--transition-fast);
+  border-radius: var(--radius-sm);
+}
+
+.status-progress-text {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  min-width: 40px;
+  text-align: right;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot-success {
+  background: var(--color-success);
+}
+
+.status-dot-error {
+  background: var(--color-error);
+}
+
+.status-dot-warning {
+  background: var(--color-warning);
+}
+
+.status-dot-info {
+  background: var(--color-primary);
+}
+
+.status-dot-pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.status-time {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.status-version {
+  font-size: 10px;
+  color: var(--color-text-disabled);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .status-bar {
+    padding: var(--space-xs) var(--space-md);
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+  
+  .status-left,
+  .status-right {
+    gap: var(--space-sm);
+  }
+  
+  .status-progress {
+    min-width: 150px;
+  }
+  
+  .status-item {
+    gap: var(--space-xs);
+  }
+}
+
+/* Accessibility */
+.status-bar[role="status"] {
+  /* Status bar semantics */
+}
+
+.status-item[aria-label] {
+  /* Accessible status items */
+}
