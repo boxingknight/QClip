@@ -6,14 +6,12 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { useTimeline } from '../../hooks/useTimeline';
-import { useProject } from '../../context/ProjectContext';
 import { timeToPixels, pixelsToTime } from '../../utils/timelineCalculations';
 import Clip from './Clip';
 import './Track.css';
 
 const Track = ({ track, clips, zoom }) => {
-  const { updateTrackSettings, removeTrack, addClip } = useTimeline();
-  const { clips: projectClips } = useProject();
+  const { updateTrackSettings, removeTrack, addClip, clips: timelineClips } = useTimeline();
   const [isResizing, setIsResizing] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(track.name);
@@ -134,7 +132,7 @@ const Track = ({ track, clips, zoom }) => {
 
     try {
       const clipId = e.dataTransfer.getData('text/plain');
-      const sourceClip = projectClips.find(clip => clip.id === clipId);
+      const sourceClip = timelineClips.find(clip => clip.id === clipId);
       
       if (!sourceClip) {
         console.warn('Source clip not found:', clipId);
@@ -164,7 +162,7 @@ const Track = ({ track, clips, zoom }) => {
     } catch (error) {
       console.error('Error handling drop:', error);
     }
-  }, [track.locked, track.id, track.type, projectClips, zoom, addClip]);
+  }, [track.locked, track.id, track.type, timelineClips, zoom, addClip]);
 
   return (
     <div 

@@ -4,11 +4,11 @@
  */
 
 import React, { useState, useRef, useCallback } from 'react';
-import { useProject } from '../context/ProjectContext';
+import { useTimeline } from '../hooks/useTimeline';
 import './MediaLibrary.css';
 
 const MediaLibrary = () => {
-  const { clips } = useProject();
+  const { clips } = useTimeline();
   const [draggedClip, setDraggedClip] = useState(null);
   const [dragOverTrack, setDragOverTrack] = useState(null);
 
