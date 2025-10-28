@@ -3,22 +3,86 @@ import React, { createContext, useContext, useReducer } from 'react';
 
 const TimelineContext = createContext();
 
+// Helper function to get track color based on type
+const getTrackColor = (trackType) => {
+  const colors = {
+    video: '#3b82f6',
+    audio: '#10b981',
+    text: '#f59e0b',
+    effect: '#8b5cf6'
+  };
+  return colors[trackType] || '#64748b';
+};
+
 const initialState = {
+  // Enhanced multi-track state structure
   clips: [],
   tracks: [
-    { id: 'video-1', type: 'video', name: 'Video Track 1', clips: [], height: 60, muted: false, locked: false },
-    { id: 'video-2', type: 'video', name: 'Video Track 2', clips: [], height: 60, muted: false, locked: false },
-    { id: 'audio-1', type: 'audio', name: 'Audio Track', clips: [], height: 40, muted: false, locked: false }
+    { 
+      id: 'video-1', 
+      type: 'video', 
+      name: 'Video Track 1', 
+      height: 60, 
+      muted: false, 
+      soloed: false,
+      locked: false, 
+      visible: true,
+      color: '#3b82f6',
+      clips: [] 
+    },
+    { 
+      id: 'video-2', 
+      type: 'video', 
+      name: 'Video Track 2', 
+      height: 60, 
+      muted: false, 
+      soloed: false,
+      locked: false, 
+      visible: true,
+      color: '#8b5cf6',
+      clips: [] 
+    },
+    { 
+      id: 'audio-1', 
+      type: 'audio', 
+      name: 'Audio Track', 
+      height: 40, 
+      muted: false, 
+      soloed: false,
+      locked: false, 
+      visible: true,
+      color: '#10b981',
+      clips: [] 
+    }
   ],
-  selectedClipId: null,
+  
+  // Selection state management
+  selection: {
+    clips: [],
+    tracks: [],
+    mode: 'single', // 'single' | 'multiple' | 'range'
+    anchor: null
+  },
+  
+  // Timeline navigation and zoom
   playhead: 0,
   zoom: 1,
   duration: 0,
-  // Trim data per clip (migrated from App.js)
+  
+  // Magnetic timeline settings
+  magneticSnap: true,
+  snapThreshold: 10, // pixels
+  
+  // Trim data per clip (legacy support)
   clipTrims: {},
+  
   // Rendering state
   isRendering: false,
-  renderProgress: 0
+  renderProgress: 0,
+  
+  // Undo/Redo history
+  history: [],
+  historyIndex: -1
 };
 
 const timelineReducer = (state, action) => {
@@ -175,6 +239,291 @@ const timelineReducer = (state, action) => {
         )
       };
 
+    // Track Management Actions
+    case 'ADD_TRACK':
+      const newTrack = {
+        id: action.id || `track-${Date.now()}`,
+        name: action.name || `Track ${state.tracks.length + 1}`,
+        type: action.trackType || 'video',
+        height: 60,
+        muted: false,
+        soloed: false,
+        locked: false,
+        visible: true,
+        color: getTrackColor(action.trackType || 'video'),
+        clips: []
+      };
+      return {
+        ...state,
+        tracks: [...state.tracks, newTrack]
+      };
+
+    case 'REMOVE_TRACK':
+      return {
+        ...state,
+        tracks: state.tracks.filter(track => track.id !== action.trackId),
+        clips: state.clips.filter(clip => clip.trackId !== action.trackId)
+      };
+
+    case 'RENAME_TRACK':
+      return {
+        ...state,
+        tracks: state.tracks.map(track =>
+          track.id === action.trackId
+            ? { ...track, name: action.name }
+            : track
+        )
+      };
+
+    case 'REORDER_TRACKS':
+      const reorderedTracks = action.trackIds.map(id => 
+        state.tracks.find(track => track.id === id)
+      ).filter(Boolean);
+      return {
+        ...state,
+        tracks: reorderedTracks
+      };
+
+    case 'UPDATE_TRACK_SETTINGS':
+      return {
+        ...state,
+        tracks: state.tracks.map(track =>
+          track.id === action.trackId
+            ? { ...track, ...action.settings }
+            : track
+        )
+      };
+
+    // Enhanced Clip Management Actions
+    case 'ADD_CLIP':
+      const newClip = {
+        id: action.id || `clip-${Date.now()}`,
+        trackId: action.trackId,
+        name: action.name,
+        path: action.path,
+        startTime: action.startTime || 0,
+        duration: action.duration,
+        trimIn: 0,
+        trimOut: action.duration,
+        thumbnail: action.thumbnail,
+        waveform: action.waveform,
+        selected: false,
+        locked: false,
+        effects: []
+      };
+      return {
+        ...state,
+        clips: [...state.clips, newClip]
+      };
+
+    case 'REMOVE_CLIP':
+      return {
+        ...state,
+        clips: state.clips.filter(clip => clip.id !== action.clipId)
+      };
+
+    case 'MOVE_CLIP':
+      return {
+        ...state,
+        clips: state.clips.map(clip =>
+          clip.id === action.clipId
+            ? { 
+                ...clip, 
+                startTime: action.startTime,
+                trackId: action.trackId || clip.trackId
+              }
+            : clip
+        )
+      };
+
+    case 'TRIM_CLIP':
+      return {
+        ...state,
+        clips: state.clips.map(clip =>
+          clip.id === action.clipId
+            ? { 
+                ...clip, 
+                trimIn: action.trimIn, 
+                trimOut: action.trimOut,
+                duration: action.trimOut - action.trimIn
+              }
+            : clip
+        )
+      };
+
+    case 'SPLIT_CLIP':
+      const originalClip = state.clips.find(c => c.id === action.clipId);
+      if (!originalClip) return state;
+      
+      const splitTime = action.splitTime - originalClip.startTime;
+      
+      const firstClip = {
+        ...originalClip,
+        duration: splitTime,
+        trimOut: originalClip.trimIn + splitTime
+      };
+      
+      const secondClip = {
+        ...originalClip,
+        id: `clip-${Date.now()}`,
+        startTime: action.splitTime,
+        duration: originalClip.duration - splitTime,
+        trimIn: originalClip.trimIn + splitTime,
+        trimOut: originalClip.trimOut
+      };
+      
+      return {
+        ...state,
+        clips: [
+          ...state.clips.filter(c => c.id !== action.clipId),
+          firstClip,
+          secondClip
+        ]
+      };
+
+    case 'DUPLICATE_CLIP':
+      const clipToDuplicate = state.clips.find(c => c.id === action.clipId);
+      if (!clipToDuplicate) return state;
+      
+      const duplicatedClip = {
+        ...clipToDuplicate,
+        id: `clip-${Date.now()}`,
+        startTime: action.startTime || clipToDuplicate.startTime + clipToDuplicate.duration + 1,
+        selected: false
+      };
+      
+      return {
+        ...state,
+        clips: [...state.clips, duplicatedClip]
+      };
+
+    // Selection Management Actions
+    case 'SELECT_CLIP':
+      const isMultiSelect = action.addToSelection || false;
+      let newSelection = { ...state.selection };
+      
+      if (isMultiSelect) {
+        if (newSelection.clips.includes(action.clipId)) {
+          newSelection.clips = newSelection.clips.filter(id => id !== action.clipId);
+        } else {
+          newSelection.clips = [...newSelection.clips, action.clipId];
+        }
+        newSelection.mode = newSelection.clips.length > 1 ? 'multiple' : 'single';
+      } else {
+        newSelection.clips = [action.clipId];
+        newSelection.mode = 'single';
+        newSelection.anchor = action.clipId;
+      }
+      
+      return {
+        ...state,
+        selection: newSelection
+      };
+
+    case 'SELECT_MULTIPLE_CLIPS':
+      return {
+        ...state,
+        selection: {
+          clips: action.clipIds,
+          tracks: [],
+          mode: 'multiple',
+          anchor: action.anchor
+        }
+      };
+
+    case 'SELECT_RANGE':
+      const clipsInRange = state.clips.filter(clip => 
+        clip.startTime >= action.startTime && 
+        clip.startTime + clip.duration <= action.endTime
+      );
+      return {
+        ...state,
+        selection: {
+          clips: clipsInRange.map(clip => clip.id),
+          tracks: [],
+          mode: 'range',
+          anchor: action.anchor
+        }
+      };
+
+    case 'CLEAR_SELECTION':
+      return {
+        ...state,
+        selection: {
+          clips: [],
+          tracks: [],
+          mode: 'single',
+          anchor: null
+        }
+      };
+
+    // Timeline Navigation Actions
+    case 'SET_ZOOM':
+      return {
+        ...state,
+        zoom: Math.max(0.1, Math.min(10, action.zoom))
+      };
+
+    // Magnetic Timeline Actions
+    case 'ENABLE_MAGNETIC_SNAP':
+      return {
+        ...state,
+        magneticSnap: action.enabled
+      };
+
+    case 'SET_SNAP_THRESHOLD':
+      return {
+        ...state,
+        snapThreshold: Math.max(1, Math.min(50, action.threshold))
+      };
+
+    // Undo/Redo Actions
+    case 'SAVE_STATE':
+      const newHistory = state.history.slice(0, state.historyIndex + 1);
+      newHistory.push({
+        clips: [...state.clips],
+        tracks: [...state.tracks],
+        selection: { ...state.selection },
+        playhead: state.playhead,
+        zoom: state.zoom
+      });
+      
+      return {
+        ...state,
+        history: newHistory.slice(-50), // Keep last 50 states
+        historyIndex: newHistory.length - 1
+      };
+
+    case 'UNDO':
+      if (state.historyIndex > 0) {
+        const previousState = state.history[state.historyIndex - 1];
+        return {
+          ...state,
+          clips: [...previousState.clips],
+          tracks: [...previousState.tracks],
+          selection: { ...previousState.selection },
+          playhead: previousState.playhead,
+          zoom: previousState.zoom,
+          historyIndex: state.historyIndex - 1
+        };
+      }
+      return state;
+
+    case 'REDO':
+      if (state.historyIndex < state.history.length - 1) {
+        const nextState = state.history[state.historyIndex + 1];
+        return {
+          ...state,
+          clips: [...nextState.clips],
+          tracks: [...nextState.tracks],
+          selection: { ...nextState.selection },
+          playhead: nextState.playhead,
+          zoom: nextState.zoom,
+          historyIndex: state.historyIndex + 1
+        };
+      }
+      return state;
+
     default:
       return state;
   }
@@ -225,30 +574,136 @@ export const TimelineProvider = ({ children }) => {
     dispatch({ type: 'UPDATE_CLIP_DURATION', clipId, duration });
   };
 
+  // Track Management Functions
+  const addTrack = (trackType, name) => {
+    dispatch({ type: 'ADD_TRACK', trackType, name });
+  };
+
+  const removeTrack = (trackId) => {
+    dispatch({ type: 'REMOVE_TRACK', trackId });
+  };
+
+  const renameTrack = (trackId, name) => {
+    dispatch({ type: 'RENAME_TRACK', trackId, name });
+  };
+
+  const reorderTracks = (trackIds) => {
+    dispatch({ type: 'REORDER_TRACKS', trackIds });
+  };
+
+  const updateTrackSettings = (trackId, settings) => {
+    dispatch({ type: 'UPDATE_TRACK_SETTINGS', trackId, settings });
+  };
+
+  // Enhanced Clip Management Functions
+  const addClip = (trackId, clip) => {
+    dispatch({ type: 'ADD_CLIP', trackId, ...clip });
+  };
+
+  const removeClip = (clipId) => {
+    dispatch({ type: 'REMOVE_CLIP', clipId });
+  };
+
+  const moveClip = (clipId, startTime, trackId) => {
+    dispatch({ type: 'MOVE_CLIP', clipId, startTime, trackId });
+  };
+
+  const trimClip = (clipId, trimIn, trimOut) => {
+    dispatch({ type: 'TRIM_CLIP', clipId, trimIn, trimOut });
+  };
+
+  const splitClip = (clipId, splitTime) => {
+    dispatch({ type: 'SPLIT_CLIP', clipId, splitTime });
+  };
+
+  const duplicateClip = (clipId, startTime) => {
+    dispatch({ type: 'DUPLICATE_CLIP', clipId, startTime });
+  };
+
+  // Selection Management Functions
+  const selectClip = (clipId, addToSelection = false) => {
+    dispatch({ type: 'SELECT_CLIP', clipId, addToSelection });
+  };
+
+  const selectMultipleClips = (clipIds, anchor) => {
+    dispatch({ type: 'SELECT_MULTIPLE_CLIPS', clipIds, anchor });
+  };
+
+  const selectRange = (startTime, endTime, anchor) => {
+    dispatch({ type: 'SELECT_RANGE', startTime, endTime, anchor });
+  };
+
+  const clearSelection = () => {
+    dispatch({ type: 'CLEAR_SELECTION' });
+  };
+
+  // Timeline Navigation Functions
+  const setZoom = (zoom) => {
+    dispatch({ type: 'SET_ZOOM', zoom });
+  };
+
+  // Magnetic Timeline Functions
+  const enableMagneticSnap = (enabled) => {
+    dispatch({ type: 'ENABLE_MAGNETIC_SNAP', enabled });
+  };
+
+  const setSnapThreshold = (threshold) => {
+    dispatch({ type: 'SET_SNAP_THRESHOLD', threshold });
+  };
+
+  // Undo/Redo Functions
+  const saveState = () => {
+    dispatch({ type: 'SAVE_STATE' });
+  };
+
+  const undo = () => {
+    dispatch({ type: 'UNDO' });
+  };
+
+  const redo = () => {
+    dispatch({ type: 'REDO' });
+  };
+
   // Helper functions
   const getSelectedClip = () => {
-    return state.clips.find(clip => clip.id === state.selectedClipId);
+    const selectedClipId = state.selection.clips[0];
+    return state.clips.find(clip => clip.id === selectedClipId);
+  };
+
+  const getSelectedClips = () => {
+    return state.clips.filter(clip => state.selection.clips.includes(clip.id));
   };
 
   const getCurrentTrimData = () => {
-    if (!state.selectedClipId) return { inPoint: 0, outPoint: 0 };
-    return state.clipTrims[state.selectedClipId] || { 
+    const selectedClip = getSelectedClip();
+    if (!selectedClip) return { inPoint: 0, outPoint: 0 };
+    return state.clipTrims[selectedClip.id] || { 
       inPoint: 0, 
-      outPoint: getSelectedClip()?.duration || 0 
+      outPoint: selectedClip.duration || 0 
     };
   };
+
+  const canUndo = () => state.historyIndex > 0;
+  const canRedo = () => state.historyIndex < state.history.length - 1;
 
   const value = {
     // State
     clips: state.clips,
     tracks: state.tracks,
-    selectedClipId: state.selectedClipId,
+    selection: state.selection,
     playhead: state.playhead,
     zoom: state.zoom,
     duration: state.duration,
+    magneticSnap: state.magneticSnap,
+    snapThreshold: state.snapThreshold,
     clipTrims: state.clipTrims,
     isRendering: state.isRendering,
     renderProgress: state.renderProgress,
+    history: state.history,
+    historyIndex: state.historyIndex,
+    
+    // Legacy support
+    selectedClipId: state.selection.clips[0] || null,
     
     // Actions
     addClips,
@@ -261,8 +716,43 @@ export const TimelineProvider = ({ children }) => {
     setRendering,
     updateClipDuration,
     
+    // Track Management
+    addTrack,
+    removeTrack,
+    renameTrack,
+    reorderTracks,
+    updateTrackSettings,
+    
+    // Enhanced Clip Management
+    addClip,
+    removeClip,
+    moveClip,
+    trimClip,
+    splitClip,
+    duplicateClip,
+    
+    // Selection Management
+    selectMultipleClips,
+    selectRange,
+    clearSelection,
+    
+    // Timeline Navigation
+    setZoom,
+    
+    // Magnetic Timeline
+    enableMagneticSnap,
+    setSnapThreshold,
+    
+    // Undo/Redo
+    saveState,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    
     // Helpers
     getSelectedClip,
+    getSelectedClips,
     getCurrentTrimData
   };
 
