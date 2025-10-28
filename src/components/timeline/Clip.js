@@ -145,8 +145,8 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
       // Handle trimming using proper trim points
       const minDuration = 0.1; // Minimum clip duration in seconds
       
-      // Get the original full duration from the first import (stored in dragStart)
-      const originalFullDuration = dragStart.trimOut || dragStart.duration;
+      // Get the original full duration from when clip was first imported (NEVER changes)
+      const originalFullDuration = clip.originalDuration || clip.duration;
 
       if (trimSide === 'left') {
         // Trim from the start: move trimIn point, keep trimOut fixed
@@ -185,14 +185,15 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
 
         // Clamp values to prevent invalid states
         newTrimOut = Math.max(dragStart.trimIn + minDuration, newTrimOut); // Can't make duration too small
-        // Note: We DON'T clamp to originalFullDuration because trimOut can shrink!
+        newTrimOut = Math.min(newTrimOut, originalFullDuration); // Can't extend beyond original clip end
         
         console.log('[TRIM] Right trim:', { 
           deltaTime, 
           dragStartTrimOut: dragStart.trimOut,
           newTrimOut, 
           trimIn: dragStart.trimIn,
-          newDuration: newTrimOut - dragStart.trimIn
+          newDuration: newTrimOut - dragStart.trimIn,
+          originalFullDuration
         });
         
         // Update clip trim points

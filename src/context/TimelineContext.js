@@ -101,6 +101,7 @@ const timelineReducer = (state, action) => {
         name: clip.name,
         path: clip.path,
         duration: clip.duration,
+        originalDuration: clip.duration, // Store the ORIGINAL untrimmed duration - NEVER changes!
         startTime: nextStartTime + (index > 0 ? action.clips.slice(0, index).reduce((sum, c) => sum + c.duration, 0) : 0), // Place clips sequentially
         trackId: 'video-1', // Default to first video track
         trimIn: 0,
