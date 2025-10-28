@@ -26,11 +26,11 @@ A professional desktop video editor for quick clip trimming and export. Built wi
 
 ### PR#13: Professional Timeline (October 28, 2024)
 - ✅ **Multi-Track Timeline** - Professional video editor with CapCut-style interface
-- ✅ **Magnetic Snapping** - Precise clip alignment with configurable thresholds
+- ✅ **Professional Trimming** - Edge-based trimming with magnetic snap (CapCut-style)
 - ✅ **Playback Synchronization** - Seamless video-timeline synchronization
 - ✅ **Single Toggle Controls** - Industry-standard Play/Pause button (turns blue when playing)
 - ✅ **Enhanced Media Library** - Complete metadata display and drag-and-drop functionality
-- ✅ **8 Major Bugs Fixed** - Comprehensive bug analysis and prevention measures
+- ✅ **9 Major Bugs Fixed** - Comprehensive bug analysis and prevention measures (including THE SMOKING GUN!)
 
 **Achievement:** ClipForge now rivals professional video editing software like CapCut and Premiere Pro!
 

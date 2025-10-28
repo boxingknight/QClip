@@ -36,6 +36,7 @@
 - 🔧 Selection state mismatch in ADD_CLIPS reducer
 - 🔧 Video element registration timing issues
 - 🔧 Playhead scrubbing not synchronized with video
+- 🔧 **CRITICAL: Magnetic snap pixel-to-time conversion error** (100x multiplication bug!)
 
 **Technical Achievements:**
 - Professional video editor architecture with React Context API

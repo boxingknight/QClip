@@ -118,7 +118,7 @@ ClipForge now rivals professional video editing software with intuitive timeline
 - **Total:** 25 hours
 
 ### Quality Metrics
-- **Bugs Fixed:** 8 major bugs (3 hours debugging)
+- **Bugs Fixed:** 9 major bugs (7.5 hours debugging)
 - **Tests Written:** Manual testing comprehensive
 - **Documentation:** ~15,000 words
 - **Performance:** All targets met/exceeded
@@ -175,7 +175,13 @@ ClipForge now rivals professional video editing software with intuitive timeline
 **Solution:** Integrated usePlayback hook and seek function  
 **Prevention:** Component integration testing
 
-**Total Debug Time:** 3 hours (12% of implementation time)
+### Bug #9: Magnetic Snap Pixel-to-Time Conversion Error (THE SMOKING GUN!)
+**Time:** 4 hours debugging + 30 minutes fix  
+**Root Cause:** snapToNearest() returns pixels but was treated as seconds, causing 100x multiplication error  
+**Solution:** Added pixelsToTime() conversion after magnetic snap  
+**Prevention:** Unit validation in conversion functions, detailed logging during development
+
+**Total Debug Time:** 7.5 hours (30% of implementation time)
 
 ---
 

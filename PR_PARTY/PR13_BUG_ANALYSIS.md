@@ -752,13 +752,112 @@ it('should seek video when playhead is dragged', () => {
 
 ---
 
+## Bug #9: Magnetic Snap Pixel-to-Time Conversion Error (THE SMOKING GUN!)
+
+**Severity:** 🔴 CRITICAL  
+**Time to Debug:** 4 hours  
+**Time to Fix:** 30 minutes  
+**Impact:** Trimming was completely non-functional - clips appeared "stuck" and couldn't be shortened
+
+### The Issue
+
+**What Went Wrong:**
+When trimming clips with magnetic snap enabled, clips would appear to be "stuck" at their original length and couldn't be shortened, even though console logs showed trimming was being triggered.
+
+**Console Evidence:**
+```
+[STEP 1] newTrimOut_calculated: 28.204 (correct - seconds)
+[STEP 2] afterSnap: 2820.4 (BUG! - treated pixels as seconds)
+[STEP 4] afterSecondClamp: 29.134 (clamped back, appearing 'stuck')
+```
+
+**User Impact:**
+- Trimming handles wouldn't respond to user input
+- Clips couldn't be shortened from edges
+- Professional video editing workflow was impossible
+- Users couldn't create seamless movie sequences
+
+### Root Cause Analysis
+
+**Surface Issue:**
+Trimming appeared to be "stuck" and non-responsive.
+
+**Actual Cause:**
+**PIXEL-TO-TIME UNIT MISMATCH** in magnetic snap logic! The `snapToNearest()` function returns **pixels**, but we were treating the result as **seconds**, causing a 100x multiplication error.
+
+**The Bug Sequence:**
+1. User drags trim handle left by 3.53 seconds
+2. `deltaTime = -3.53` (correct)
+3. `newTrimOut = 29.134 + (-3.53) = 25.6` (correct)
+4. `timeToPixels(25.6, zoom) = 2560px` (correct)
+5. `snapToNearest(2560px) = 2820px` (correct - returns pixels)
+6. **BUG:** `newTrimOut = 2820` (treated pixels as seconds!)
+7. Clamp: `Math.min(2820, 29.134) = 29.134` (back to original)
+
+**Why It Mattered:**
+This was the most subtle and devastating bug - the trimming logic was mathematically correct, but a unit conversion error made it appear completely broken.
+
+### The Fix
+
+**Before (Broken):**
+```javascript
+// Clip.js - WRONG: Treating pixels as seconds
+if (magneticSnap) {
+  const newTrimOutPx = timeToPixels(newTrimOut, zoom);
+  newTrimOut = snapToNearest(newTrimOutPx, clip.id); // ❌ Returns pixels, treated as seconds!
+}
+```
+
+**After (Fixed):**
+```javascript
+// Clip.js - CORRECT: Convert pixels back to seconds
+if (magneticSnap) {
+  const newTrimOutPx = timeToPixels(newTrimOut, zoom);
+  const snappedPx = snapToNearest(newTrimOutPx, clip.id); // Get pixels
+  newTrimOut = pixelsToTime(snappedPx, zoom); // ✅ Convert back to seconds!
+}
+```
+
+### Files Changed
+- `src/components/timeline/Clip.js` (+8/-4 lines)
+
+### Commit
+`fix(CRITICAL): pixel-to-time conversion bug in magnetic snap trimming`
+Hash: `98ba2ab`
+
+### Prevention Strategy
+
+**How to Avoid This in Future:**
+1. **Always verify unit types** in conversion functions
+2. **Add unit comments** to variables: `const timeInSeconds = ...`
+3. **Test magnetic snap** with detailed logging during development
+4. **Validate conversion chains**: `seconds → pixels → snap → pixels → seconds`
+
+**Test to Add:**
+```javascript
+it('should maintain correct units through magnetic snap conversion', () => {
+  const originalTime = 25.6; // seconds
+  const pixels = timeToPixels(originalTime, zoom);
+  const snappedPixels = snapToNearest(pixels, clipId);
+  const finalTime = pixelsToTime(snappedPixels, zoom);
+  
+  // Verify we end up with seconds, not pixels
+  expect(finalTime).toBeLessThan(1000); // Should be seconds, not pixels
+});
+```
+
+**Linting Rule:**
+Consider adding ESLint rules to flag potential unit mismatches in conversion functions.
+
+---
+
 ## Impact Assessment
 
 **Time Cost:**
-- Finding bugs: 2 hours
-- Fixing bugs: 1 hour
+- Finding bugs: 6 hours (including the 4-hour magnetic snap debugging marathon)
+- Fixing bugs: 1.5 hours
 - Testing fixes: 0 hours (manual testing)
-- **Total:** 3 hours
+- **Total:** 7.5 hours
 
 **Could Have Been Prevented By:**
 - ✅ Better planning (context usage documentation)
@@ -766,6 +865,8 @@ it('should seek video when playhead is dragged', () => {
 - ✅ Code review (duplicate reducer detection)
 - ✅ Linting rules (exhaustive-deps, duplicate-keys)
 - ✅ TypeScript (function signature validation)
+- ✅ **Unit testing for conversion functions** (pixel-to-time validation)
+- ✅ **Detailed logging during development** (would have caught unit mismatch immediately)
 
 ---
 
@@ -774,9 +875,12 @@ it('should seek video when playhead is dragged', () => {
 **Similar Bugs:**
 - PR#12 Bug#3 - Context mismatch in different component
 - PR#11 Bug#1 - Missing IPC handler for different function
+- PR#10 Bug#2 - Unit conversion error in different calculation function
 
 **Pattern Recognition:**
-Context management and IPC setup are common sources of bugs in Electron + React applications
+1. **Context management and IPC setup** are common sources of bugs in Electron + React applications
+2. **Unit conversion errors** (pixels vs time vs other units) are particularly dangerous because they can appear to work but produce wrong results
+3. **Magnetic snap systems** require careful unit validation throughout the conversion chain
 
 ---
 
