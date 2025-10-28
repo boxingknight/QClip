@@ -5,13 +5,13 @@ import { UIProvider, useUI } from './context/UIContext';
 import ImportPanel from './components/ImportPanel';
 import VideoPlayer from './components/VideoPlayer';
 import ExportPanel from './components/ExportPanel';
-import Timeline from './components/Timeline';
+import Timeline from './components/timeline/Timeline'; // Updated to use new professional timeline
 import ErrorBoundary from './components/ErrorBoundary';
 // UI Components for PR#12
 import Modal from './components/ui/Modal';
 import { ToastContainer } from './components/ui/Toast';
 import Toolbar, { ToolbarGroups } from './components/ui/Toolbar';
-import StatusBar, { StatusBarPresets } from './components/ui/StatusBar';
+// Removed StatusBar import - now integrated into Timeline
 import { logger } from './utils/logger';
 import { validateInPoint, validateOutPoint } from './utils/trimValidation';
 // Removed TrimControls - now integrated in Timeline
@@ -276,21 +276,7 @@ function AppContent() {
         </div>
         
         {/* Timeline - Bottom */}
-        <Timeline 
-          onApplyTrim={handleApplyTrim}
-        />
-
-        {/* Status Bar */}
-        <StatusBar
-          projectInfo={{
-            name: 'ClipForge Project',
-            duration: clips.reduce((total, clip) => total + (clip.duration || 0), 0),
-            clips: clips.length,
-            tracks: 1
-          }}
-          status={isRendering ? 'processing' : 'ready'}
-          progress={isRendering ? { percentage: renderProgress } : null}
-        />
+        <Timeline />
 
         {/* UI Components */}
         <ToastContainer />
