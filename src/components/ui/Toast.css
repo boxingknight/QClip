@@ -2,7 +2,7 @@
 /* V2 Feature: Professional toast notifications */
 
 .toast-container {
-  position: fixed;
+  position: absolute; /* Position relative to the .app container */
   top: var(--space-lg);
   right: var(--space-lg);
   z-index: 1100;
@@ -10,6 +10,9 @@
   flex-direction: column;
   gap: var(--space-sm);
   pointer-events: none;
+  max-width: calc(100vw - 2 * var(--space-lg)); /* Ensure toasts don't exceed viewport width */
+  max-height: calc(100vh - 2 * var(--space-lg)); /* Ensure toasts don't exceed viewport height */
+  overflow: hidden; /* Hide any toasts that would go out of bounds */
 }
 
 .toast {
@@ -162,6 +165,7 @@
     top: var(--space-md);
     right: var(--space-md);
     left: var(--space-md);
+    max-width: none; /* Allow full width on mobile */
   }
   
   .toast {
