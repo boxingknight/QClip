@@ -158,23 +158,52 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
         // Trim from the start: move trimIn point, keep trimOut fixed
         let newTrimIn = dragStart.trimIn + deltaTime;
         
+        console.log('🔍 [LEFT TRIM DEBUG - STEP 1] Initial calculation:', {
+          deltaTime,
+          dragStartTrimIn: dragStart.trimIn,
+          newTrimIn_calculated: newTrimIn,
+          dragStartTrimOut: dragStart.trimOut,
+          clipOriginalDuration: clip.originalDuration,
+          clipDuration: clip.duration
+        });
+        
         // Apply magnetic snap if enabled
         if (magneticSnap) {
           const newTrimInPx = timeToPixels(newTrimIn, zoom);
           const snappedPx = snapToNearest(newTrimInPx, clip.id);
+          const beforeSnap = newTrimIn;
           newTrimIn = pixelsToTime(snappedPx, zoom); // ✅ CRITICAL FIX: Convert pixels back to time!
+          console.log('🔍 [LEFT TRIM DEBUG - STEP 2] After magnetic snap:', {
+            beforeSnap,
+            afterSnap: newTrimIn,
+            changed: beforeSnap !== newTrimIn
+          });
         }
 
         // Clamp values to prevent invalid states
+        const beforeFirstClamp = newTrimIn;
         newTrimIn = Math.max(0, newTrimIn); // Can't go before start of original clip
-        newTrimIn = Math.min(newTrimIn, dragStart.trimOut - minDuration); // Can't make duration too small
+        console.log('🔍 [LEFT TRIM DEBUG - STEP 3] After first clamp (Math.max):', {
+          beforeFirstClamp,
+          afterFirstClamp: newTrimIn,
+          minAllowed: 0,
+          changed: beforeFirstClamp !== newTrimIn
+        });
         
-        console.log('[TRIM] Left trim:', { 
-          deltaTime, 
-          dragStartTrimIn: dragStart.trimIn,
-          newTrimIn, 
-          trimOut: dragStart.trimOut,
-          newDuration: dragStart.trimOut - newTrimIn 
+        const beforeSecondClamp = newTrimIn;
+        newTrimIn = Math.min(newTrimIn, dragStart.trimOut - minDuration); // Can't make duration too small
+        console.log('🔍 [LEFT TRIM DEBUG - STEP 4] After second clamp (Math.min):', {
+          beforeSecondClamp,
+          afterSecondClamp: newTrimIn,
+          maxAllowed: dragStart.trimOut - minDuration,
+          changed: beforeSecondClamp !== newTrimIn
+        });
+        
+        console.log('🔍 [LEFT TRIM DEBUG - FINAL] Calling trimClip:', {
+          clipId: clip.id,
+          newTrimIn,
+          dragStartTrimOut: dragStart.trimOut,
+          newDuration: dragStart.trimOut - newTrimIn
         });
         
         // Update clip trim points
