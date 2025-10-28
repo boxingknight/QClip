@@ -1,0 +1,28 @@
+/* src/components/timeline/tracks/TextTrack.css */
+/**
+ * Text track specific styles
+ */
+
+/* Text tracks have a distinct amber/orange color scheme */
+.track[data-type="text"] {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.1) 100%);
+}
+
+.track[data-type="text"] .track-header {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.track[data-type="text"] .track-type-badge {
+  background: rgba(245, 158, 11, 0.3);
+  color: #fde68a;
+}
+
+/* Text clip specific enhancements */
+.track[data-type="text"] .clip {
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.2);
+}
+
+.track[data-type="text"] .clip:hover {
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+

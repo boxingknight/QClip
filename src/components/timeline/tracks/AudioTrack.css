@@ -1,0 +1,33 @@
+/* src/components/timeline/tracks/AudioTrack.css */
+/**
+ * Audio track specific styles
+ */
+
+/* Audio tracks have a distinct green color scheme */
+.track[data-type="audio"] {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.1) 100%);
+}
+
+.track[data-type="audio"] .track-header {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.track[data-type="audio"] .track-type-badge {
+  background: rgba(16, 185, 129, 0.3);
+  color: #a7f3d0;
+}
+
+/* Audio clip specific enhancements */
+.track[data-type="audio"] .clip {
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.2);
+}
+
+.track[data-type="audio"] .clip:hover {
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+/* Audio waveform styling */
+.track[data-type="audio"] .clip-waveform {
+  opacity: 1;
+}
+

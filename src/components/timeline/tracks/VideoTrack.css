@@ -1,0 +1,28 @@
+/* src/components/timeline/tracks/VideoTrack.css */
+/**
+ * Video track specific styles
+ */
+
+/* Video tracks have a distinct purple/indigo color scheme */
+.track[data-type="video"] {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.1) 100%);
+}
+
+.track[data-type="video"] .track-header {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.track[data-type="video"] .track-type-badge {
+  background: rgba(99, 102, 241, 0.3);
+  color: #c7d2fe;
+}
+
+/* Video clip specific enhancements */
+.track[data-type="video"] .clip {
+  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.2);
+}
+
+.track[data-type="video"] .clip:hover {
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+

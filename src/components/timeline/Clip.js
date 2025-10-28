@@ -146,6 +146,7 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
     <div
       ref={clipRef}
       className={`clip ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`}
+      data-type={clip.type}
       style={clipStyle}
       onClick={handleClick}
       onMouseDown={handleMouseDown}

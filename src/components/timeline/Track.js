@@ -108,6 +108,7 @@ const Track = ({ track, clips, zoom }) => {
     <div 
       ref={trackRef}
       className={`track ${track.locked ? 'locked' : ''} ${!track.visible ? 'hidden' : ''}`}
+      data-type={track.type}
       style={{ 
         height: `${track.height}px`,
         backgroundColor: track.color + '15' // Add transparency
