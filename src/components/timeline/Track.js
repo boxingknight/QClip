@@ -7,6 +7,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useTimeline } from '../../hooks/useTimeline';
 import { timeToPixels } from '../../utils/timelineCalculations';
+import Clip from './Clip';
 import './Track.css';
 
 const Track = ({ track, clips, zoom }) => {
@@ -103,19 +104,6 @@ const Track = ({ track, clips, zoom }) => {
     }
   }, [isResizing, handleResizeMove, handleResizeEnd]);
 
-  // Calculate clip positions
-  const getClipStyle = useCallback((clip) => {
-    const left = timeToPixels(clip.startTime, zoom);
-    const width = timeToPixels(clip.duration, zoom);
-    const height = track.height - 32; // Account for track header
-    
-    return {
-      left: `${left}px`,
-      width: `${width}px`,
-      height: `${height}px`
-    };
-  }, [zoom, track.height]);
-
   return (
     <div 
       ref={trackRef}
@@ -186,18 +174,13 @@ const Track = ({ track, clips, zoom }) => {
       
       <div className="track-content">
         {clips.map(clip => (
-          <div
+          <Clip
             key={clip.id}
-            className={`clip ${clip.selected ? 'selected' : ''}`}
-            style={getClipStyle(clip)}
-          >
-            <div className="clip-thumbnail">
-              {track.type === 'video' ? '🎬' : track.type === 'audio' ? '🎵' : '📝'}
-            </div>
-            <div className="clip-label">
-              {clip.name}
-            </div>
-          </div>
+            clip={clip}
+            trackHeight={track.height}
+            zoom={zoom}
+            trackId={track.id}
+          />
         ))}
       </div>
 

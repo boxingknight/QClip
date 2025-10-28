@@ -1,0 +1,293 @@
+/* src/components/timeline/Clip.css */
+/**
+ * Clip component styles
+ */
+
+.clip {
+  position: absolute;
+  top: 4px;
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  border-radius: 4px;
+  border: 1px solid #475569;
+  cursor: grab;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+.clip:hover {
+  background: linear-gradient(135deg, #7c8a9b 0%, #5a6a79 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+}
+
+.clip.dragging {
+  cursor: grabbing;
+  opacity: 0.8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 10;
+}
+
+.clip.selected {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+  z-index: 6;
+}
+
+.clip.selected:hover {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+/* Clip thumbnail/preview */
+.clip-thumbnail {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.clip-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.7;
+}
+
+.clip-icon {
+  font-size: 20px;
+  opacity: 0.6;
+}
+
+/* Waveform visualization */
+.clip-waveform {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 20px;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  pointer-events: none;
+}
+
+.waveform-placeholder {
+  width: 100%;
+  height: 60%;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.1) 0px,
+    rgba(255, 255, 255, 0.1) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  border-radius: 2px;
+}
+
+/* Clip label */
+.clip-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 3px 6px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-height: 18px;
+  pointer-events: none;
+}
+
+.clip-name {
+  font-size: 9px;
+  color: #f1f5f9;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.clip-duration {
+  font-size: 8px;
+  color: #cbd5e1;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* Trim handles */
+.clip-trim-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 8;
+  background: transparent;
+  transition: background-color 0.2s ease;
+}
+
+.clip-trim-left {
+  left: 0;
+  border-left: 2px solid transparent;
+}
+
+.clip-trim-right {
+  right: 0;
+  border-right: 2px solid transparent;
+}
+
+.clip:hover .clip-trim-handle {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.clip-trim-handle:hover {
+  background: rgba(59, 130, 246, 0.4);
+}
+
+.clip.selected .clip-trim-left {
+  border-left-color: rgba(255, 255, 255, 0.6);
+}
+
+.clip.selected .clip-trim-right {
+  border-right-color: rgba(255, 255, 255, 0.6);
+}
+
+/* Selection outline */
+.clip-selection-outline {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px solid rgba(59, 130, 246, 0.8);
+  border-radius: 5px;
+  pointer-events: none;
+  animation: pulse-selection 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-selection {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Clip type variations */
+.clip[data-type="video"] {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border-color: #4338ca;
+}
+
+.clip[data-type="video"].selected {
+  background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+}
+
+.clip[data-type="audio"] {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: #047857;
+}
+
+.clip[data-type="audio"].selected {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+}
+
+.clip[data-type="text"] {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border-color: #b45309;
+}
+
+.clip[data-type="text"].selected {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.clip[data-type="effect"] {
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  border-color: #be185d;
+}
+
+.clip[data-type="effect"].selected {
+  background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
+}
+
+.clip[data-type="image"] {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  border-color: #6d28d9;
+}
+
+.clip[data-type="image"].selected {
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .clip {
+    top: 3px;
+  }
+  
+  .clip-icon {
+    font-size: 16px;
+  }
+  
+  .clip-label {
+    padding: 2px 4px;
+    min-height: 16px;
+  }
+  
+  .clip-name {
+    font-size: 8px;
+  }
+  
+  .clip-duration {
+    font-size: 7px;
+  }
+  
+  .clip-trim-handle {
+    width: 6px;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .clip {
+    background: linear-gradient(135deg, #4a4a4f 0%, #3a3a3f 100%);
+    border-color: #3a3a3f;
+  }
+  
+  .clip:hover {
+    background: linear-gradient(135deg, #5a5a5f 0%, #4a4a4f 100%);
+  }
+  
+  .clip.selected {
+    background: linear-gradient(135deg, #007aff 0%, #0056cc 100%);
+    border-color: #0044aa;
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.4);
+  }
+  
+  .clip-label {
+    background: rgba(0, 0, 0, 0.6);
+  }
+  
+  .clip-name {
+    color: #f5f5f7;
+  }
+  
+  .clip-duration {
+    color: #d1d1d6;
+  }
+}
+
