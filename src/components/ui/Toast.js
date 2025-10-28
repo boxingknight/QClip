@@ -44,7 +44,7 @@ const Toast = ({ toast }) => {
     }
   };
 
-  const toastElement = (
+  return (
     <div 
       className={`toast toast-${type} ${isExiting ? 'toast-exit' : ''}`}
       role="alert"
@@ -81,8 +81,6 @@ const Toast = ({ toast }) => {
       )}
     </div>
   );
-
-  return createPortal(toastElement, document.body);
 };
 
 // ToastContainer component to render all toasts
@@ -91,6 +89,23 @@ export const ToastContainer = () => {
 
   if (toasts.length === 0) {
     return null;
+  }
+
+  // Create a dedicated portal target if it doesn't exist
+  let portalTarget = document.getElementById('toast-portal');
+  if (!portalTarget) {
+    portalTarget = document.createElement('div');
+    portalTarget.id = 'toast-portal';
+    portalTarget.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+    `;
+    document.body.appendChild(portalTarget);
   }
 
   const containerElement = (
@@ -105,7 +120,7 @@ export const ToastContainer = () => {
     </div>
   );
 
-  return createPortal(containerElement, document.body);
+  return createPortal(containerElement, portalTarget);
 };
 
 export default Toast;
