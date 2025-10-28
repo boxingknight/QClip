@@ -88,12 +88,20 @@ const initialState = {
 const timelineReducer = (state, action) => {
   switch (action.type) {
     case 'ADD_CLIPS':
-      const newClips = action.clips.map(clip => ({
+      // Calculate the end time of all existing clips on video-1 track
+      const existingClipsOnTrack = state.clips.filter(c => c.trackId === 'video-1');
+      let nextStartTime = 0;
+      if (existingClipsOnTrack.length > 0) {
+        // Find the maximum end time (startTime + duration) of existing clips
+        nextStartTime = Math.max(...existingClipsOnTrack.map(c => c.startTime + c.duration));
+      }
+      
+      const newClips = action.clips.map((clip, index) => ({
         id: clip.id,
         name: clip.name,
         path: clip.path,
         duration: clip.duration,
-        startTime: 0, // Default start time
+        startTime: nextStartTime + (index > 0 ? action.clips.slice(0, index).reduce((sum, c) => sum + c.duration, 0) : 0), // Place clips sequentially
         trackId: 'video-1', // Default to first video track
         trimIn: 0,
         trimOut: clip.duration,
@@ -360,6 +368,14 @@ const timelineReducer = (state, action) => {
       };
 
     case 'TRIM_CLIP':
+      console.log('[TRIM_CLIP REDUCER]', {
+        clipId: action.clipId,
+        oldClip: state.clips.find(c => c.id === action.clipId),
+        newTrimIn: action.trimIn,
+        newTrimOut: action.trimOut,
+        newDuration: action.trimOut - action.trimIn
+      });
+      
       return {
         ...state,
         clips: state.clips.map(clip =>
