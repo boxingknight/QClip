@@ -369,11 +369,11 @@ const timelineReducer = (state, action) => {
       };
 
     case 'TRIM_CLIP':
-      console.log('🔍 [TRIM_CLIP REDUCER] Received trim request:', {
+      console.log('[TRIM_CLIP REDUCER]', {
         clipId: action.clipId,
+        oldClip: state.clips.find(c => c.id === action.clipId),
         newTrimIn: action.trimIn,
         newTrimOut: action.trimOut,
-        oldClip: state.clips.find(c => c.id === action.clipId),
         newDuration: action.trimOut - action.trimIn
       });
       
