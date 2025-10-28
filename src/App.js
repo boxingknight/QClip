@@ -234,17 +234,19 @@ function AppContent() {
     <ErrorBoundary>
       <div className="app">
         {/* Toolbar */}
-        <Toolbar
-          title="ClipForge"
-          subtitle="Desktop Video Editor"
-          groups={[
-            ToolbarGroups.file,
-            ToolbarGroups.recording,
-            ToolbarGroups.timeline,
-            ToolbarGroups.playback
-          ]}
-          onAction={handleToolbarAction}
-        />
+        <div className="toolbar">
+          <Toolbar
+            title="ClipForge"
+            subtitle="Desktop Video Editor"
+            groups={[
+              ToolbarGroups.file,
+              ToolbarGroups.recording,
+              ToolbarGroups.timeline,
+              ToolbarGroups.playback
+            ]}
+            onAction={handleToolbarAction}
+          />
+        </div>
 
         {/* Left Sidebar - Import */}
         <div className="sidebar">
