@@ -6,10 +6,11 @@ const fs = require('fs');
 function getFFmpegPaths() {
   // Check if we're in a packaged app
   const isPackaged = !!process.resourcesPath;
-  const isDev = !isPackaged || process.env.NODE_ENV === 'development';
+  const isDev = !isPackaged || process.env.NODE_ENV === 'development' || process.env.npm_lifecycle_event === 'start';
   
   console.log('[FFmpeg] Environment check:', { 
     NODE_ENV: process.env.NODE_ENV, 
+    npm_lifecycle_event: process.env.npm_lifecycle_event,
     isDev, 
     isPackaged,
     resourcesPath: process.resourcesPath
@@ -17,7 +18,7 @@ function getFFmpegPaths() {
   
   console.log('[FFmpeg] Environment:', { isDev, isPackaged, __dirname, resourcesPath: process.resourcesPath });
   
-  if (isDev && !isPackaged) {
+  if (isDev) {
     // Development mode - use node_modules
     console.log('[FFmpeg] Using development paths (node_modules)');
     return {
