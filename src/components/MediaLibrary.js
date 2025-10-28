@@ -53,7 +53,8 @@ const MediaLibrary = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  if (clips.length === 0) {
+  // Check if clips is undefined or empty
+  if (!clips || clips.length === 0) {
     return (
       <div className="media-library">
         <div className="media-library-header">
@@ -72,11 +73,11 @@ const MediaLibrary = () => {
     <div className="media-library">
       <div className="media-library-header">
         <h3>Media Library</h3>
-        <span className="clip-count">{clips.length} video{clips.length !== 1 ? 's' : ''}</span>
+        <span className="clip-count">{clips?.length || 0} video{(clips?.length || 0) !== 1 ? 's' : ''}</span>
       </div>
       
       <div className="media-library-content">
-        {clips.map((clip) => (
+        {(clips || []).map((clip) => (
           <div
             key={clip.id}
             className={`media-item ${draggedClip?.id === clip.id ? 'dragging' : ''}`}
