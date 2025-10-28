@@ -47,7 +47,12 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
     setError(null);
     video.src = effectiveSrc;
     video.load();
-    logger.debug('Loading video', { src: effectiveSrc });
+    logger.debug('Loading video', { 
+      src: effectiveSrc,
+      clipTrimIn: selectedClip?.trimIn,
+      clipTrimOut: selectedClip?.trimOut,
+      clipDuration: selectedClip?.duration
+    });
 
     // Setup event listeners
     const handleError = (e) => {
@@ -74,13 +79,22 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
           duration: video.duration 
         });
         
+        // 🎯 CRITICAL: Seek to trimIn point if clip is trimmed
+        // This ensures playback starts from the visible portion on the timeline
+        const trimIn = selectedClip?.trimIn || 0;
+        if (trimIn > 0) {
+          console.log('[VideoPlayer] Seeking to trimIn:', trimIn);
+          video.currentTime = trimIn;
+          setCurrentTime(trimIn);
+        }
+        
         // Update playback context with duration
         updatePlaybackState({ duration: video.duration });
         
         // Update parent with duration
         if (selectedClip) {
           onTimeUpdate?.({
-            currentTime: video.currentTime,
+            currentTime: trimIn, // Start from trimIn, not 0
             duration: video.duration
           });
         }
@@ -127,6 +141,17 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
       video.pause();
       logger.debug('Video paused');
     } else {
+      // 🎯 CRITICAL: If at trimOut, seek back to trimIn before playing
+      // This allows replay of the trimmed section
+      const trimIn = selectedClip?.trimIn || 0;
+      const trimOut = selectedClip?.trimOut || video.duration;
+      
+      if (video.currentTime >= trimOut - 0.1) { // Within 0.1s of end
+        console.log('[VideoPlayer] At end, seeking back to trimIn:', trimIn);
+        video.currentTime = trimIn;
+        setCurrentTime(trimIn);
+      }
+      
       video.play().catch((err) => {
         logger.error('Play error', err, { force: true });
         setError('Failed to play video');
@@ -176,6 +201,23 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
           const video = videoRef.current;
           if (video) {
             const current = video.currentTime;
+            
+            // 🎯 CRITICAL: Stop playback at trimOut point
+            // This ensures only the visible timeline portion plays
+            const trimOut = selectedClip?.trimOut || video.duration;
+            if (current >= trimOut) {
+              console.log('[VideoPlayer] Reached trimOut, pausing:', { current, trimOut });
+              video.pause();
+              video.currentTime = trimOut; // Snap to exact end point
+              setIsPlaying(false);
+              updatePlaybackState({ isPlaying: false, currentTime: trimOut });
+              onTimeUpdate?.({
+                currentTime: trimOut,
+                duration: duration
+              });
+              return;
+            }
+            
             setCurrentTime(current);
             updatePlaybackState({ currentTime: current });
             onTimeUpdate?.({
@@ -210,9 +252,9 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
         </button>
         
       <div className="time-display">
-        <span>{formatTime(currentTime)}</span>
+        <span>{formatTime(currentTime - (selectedClip?.trimIn || 0))}</span>
         <span className="separator">/</span>
-        <span>{formatTime(duration)}</span>
+        <span>{formatTime((selectedClip?.trimOut || duration) - (selectedClip?.trimIn || 0))}</span>
       </div>
       </div>
       
