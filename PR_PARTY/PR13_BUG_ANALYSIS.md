@@ -851,13 +851,140 @@ Consider adding ESLint rules to flag potential unit mismatches in conversion fun
 
 ---
 
+## Bug #10: Player/Export Disconnect from Timeline State
+
+**Severity:** 🔴 CRITICAL  
+**Time to Identify:** 30 minutes  
+**Time to Fix:** 2 hours  
+**Impact:** Player and export ignored timeline trims - complete WYSIWYG workflow failure
+
+### The Issue
+
+**What Went Wrong:**
+After trimming a clip on the timeline (e.g., 10s-20s portion of a 30s video), the video player would still play the full 30s video, and export would render the full 30s, completely ignoring the visual timeline state.
+
+**User Impact:**
+- User trims clip to 10s but export renders 30s full video
+- Player plays full video regardless of timeline trim
+- No correlation between timeline visual and actual output
+- Professional workflow completely broken
+- WYSIWYG principle violated
+
+### Root Cause Analysis
+
+**Surface Issue:**
+Timeline trims appeared to be cosmetic only.
+
+**Actual Cause:**
+**TWO DISCONNECTS** between timeline state and playback/export systems:
+
+1. **VideoPlayer Disconnect:** Player received `selectedClip.path` (original file) but never respected `trimIn`/`trimOut` bounds during playback
+2. **Export Format Mismatch:** Timeline stored `trimIn`/`trimOut` on clips, but export expected separate `clipTrims` object with `inPoint`/`outPoint` keys
+
+**Why It Mattered:**
+Without this synchronization, ClipForge was just a video viewer with decorative timeline markers - not a real editor.
+
+### The Fix
+
+**Player Solution (VideoPlayer.js):**
+```javascript
+// ✅ AFTER: Trim-aware playback
+const handleLoadedMetadata = () => {
+  // Seek to trimIn on load
+  const trimIn = selectedClip?.trimIn || 0;
+  if (trimIn > 0) {
+    video.currentTime = trimIn;
+  }
+};
+
+// Stop at trimOut during playback
+onTimeUpdate={() => {
+  const trimOut = selectedClip?.trimOut || duration;
+  if (current >= trimOut) {
+    video.pause();
+    setIsPlaying(false);
+  }
+});
+
+// Loop to trimIn on replay
+const handlePlayPause = () => {
+  if (!isPlaying) {
+    const trimOut = selectedClip?.trimOut || duration;
+    const trimIn = selectedClip?.trimIn || 0;
+    if (video.currentTime >= trimOut) {
+      video.currentTime = trimIn;
+    }
+  }
+};
+```
+
+**Export Solution (ExportPanel.js):**
+```javascript
+// ✅ AFTER: Convert timeline format to export format
+const clipTrimsForExport = {};
+allClips.forEach(clip => {
+  clipTrimsForExport[clip.id] = {
+    inPoint: clip.trimIn || 0,
+    outPoint: clip.trimOut || clip.duration
+  };
+});
+
+// Export with converted trim data
+await window.electronAPI.exportTimeline(
+  allClips,
+  clipTrimsForExport,
+  outputPath
+);
+```
+
+### Files Changed
+- `src/components/VideoPlayer.js` (+30/-5 lines)
+- `src/components/ExportPanel.js` (+17/-1 lines)
+
+### Commit
+`feat(player): sync video playback with timeline trim bounds`
+`feat(export): sync export with timeline trim state`
+
+### Prevention Strategy
+
+**How to Avoid This in Future:**
+1. **E2E Testing:** Test playback after every timeline operation
+2. **Data Format Documentation:** Document expected formats for all IPC calls
+3. **Integration Tests:** Test VideoPlayer with trimmed clips
+4. **Export Tests:** Verify exported duration matches timeline
+5. **WYSIWYG Principle:** Always verify that visual state = actual state
+
+**Test to Add:**
+```javascript
+describe('Trim Integration', () => {
+  it('should play only trimmed portion', () => {
+    // Import 30s video
+    // Trim to 10s-20s
+    // Play video
+    // Expect: starts at 10s, stops at 20s
+  });
+
+  it('should export only trimmed portion', () => {
+    // Import 30s video
+    // Trim to 10s-20s
+    // Export video
+    // Expect: exported file is 10s long
+  });
+});
+```
+
+**Documentation Added:**
+- `TRIM_AWARE_SYSTEM.md` - Comprehensive 600-line guide
+
+---
+
 ## Impact Assessment
 
 **Time Cost:**
-- Finding bugs: 6 hours (including the 4-hour magnetic snap debugging marathon)
-- Fixing bugs: 1.5 hours
+- Finding bugs: 6.5 hours (including the 4-hour magnetic snap debugging marathon)
+- Fixing bugs: 3.5 hours (including 2-hour trim integration)
 - Testing fixes: 0 hours (manual testing)
-- **Total:** 7.5 hours
+- **Total:** 10 hours
 
 **Could Have Been Prevented By:**
 - ✅ Better planning (context usage documentation)
