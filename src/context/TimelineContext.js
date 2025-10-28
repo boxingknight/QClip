@@ -636,6 +636,7 @@ export const TimelineProvider = ({ children }) => {
 
   // Selection Management Functions
   const selectClip = (clipId, addToSelection = false) => {
+    console.log('TimelineContext: selectClip called', { clipId, addToSelection, currentSelection: state.selection });
     dispatch({ type: 'SELECT_CLIP', clipId, addToSelection });
   };
 
@@ -681,7 +682,14 @@ export const TimelineProvider = ({ children }) => {
   // Helper functions
   const getSelectedClip = () => {
     const selectedClipId = state.selection.clips[0];
-    return state.clips.find(clip => clip.id === selectedClipId);
+    const selectedClip = state.clips.find(clip => clip.id === selectedClipId);
+    console.log('TimelineContext: getSelectedClip', { 
+      selectedClipId, 
+      selectedClip, 
+      selectionClips: state.selection.clips,
+      totalClips: state.clips.length 
+    });
+    return selectedClip;
   };
 
   const getSelectedClips = () => {

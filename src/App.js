@@ -91,8 +91,9 @@ function AppContent() {
     // Add clips using context
     addClips(newClips);
     
-    // Select the first imported clip if none selected
-    if (!selectedClipId && newClips.length > 0) {
+    // Always select the first imported clip for immediate playback
+    if (newClips.length > 0) {
+      console.log('Auto-selecting first clip:', newClips[0].name);
       selectClip(newClips[0].id);
     }
     
