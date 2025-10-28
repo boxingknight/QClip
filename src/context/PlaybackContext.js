@@ -24,12 +24,21 @@ export const PlaybackProvider = ({ children }) => {
 
   // Register the video element
   const registerVideo = useCallback((videoElement) => {
-    videoRef.current = videoElement;
-    console.log('Video element registered:', !!videoElement);
+    if (videoElement && videoElement !== videoRef.current) {
+      videoRef.current = videoElement;
+      console.log('Video element registered:', !!videoElement, videoElement);
+      
+      // If video has duration already, update state
+      if (videoElement.duration && !isNaN(videoElement.duration)) {
+        setDuration(videoElement.duration);
+        console.log('Initial duration:', videoElement.duration);
+      }
+    }
   }, []);
 
   // Play video
   const play = useCallback(() => {
+    console.log('[PlaybackContext] play() called, videoRef:', videoRef.current);
     if (videoRef.current) {
       videoRef.current.play().then(() => {
         setIsPlaying(true);

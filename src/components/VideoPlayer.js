@@ -13,11 +13,13 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
   const [error, setError] = useState(null);
 
   // Register video element with playback context
+  // Re-register whenever the video source changes to ensure proper connection
   useEffect(() => {
     if (videoRef.current) {
+      console.log('[VideoPlayer] Registering video element', { videoSrc, hasElement: !!videoRef.current });
       registerVideo(videoRef.current);
     }
-  }, [registerVideo]);
+  }, [registerVideo, videoSrc]);
 
   // Handle video source changes and setup event listeners
   useEffect(() => {

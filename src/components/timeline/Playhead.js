@@ -6,6 +6,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTimeline } from '../../hooks/useTimeline';
+import { usePlayback } from '../../context/PlaybackContext';
 import './Playhead.css';
 
 const Playhead = ({ position, height }) => {
@@ -14,6 +15,7 @@ const Playhead = ({ position, height }) => {
   const playheadRef = useRef(null);
   
   const { playhead, setPlayhead, magneticSnap } = useTimeline();
+  const { seek } = usePlayback();
 
   const handleMouseDown = useCallback((e) => {
     setIsDragging(true);
@@ -29,8 +31,14 @@ const Playhead = ({ position, height }) => {
     const deltaTime = deltaX / 100; // 100 pixels per second base
     const newTime = Math.max(0, dragStart.time + deltaTime);
     
+    // Update timeline playhead position
     setPlayhead(newTime);
-  }, [isDragging, dragStart, setPlayhead]);
+    
+    // Seek the video to the new time
+    seek(newTime);
+    
+    console.log('[Playhead] Scrubbing to:', newTime);
+  }, [isDragging, dragStart, setPlayhead, seek]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
