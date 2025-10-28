@@ -100,7 +100,16 @@ const timelineReducer = (state, action) => {
         effects: [],
         trimmedPath: null,
         isTrimmed: false,
-        trimStartOffset: 0
+        trimStartOffset: 0,
+        // Store metadata properties
+        fileSize: clip.fileSize || 0,
+        width: clip.width || 0,
+        height: clip.height || 0,
+        fps: clip.fps || 30,
+        codec: clip.codec || 'unknown',
+        hasAudio: clip.hasAudio || false,
+        thumbnailUrl: clip.thumbnailUrl || null,
+        metadataError: clip.metadataError || null
       }));
 
       // Initialize trim data for new clips

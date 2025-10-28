@@ -73,6 +73,16 @@ export const useMagneticSnap = (clips = [], snapThreshold = 10, zoom = 1, pixels
   }, [getSnappedPosition, zoom, pixelsPerSecond]);
 
   /**
+   * Snap to nearest position (alias for getSnappedPosition for compatibility)
+   * @param {number} position - Position in pixels
+   * @param {string} clipId - ID of the clip being moved
+   * @returns {number} Snapped position in pixels
+   */
+  const snapToNearest = useCallback((position, clipId) => {
+    return getSnappedPosition(clipId, position);
+  }, [getSnappedPosition]);
+
+  /**
    * Check if a position would snap
    * @param {string} clipId - ID of the clip being moved
    * @param {number} position - Position in pixels
@@ -166,6 +176,7 @@ export const useMagneticSnap = (clips = [], snapThreshold = 10, zoom = 1, pixels
     findSnapPoints,
     getSnappedPosition,
     getSnappedTime,
+    snapToNearest,
     wouldSnap,
     getSnapFeedback,
     
