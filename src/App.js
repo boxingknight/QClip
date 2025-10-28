@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { TimelineProvider, useTimeline } from './context/TimelineContext';
 import { ProjectProvider, useProject } from './context/ProjectContext';
 import { UIProvider, useUI } from './context/UIContext';
+import { PlaybackProvider } from './context/PlaybackContext';
 import ImportPanel from './components/ImportPanel';
 import VideoPlayer from './components/VideoPlayer';
 import ExportPanel from './components/ExportPanel';
@@ -326,7 +327,9 @@ function App() {
     <TimelineProvider>
       <ProjectProvider>
         <UIProvider>
-          <AppContent />
+          <PlaybackProvider>
+            <AppContent />
+          </PlaybackProvider>
         </UIProvider>
       </ProjectProvider>
     </TimelineProvider>

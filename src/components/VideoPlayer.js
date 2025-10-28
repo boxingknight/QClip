@@ -1,14 +1,23 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { usePlayback } from '../context/PlaybackContext';
 import { logger } from '../utils/logger';
 import '../styles/VideoPlayer.css';
 
 const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
   const videoRef = useRef(null);
+  const { registerVideo, updatePlaybackState, isPlaying: playbackIsPlaying } = usePlayback();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Register video element with playback context
+  useEffect(() => {
+    if (videoRef.current) {
+      registerVideo(videoRef.current);
+    }
+  }, [registerVideo]);
 
   // Handle video source changes and setup event listeners
   useEffect(() => {
@@ -27,6 +36,7 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
       setIsPlaying(false);
       setError(null);
       video.src = '';
+      updatePlaybackState({ isPlaying: false, currentTime: 0, duration: 0 });
       return;
     }
     
@@ -61,6 +71,9 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
           videoPath: effectiveSrc,
           duration: video.duration 
         });
+        
+        // Update playback context with duration
+        updatePlaybackState({ duration: video.duration });
         
         // Update parent with duration
         if (selectedClip) {
@@ -162,17 +175,25 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
           if (video) {
             const current = video.currentTime;
             setCurrentTime(current);
+            updatePlaybackState({ currentTime: current });
             onTimeUpdate?.({
               currentTime: current,
               duration: duration
             });
           }
         }}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
+        onPlay={() => {
+          setIsPlaying(true);
+          updatePlaybackState({ isPlaying: true });
+        }}
+        onPause={() => {
+          setIsPlaying(false);
+          updatePlaybackState({ isPlaying: false });
+        }}
         onEnded={() => {
           setIsPlaying(false);
           setCurrentTime(duration);
+          updatePlaybackState({ isPlaying: false, currentTime: duration });
         }}
       />
       

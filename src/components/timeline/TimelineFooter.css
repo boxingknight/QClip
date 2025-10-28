@@ -59,6 +59,44 @@
   font-weight: 500;
 }
 
+/* Playback controls */
+.playback-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.playback-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #0f172a;
+  color: #f1f5f9;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.playback-btn:hover:not(:disabled) {
+  background: #334155;
+  transform: scale(1.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.playback-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.playback-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .timeline-footer {
