@@ -5,31 +5,42 @@ Welcome to the PR_PARTY! This directory contains comprehensive documentation for
 **Project:** ClipForge Desktop Video Editor V2  
 **MVP Status:** ✅ COMPLETE (All 10 PRs finished)  
 **V2 Timeline:** 8 weeks estimated  
-**Current Phase:** V2 Foundation (PR #11-#13)  
+**Current Phase:** V2 Foundation (PR #11-#15)  
 
 ---
 
 ## Latest PRs
 
-### PR#12: UI Component Library 📋 PLANNED
-**Status:** 📋 PLANNING COMPLETE  
-**Timeline:** 4 hours estimated  
+### PR#12: UI Component Library ✅ COMPLETE
+**Status:** ✅ COMPLETE & DEPLOYED  
+**Timeline:** 6 hours actual (4 hours estimated)  
 **Priority:** HIGH - Foundation for all V2 features  
 **Complexity:** MEDIUM  
-**Dependencies:** PR #11 (State Management Refactor)
+**Dependencies:** PR #11 (State Management Refactor) ✅
 
-**What We're Building:**
-Complete UI component library with Modal, Toast, ContextMenu, Toolbar, and StatusBar components for ClipForge V2. These reusable, accessible components enable consistent UI patterns across all advanced V2 features.
+**What We Built:**
+Complete UI component library with Modal, Toast, ContextMenu, Toolbar, and StatusBar components for ClipForge V2. All components feature portal rendering, accessibility support, animations, and responsive design.
 
 **Key Deliverables:**
 - ✅ Modal component with portal rendering and focus management
-- ✅ Toast system with auto-dismiss and animations
+- ✅ Toast system with auto-dismiss and animations (3 bugs fixed)
 - ✅ ContextMenu with keyboard navigation
 - ✅ Toolbar with grouped buttons and tooltips
 - ✅ StatusBar with real-time project information
 - ✅ UIContext integration for global UI state
 - ✅ Comprehensive accessibility features
-- ✅ Professional styling and animations
+- ✅ Professional styling with design system variables
+
+**Bugs Fixed:**
+- 🔧 Toolbar overlapping sidebars (CSS Grid layout)
+- 🔧 Toast notifications going out of bounds (positioning)
+- 🔧 Toast notifications still at bottom (double portal rendering)
+
+**Technical Achievements:**
+- Portal architecture mastery (single portal pattern)
+- Complete accessibility support (ARIA, keyboard navigation)
+- Hardware-accelerated animations
+- Responsive design across all screen sizes
 
 **Documents Created:**
 - ✅ `PR12_UI_COMPONENT_LIBRARY.md` (~8,000 words) - Technical specification
@@ -37,16 +48,97 @@ Complete UI component library with Modal, Toast, ContextMenu, Toolbar, and Statu
 - ✅ `PR12_README.md` (~3,000 words) - Quick start guide
 - ✅ `PR12_PLANNING_SUMMARY.md` (~2,000 words) - Executive overview
 - ✅ `PR12_TESTING_GUIDE.md` (~4,000 words) - Testing strategy
+- ✅ `PR12_BUG_ANALYSIS.md` (~4,000 words) - Comprehensive bug analysis
+- ✅ `PR12_COMPLETE_SUMMARY.md` (~8,000 words) - Complete retrospective
+
+**Total Documentation:** ~35,000 words
+
+**Summary:** Professional UI component library successfully deployed. Provides foundation for all V2 features with consistent design patterns, accessibility support, and reliable overlay behavior. Portal architecture patterns learned here will prevent similar issues in future overlay components.
+
+**Key Lessons Learned:**
+- Single portal pattern prevents positioning conflicts
+- Complete CSS Grid definition prevents layout issues
+- Visual testing is essential for overlay components
+- Bug documentation creates valuable prevention knowledge
+
+---
+
+### PR#15: Split & Delete Clips 📋 PLANNED
+**Status:** 📋 PLANNING COMPLETE  
+**Timeline:** 4-6 hours estimated  
+**Priority:** HIGH - Essential editing operations  
+**Complexity:** HIGH  
+**Dependencies:** PR #11 (State Management Refactor), PR #12 (UI Component Library), PR #13 (Multi-Track Timeline UI), PR #14 (Drag & Drop Clips)
+
+**What We're Building:**
+Split & Delete Clips functionality that enables users to split video clips at the playhead position and delete unwanted clips from the timeline. This PR transforms ClipForge from a basic trim editor into a professional video editor with essential editing operations.
+
+**Key Deliverables:**
+- ✅ Split clip functionality at playhead position
+- ✅ Delete single or multiple clips
+- ✅ Multi-select with Cmd+Click support
+- ✅ Context menu with portal rendering
+- ✅ Keyboard shortcuts (⌘K for split, Delete for delete)
+- ✅ Toolbar buttons for split and delete
+- ✅ Visual feedback during operations
+- ✅ Non-destructive split approach (uses trim points)
+- ✅ Professional editing workflow
+
+**Documents Created:**
+- ✅ `PR15_SPLIT_DELETE_CLIPS.md` (~8,000 words) - Technical specification
+- ✅ `PR15_IMPLEMENTATION_CHECKLIST.md` (~6,000 words) - Step-by-step tasks
+- ✅ `PR15_README.md` (~4,000 words) - Quick start guide
+- ✅ `PR15_PLANNING_SUMMARY.md` (~2,000 words) - Executive overview
+- ✅ `PR15_TESTING_GUIDE.md` (~3,000 words) - Testing strategy
 
 **Total Documentation:** ~23,000 words
 
-**Summary:** UI component library provides the foundation for all V2 features. Modal for settings dialogs, Toast for user feedback, ContextMenu for clip operations, Toolbar for main controls, and StatusBar for real-time information. All components are accessible, reusable, and professionally styled.
+**Summary:** Split and delete are fundamental video editing operations that every professional editor must have. This PR implements non-destructive split using trim points, multi-select with array-based state management, portal-based context menu, and professional keyboard shortcuts. Critical foundation for advanced editing features.
 
 **Key Decisions:**
-- Portal rendering for modals (proper z-index and focus management)
-- UIContext for global UI state (modals, toasts, loading)
-- Progressive accessibility (core features first)
-- Hybrid state management (local + global UI state)
+- Non-destructive split (faster performance, undo-friendly)
+- Array-based multi-select (simpler state management)
+- Portal-based context menu (proper z-index management)
+- Standard keyboard shortcuts (⌘K, Delete)
+
+---
+
+### PR#16: Undo/Redo System 📋 PLANNED
+**Status:** 📋 PLANNING COMPLETE  
+**Timeline:** 4 hours estimated  
+**Priority:** HIGH - Essential safety net for professional editing  
+**Complexity:** MEDIUM  
+**Dependencies:** PR #11 (State Management Refactor), PR #12 (UI Component Library), PR #13 (Multi-Track Timeline), PR #14 (Drag & Drop), PR #15 (Split & Delete)
+
+**What We're Building:**
+Complete undo/redo system that enables users to reverse and replay timeline editing actions. This safety net is essential for professional video editing workflows, allowing users to experiment freely knowing they can always revert changes.
+
+**Key Deliverables:**
+- ✅ useUndoRedo hook with history stack management
+- ✅ Timeline integration with action wrapping
+- ✅ UI components (UndoButton, RedoButton)
+- ✅ Keyboard shortcuts (⌘Z, ⌘⇧Z)
+- ✅ Visual feedback and status display
+- ✅ Memory management with history limits
+- ✅ State serialization with structuredClone API
+- ✅ Comprehensive edge case handling
+
+**Documents Created:**
+- ✅ `PR16_UNDO_REDO_SYSTEM.md` (~8,000 words) - Technical specification
+- ✅ `PR16_IMPLEMENTATION_CHECKLIST.md` (~6,000 words) - Step-by-step tasks
+- ✅ `PR16_README.md` (~3,000 words) - Quick start guide
+- ✅ `PR16_PLANNING_SUMMARY.md` (~2,000 words) - Executive overview
+- ✅ `PR16_TESTING_GUIDE.md` (~2,000 words) - Testing strategy
+
+**Total Documentation:** ~21,000 words
+
+**Summary:** Undo/redo system provides essential safety net for professional video editing. Users can experiment freely knowing they can always revert changes. Implements state snapshots with history management, timeline integration, and professional UI controls.
+
+**Key Decisions:**
+- State snapshots over command pattern (simpler implementation)
+- Custom useUndoRedo hook over context integration (better separation)
+- structuredClone API over JSON methods (more reliable)
+- 50-action history limit (prevents memory leaks)
 
 ---
 
@@ -123,6 +215,44 @@ Successfully refactored ClipForge's state management from local useState to Cont
 - **Total: ~4 hours** (vs 4-6 estimated)
 
 **Next:** PR #12 - UI Component Library
+
+---
+
+### PR#14: Drag & Drop Clips 📋 PLANNED
+**Status:** 📋 PLANNING COMPLETE  
+**Timeline:** 4-6 hours estimated  
+**Priority:** Critical - Core editing interaction  
+**Complexity:** MEDIUM-HIGH  
+**Dependencies:** PR #11 (State Management Refactor), PR #12 (UI Component Library), PR #13 (Multi-Track Timeline UI)
+
+**What We're Building:**
+Implement drag-and-drop functionality for clips on the multi-track timeline, enabling users to reorder clips within tracks and move clips between tracks. This transforms ClipForge from a static timeline editor into an interactive, professional video editing experience with snap-to-clip functionality.
+
+**Key Deliverables:**
+- ✅ HTML5 Drag & Drop API integration
+- ✅ Snap-to-clip with 0.5 second threshold
+- ✅ Overlap prevention with visual feedback
+- ✅ Cross-track clip movement
+- ✅ Smooth animations and visual feedback
+- ✅ Accessibility support (ARIA labels, keyboard navigation)
+- ✅ Edge case handling (invalid drops, same position)
+
+**Documents Created:**
+- ✅ `PR14_DRAG_DROP_CLIPS.md` (~8,000 words) - Technical specification
+- ✅ `PR14_IMPLEMENTATION_CHECKLIST.md` (~6,000 words) - Step-by-step tasks
+- ✅ `PR14_README.md` (~3,000 words) - Quick start guide
+- ✅ `PR14_PLANNING_SUMMARY.md` (~2,000 words) - Executive overview
+- ✅ `PR14_TESTING_GUIDE.md` (~2,000 words) - Testing strategy
+
+**Total Documentation:** ~21,000 words
+
+**Summary:** Drag & drop is the fundamental interaction pattern for professional video editors. This PR implements intuitive clip rearrangement with snap-to-clip functionality, cross-track movement, and professional visual feedback. Critical foundation that enables advanced editing workflows and makes ClipForge feel like a real video editor.
+
+**Key Decisions:**
+- HTML5 Drag & Drop API over custom implementation (accessibility, standard behavior)
+- Time-based snap threshold (0.5 seconds) over pixel-based (zoom-independent)
+- Prevent overlaps entirely over allowing with visual indication (clean timeline)
+- Context API integration for drag state management (consistent architecture)
 
 ---
 
@@ -578,11 +708,11 @@ A visual timeline component that displays imported video clips horizontally with
 - ✅ PR#11: State Management Refactor (4 hours) - **COMPLETE**
 - 📋 PR#12: UI Component Library (4 hours) - **PLANNED**
 - 📋 PR#13: Multi-Track Timeline (4 hours) - **PLANNED**
+- 📋 PR#14: Drag & Drop Clips (4-6 hours) - **PLANNED**
+- 📋 PR#15: Split & Delete Clips (4-6 hours) - **PLANNED**
 
 ### V2 Advanced Features (Planned)
-- 📋 PR#14: Drag & Drop Clips (4 hours)
-- 📋 PR#15: Split & Delete Clips (4 hours)
-- 📋 PR#16: Undo/Redo System (4 hours)
+- 📋 PR#16: Undo/Redo System (4 hours) - **PLANNED**
 - 📋 PR#17: Screen Recording Setup (6 hours)
 - 📋 PR#18: Webcam Recording (6 hours)
 - 📋 PR#19: Audio Mixing & Controls (4 hours)
@@ -608,9 +738,9 @@ A visual timeline component that displays imported video clips horizontally with
 ## Total Documentation
 
 ### Current Stats
-- **Files:** 46 documents (MVP + V2 PRs documented)  
-- **Words:** ~213,000 words
-- **Planning Time:** ~11 hours invested
+- **Files:** 61 documents (MVP + V2 PRs documented)  
+- **Words:** ~278,000 words
+- **Planning Time:** ~17 hours invested
 - **Implementation Time:** ~30 hours (MVP + PR#11 complete)
 - **ROI:** Excellent (comprehensive planning prevents bugs)
 
