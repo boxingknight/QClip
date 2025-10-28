@@ -21,12 +21,14 @@ export const PlaybackProvider = ({ children }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const videoRef = useRef(null); // Ref to the actual video element
+  const selectedClipRef = useRef(null); // Ref to the selected clip for coordinate conversion
 
   // Register the video element
-  const registerVideo = useCallback((videoElement) => {
+  const registerVideo = useCallback((videoElement, selectedClip) => {
     if (videoElement && videoElement !== videoRef.current) {
       videoRef.current = videoElement;
-      console.log('Video element registered:', !!videoElement, videoElement);
+      selectedClipRef.current = selectedClip;
+      console.log('Video element registered:', !!videoElement, videoElement, 'Selected clip:', selectedClip);
       
       // If video has duration already, update state
       if (videoElement.duration && !isNaN(videoElement.duration)) {
@@ -81,11 +83,21 @@ export const PlaybackProvider = ({ children }) => {
   }, [isPlaying, play, pause]);
 
   // Seek to specific time
-  const seek = useCallback((time) => {
+  const seek = useCallback((timelineTime) => {
     if (videoRef.current) {
-      videoRef.current.currentTime = Math.max(0, Math.min(time, duration));
-      setCurrentTime(time);
-      console.log('Playback: Seeked to', time);
+      const selectedClip = selectedClipRef.current;
+      const trimIn = selectedClip?.trimIn || 0;
+      
+      // Convert timeline time to video time
+      // Timeline time is absolute, video time is relative to trimIn
+      const videoTime = Math.max(0, timelineTime - trimIn);
+      
+      // Clamp to video duration
+      const clampedVideoTime = Math.min(videoTime, videoRef.current.duration || duration);
+      
+      videoRef.current.currentTime = clampedVideoTime;
+      setCurrentTime(timelineTime); // Store timeline time
+      console.log('Playback: Seeked to timeline time', timelineTime, 'video time', clampedVideoTime, 'trimIn', trimIn);
     }
   }, [duration]);
 

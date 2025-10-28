@@ -17,9 +17,9 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
   useEffect(() => {
     if (videoRef.current) {
       console.log('[VideoPlayer] Registering video element', { videoSrc, hasElement: !!videoRef.current });
-      registerVideo(videoRef.current);
+      registerVideo(videoRef.current, selectedClip); // Pass selectedClip for coordinate conversion
     }
-  }, [registerVideo, videoSrc]);
+  }, [registerVideo, videoSrc, selectedClip]);
 
   // Handle video source changes and setup event listeners
   useEffect(() => {
@@ -94,7 +94,7 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
         // Update parent with duration
         if (selectedClip) {
           onTimeUpdate?.({
-            currentTime: trimIn, // Start from trimIn, not 0
+            currentTime: trimIn, // Start from trimIn (timeline time), not 0
             duration: video.duration
           });
         }
@@ -146,10 +146,10 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
       const trimIn = selectedClip?.trimIn || 0;
       const trimOut = selectedClip?.trimOut || video.duration;
       
-      if (video.currentTime >= trimOut - 0.1) { // Within 0.1s of end
+      if (video.currentTime >= trimOut - trimIn - 0.1) { // Within 0.1s of end
         console.log('[VideoPlayer] At end, seeking back to trimIn:', trimIn);
-        video.currentTime = trimIn;
-        setCurrentTime(trimIn);
+        video.currentTime = 0; // Seek to start of trimmed clip (relative time)
+        setCurrentTime(0);
       }
       
       video.play().catch((err) => {
@@ -202,26 +202,36 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
           if (video) {
             const current = video.currentTime;
             
+            // 🎯 CRITICAL: Convert video time to timeline time
+            // Video time is relative to trimIn, timeline time is absolute
+            const trimIn = selectedClip?.trimIn || 0;
+            const timelineTime = trimIn + current;
+            
             // 🎯 CRITICAL: Stop playback at trimOut point
             // This ensures only the visible timeline portion plays
             const trimOut = selectedClip?.trimOut || video.duration;
-            if (current >= trimOut) {
-              console.log('[VideoPlayer] Reached trimOut, pausing:', { current, trimOut });
+            if (current >= trimOut - trimIn) {
+              console.log('[VideoPlayer] Reached trimOut, pausing:', { 
+                videoTime: current, 
+                trimOut, 
+                trimIn,
+                timelineTime 
+              });
               video.pause();
-              video.currentTime = trimOut; // Snap to exact end point
+              video.currentTime = trimOut - trimIn; // Snap to exact end point
               setIsPlaying(false);
-              updatePlaybackState({ isPlaying: false, currentTime: trimOut });
+              updatePlaybackState({ isPlaying: false, currentTime: timelineTime });
               onTimeUpdate?.({
-                currentTime: trimOut,
+                currentTime: timelineTime, // Send timeline time, not video time
                 duration: duration
               });
               return;
             }
             
             setCurrentTime(current);
-            updatePlaybackState({ currentTime: current });
+            updatePlaybackState({ currentTime: timelineTime }); // Send timeline time
             onTimeUpdate?.({
-              currentTime: current,
+              currentTime: timelineTime, // Send timeline time, not video time
               duration: duration
             });
           }
