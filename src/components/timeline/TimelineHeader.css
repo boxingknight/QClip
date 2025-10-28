@@ -107,6 +107,23 @@
   cursor: not-allowed;
 }
 
+/* Play/Pause Toggle Button */
+.playback-toggle {
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.playback-toggle.playing {
+  background: #3b82f6;
+  color: white;
+}
+
+.playback-toggle.playing:hover:not(:disabled) {
+  background: #2563eb;
+}
+
 .zoom-controls {
   display: flex;
   align-items: center;

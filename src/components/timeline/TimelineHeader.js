@@ -12,7 +12,7 @@ import './TimelineHeader.css';
 const TimelineHeader = ({ timelineInfo, zoom, onZoomChange }) => {
   const { totalClips, totalDuration, currentTime, zoomLevel } = timelineInfo;
   const { magneticSnap, enableMagneticSnap, snapThreshold, setSnapThreshold } = useTimeline();
-  const { isPlaying, play, pause, stop } = usePlayback();
+  const { isPlaying, togglePlayPause, stop } = usePlayback();
 
   const handleZoomIn = () => {
     onZoomChange(Math.min(10, zoom * 1.2));
@@ -50,22 +50,12 @@ const TimelineHeader = ({ timelineInfo, zoom, onZoomChange }) => {
       <div className="timeline-header-center">
         <div className="playback-controls">
           <button 
-            className="playback-btn"
-            onClick={play}
-            disabled={isPlaying}
-            title="Play (Space)"
-            aria-label="Play"
+            className={`playback-btn playback-toggle ${isPlaying ? 'playing' : ''}`}
+            onClick={togglePlayPause}
+            title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
           >
-            ▶
-          </button>
-          <button 
-            className="playback-btn"
-            onClick={pause}
-            disabled={!isPlaying}
-            title="Pause (Space)"
-            aria-label="Pause"
-          >
-            ⏸
+            {isPlaying ? '⏸' : '▶'}
           </button>
           <button 
             className="playback-btn"
