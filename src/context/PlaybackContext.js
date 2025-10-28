@@ -95,9 +95,18 @@ export const PlaybackProvider = ({ children }) => {
       // Clamp to video duration
       const clampedVideoTime = Math.min(videoTime, videoRef.current.duration || duration);
       
+      console.log('[PlaybackContext] seek:', {
+        timelineTime,
+        trimIn,
+        videoTime,
+        clampedVideoTime,
+        videoDuration: videoRef.current.duration,
+        selectedClipName: selectedClip?.name
+      });
+      
       videoRef.current.currentTime = clampedVideoTime;
       setCurrentTime(timelineTime); // Store timeline time
-      console.log('Playback: Seeked to timeline time', timelineTime, 'video time', clampedVideoTime, 'trimIn', trimIn);
+      console.log('[PlaybackContext] Seeked to timeline time', timelineTime, 'video time', clampedVideoTime, 'trimIn', trimIn);
     }
   }, [duration]);
 

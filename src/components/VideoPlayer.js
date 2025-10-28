@@ -83,9 +83,13 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
         // This ensures playback starts from the visible portion on the timeline
         const trimIn = selectedClip?.trimIn || 0;
         if (trimIn > 0) {
-          console.log('[VideoPlayer] Seeking to trimIn:', trimIn);
+          console.log('[VideoPlayer] Seeking to trimIn:', trimIn, 'Video duration:', video.duration);
           video.currentTime = trimIn;
           setCurrentTime(trimIn);
+          console.log('[VideoPlayer] After seek - video.currentTime:', video.currentTime);
+        } else {
+          console.log('[VideoPlayer] No trimIn, setting currentTime to 0');
+          setCurrentTime(0);
         }
         
         // Update playback context with duration
@@ -137,14 +141,24 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
       return;
     }
     
+    const trimIn = selectedClip?.trimIn || 0;
+    const trimOut = selectedClip?.trimOut || video.duration;
+    
+    console.log('[VideoPlayer] handlePlayPause:', {
+      isPlaying,
+      videoCurrentTime: video.currentTime,
+      trimIn,
+      trimOut,
+      videoDuration: video.duration,
+      selectedClipName: selectedClip?.name
+    });
+    
     if (isPlaying) {
       video.pause();
       logger.debug('Video paused');
     } else {
       // 🎯 CRITICAL: If at trimOut, seek back to trimIn before playing
       // This allows replay of the trimmed section
-      const trimIn = selectedClip?.trimIn || 0;
-      const trimOut = selectedClip?.trimOut || video.duration;
       
       if (video.currentTime >= trimOut - trimIn - 0.1) { // Within 0.1s of end
         console.log('[VideoPlayer] At end, seeking back to trimIn:', trimIn);
@@ -207,6 +221,13 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
             const trimIn = selectedClip?.trimIn || 0;
             const timelineTime = trimIn + current;
             
+            console.log('[VideoPlayer] onTimeUpdate:', {
+              videoCurrentTime: current,
+              trimIn,
+              timelineTime,
+              selectedClipName: selectedClip?.name
+            });
+            
             // 🎯 CRITICAL: Stop playback at trimOut point
             // This ensures only the visible timeline portion plays
             const trimOut = selectedClip?.trimOut || video.duration;
@@ -262,7 +283,7 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
         </button>
         
       <div className="time-display">
-        <span>{formatTime(currentTime - (selectedClip?.trimIn || 0))}</span>
+        <span>{formatTime(currentTime)}</span>
         <span className="separator">/</span>
         <span>{formatTime((selectedClip?.trimOut || duration) - (selectedClip?.trimIn || 0))}</span>
       </div>
