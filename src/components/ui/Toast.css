@@ -2,17 +2,18 @@
 /* V2 Feature: Professional toast notifications */
 
 .toast-container {
-  position: absolute; /* Position relative to the .app container */
-  top: var(--space-lg);
-  right: var(--space-lg);
+  position: fixed; /* Use fixed positioning for reliable placement */
+  top: 80px; /* Position below the toolbar */
+  right: 20px; /* Fixed distance from right edge */
   z-index: 1100;
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
   pointer-events: none;
-  max-width: calc(100vw - 2 * var(--space-lg)); /* Ensure toasts don't exceed viewport width */
-  max-height: calc(100vh - 2 * var(--space-lg)); /* Ensure toasts don't exceed viewport height */
-  overflow: hidden; /* Hide any toasts that would go out of bounds */
+  max-width: 350px; /* Fixed max width to prevent overflow */
+  max-height: calc(100vh - 100px); /* Ensure it doesn't exceed viewport height */
+  overflow-y: auto; /* Allow scrolling within container if needed */
+  overflow-x: hidden; /* Prevent horizontal overflow */
 }
 
 .toast {
@@ -22,13 +23,15 @@
   box-shadow: var(--shadow-md);
   padding: var(--space-md);
   min-width: 300px;
-  max-width: 400px;
+  max-width: 100%; /* Don't exceed container width */
   display: flex;
   align-items: flex-start;
   gap: var(--space-sm);
   pointer-events: auto;
   animation: slideInRight 0.3s ease-out;
   position: relative;
+  word-wrap: break-word; /* Break long words */
+  overflow-wrap: break-word; /* Break long words */
 }
 
 .toast-success {
@@ -162,9 +165,9 @@
 /* Responsive */
 @media (max-width: 768px) {
   .toast-container {
-    top: var(--space-md);
-    right: var(--space-md);
-    left: var(--space-md);
+    top: 70px; /* Adjust for smaller toolbar */
+    right: 10px;
+    left: 10px; /* Use full width on mobile */
     max-width: none; /* Allow full width on mobile */
   }
   
