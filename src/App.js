@@ -3,6 +3,7 @@ import { TimelineProvider, useTimeline } from './context/TimelineContext';
 import { ProjectProvider, useProject } from './context/ProjectContext';
 import { UIProvider, useUI } from './context/UIContext';
 import { PlaybackProvider } from './context/PlaybackContext';
+import { LayoutProvider, useLayout } from './context/LayoutContext';
 import ImportPanel from './components/ImportPanel';
 import VideoPlayer from './components/VideoPlayer';
 import ExportPanel from './components/ExportPanel';
@@ -12,6 +13,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Modal from './components/ui/Modal';
 import { ToastContainer } from './components/ui/Toast';
 import Toolbar, { ToolbarGroups } from './components/ui/Toolbar';
+import LayoutToolbar from './components/ui/LayoutToolbar';
+import ResizeHandle from './components/ui/ResizeHandle';
 // Removed StatusBar import - now integrated into Timeline
 import { logger } from './utils/logger';
 import { validateInPoint, validateOutPoint } from './utils/trimValidation';
@@ -42,6 +45,15 @@ function AppContent() {
   
   const { setModified } = useProject();
   const { setImportStatus, importStatus, showModal, showToast } = useUI();
+  const { 
+    sidebar, 
+    main, 
+    controls, 
+    timeline, 
+    startResize, 
+    updateResize, 
+    endResize 
+  } = useLayout();
 
   // Test IPC communication on mount
   useEffect(() => {
@@ -50,6 +62,14 @@ function AppContent() {
       console.log('IPC test:', result);
     }
   }, []);
+
+  // Update CSS custom properties when layout changes
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--sidebar-width', `${sidebar}%`);
+    root.style.setProperty('--controls-width', `${controls}%`);
+    root.style.setProperty('--timeline-height', `${timeline}%`);
+  }, [sidebar, controls, timeline]);
 
   // Test UI components
   const handleToolbarAction = (action, data) => {
@@ -250,6 +270,9 @@ function AppContent() {
           />
         </div>
 
+        {/* Layout Toolbar */}
+        <LayoutToolbar />
+
         {/* Left Sidebar - Import */}
         <div className="sidebar">
           <ImportPanel 
@@ -257,6 +280,15 @@ function AppContent() {
             isImporting={importStatus.loading}
           />
         </div>
+        
+        {/* Resize Handle - Sidebar/Main */}
+        <ResizeHandle
+          direction="horizontal"
+          onResizeStart={(direction, start) => startResize(direction, start)}
+          onResizeMove={(current) => updateResize(current)}
+          onResizeEnd={() => endResize()}
+          className="resize-handle--sidebar-main"
+        />
         
         {/* Main Area - Video Player */}
         <div className="main-content">
@@ -275,6 +307,15 @@ function AppContent() {
           })()}
         </div>
         
+        {/* Resize Handle - Main/Controls */}
+        <ResizeHandle
+          direction="horizontal"
+          onResizeStart={(direction, start) => startResize(direction, start)}
+          onResizeMove={(current) => updateResize(current)}
+          onResizeEnd={() => endResize()}
+          className="resize-handle--main-controls"
+        />
+        
         {/* Right Sidebar - Export Only */}
         <div className="controls-sidebar">
           <ExportPanel 
@@ -283,6 +324,15 @@ function AppContent() {
             clipTrims={clipTrims}
           />
         </div>
+        
+        {/* Resize Handle - Timeline */}
+        <ResizeHandle
+          direction="vertical"
+          onResizeStart={(direction, start) => startResize(direction, start)}
+          onResizeMove={(current) => updateResize(current)}
+          onResizeEnd={() => endResize()}
+          className="resize-handle--timeline"
+        />
         
         {/* Timeline - Bottom */}
         <Timeline />
@@ -324,15 +374,17 @@ function AppContent() {
 // Main App component with context providers
 function App() {
   return (
-    <TimelineProvider>
-      <ProjectProvider>
-        <UIProvider>
-          <PlaybackProvider>
-            <AppContent />
-          </PlaybackProvider>
-        </UIProvider>
-      </ProjectProvider>
-    </TimelineProvider>
+    <LayoutProvider>
+      <TimelineProvider>
+        <ProjectProvider>
+          <UIProvider>
+            <PlaybackProvider>
+              <AppContent />
+            </PlaybackProvider>
+          </UIProvider>
+        </ProjectProvider>
+      </TimelineProvider>
+    </LayoutProvider>
   );
 }
 

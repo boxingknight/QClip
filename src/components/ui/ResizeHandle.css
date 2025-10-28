@@ -1,0 +1,99 @@
+/* src/components/ui/ResizeHandle.css */
+/**
+ * ResizeHandle component styles
+ * Professional resize handles inspired by CapCut/iMovie
+ */
+
+.resize-handle {
+  position: relative;
+  background: transparent;
+  cursor: col-resize;
+  transition: all var(--transition-fast);
+  z-index: 100;
+}
+
+.resize-handle--horizontal {
+  cursor: col-resize;
+  width: 4px;
+  height: 100%;
+}
+
+.resize-handle--vertical {
+  cursor: row-resize;
+  width: 100%;
+  height: 4px;
+}
+
+.resize-handle--disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+
+.resize-handle:hover:not(.resize-handle--disabled) {
+  background: var(--color-primary);
+}
+
+.resize-handle:hover:not(.resize-handle--disabled) .resize-handle__indicator {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.resize-handle__indicator {
+  position: absolute;
+  background: var(--color-primary);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all var(--transition-fast);
+  pointer-events: none;
+}
+
+.resize-handle--horizontal .resize-handle__indicator {
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 20px;
+  transform: translate(-50%, -50%) scale(0.8);
+}
+
+.resize-handle--vertical .resize-handle__indicator {
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 2px;
+  transform: translate(-50%, -50%) scale(0.8);
+}
+
+.resize-handle:hover:not(.resize-handle--disabled) .resize-handle__indicator {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Active resize state */
+.resize-handle--active {
+  background: var(--color-primary);
+  z-index: 200;
+}
+
+.resize-handle--active .resize-handle__indicator {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Resize cursor states */
+.resize-handle--horizontal:hover:not(.resize-handle--disabled) {
+  cursor: col-resize;
+}
+
+.resize-handle--vertical:hover:not(.resize-handle--disabled) {
+  cursor: row-resize;
+}
+
+/* Dark theme adjustments */
+@media (prefers-color-scheme: dark) {
+  .resize-handle:hover:not(.resize-handle--disabled) {
+    background: var(--color-primary-hover);
+  }
+  
+  .resize-handle__indicator {
+    background: var(--color-primary-hover);
+  }
+}

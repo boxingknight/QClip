@@ -55,14 +55,38 @@ body {
   width: 100vw;
   height: 100vh;
   display: grid;
-  grid-template-columns: 250px 1fr 300px;
-  grid-template-rows: auto 1fr 200px; /* Increased timeline height from 120px to 200px */
+  grid-template-columns: var(--sidebar-width, 20%) 4px 1fr 4px var(--controls-width, 35%);
+  grid-template-rows: auto auto 1fr 4px var(--timeline-height, 35%);
   grid-template-areas:
-    "toolbar toolbar toolbar"
-    "sidebar main controls"
-    "timeline timeline timeline";
+    "toolbar toolbar toolbar toolbar toolbar"
+    "layout-toolbar layout-toolbar layout-toolbar layout-toolbar layout-toolbar"
+    "sidebar sidebar-handle main main-handle controls"
+    "timeline-handle timeline-handle timeline-handle timeline-handle timeline-handle"
+    "timeline timeline timeline timeline timeline";
   background: var(--color-bg);
   overflow: hidden;
+  position: relative;
+}
+
+/* Resize handles */
+.resize-handle--sidebar-main {
+  grid-area: sidebar-handle;
+  z-index: 10;
+}
+
+.resize-handle--main-controls {
+  grid-area: main-handle;
+  z-index: 10;
+}
+
+.resize-handle--timeline {
+  grid-area: timeline-handle;
+  z-index: 10;
+}
+
+/* Layout toolbar */
+.layout-toolbar {
+  grid-area: layout-toolbar;
 }
 
 .toolbar {
