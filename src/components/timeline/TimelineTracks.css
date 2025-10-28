@@ -1,0 +1,33 @@
+/* src/components/timeline/TimelineTracks.css */
+/**
+ * Timeline Tracks component styles
+ */
+
+.timeline-tracks {
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+/* Track styling will be handled by individual Track components */
+.timeline-tracks .track {
+  border-bottom: 1px solid #334155;
+}
+
+.timeline-tracks .track:last-child {
+  border-bottom: none;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .timeline-tracks {
+    min-height: 150px;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .timeline-tracks .track {
+    border-bottom-color: #2a2a2f;
+  }
+}

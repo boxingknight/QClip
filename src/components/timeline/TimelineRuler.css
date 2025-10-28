@@ -1,0 +1,94 @@
+/* src/components/timeline/TimelineRuler.css */
+/**
+ * Timeline Ruler component styles
+ */
+
+.timeline-ruler {
+  position: relative;
+  height: 30px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+  overflow: hidden;
+}
+
+.timeline-ruler-content {
+  position: relative;
+  height: 100%;
+}
+
+.time-marker {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  pointer-events: none;
+}
+
+.time-marker-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 100%;
+  background: #64748b;
+}
+
+.time-marker.major .time-marker-line {
+  background: #94a3b8;
+  width: 2px;
+}
+
+.time-marker-label {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 500;
+  white-space: nowrap;
+  background: rgba(15, 23, 42, 0.8);
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.time-marker.major .time-marker-label {
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .timeline-ruler {
+    height: 24px;
+  }
+  
+  .time-marker-label {
+    font-size: 9px;
+    top: 2px;
+    left: 2px;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .timeline-ruler {
+    background: #1a1a1f;
+    border-bottom-color: #2a2a2f;
+  }
+  
+  .time-marker-line {
+    background: #4a4a4f;
+  }
+  
+  .time-marker.major .time-marker-line {
+    background: #6a6a6f;
+  }
+  
+  .time-marker-label {
+    color: #a1a1a6;
+    background: rgba(10, 10, 15, 0.8);
+  }
+  
+  .time-marker.major .time-marker-label {
+    color: #f5f5f7;
+  }
+}

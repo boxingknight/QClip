@@ -1,0 +1,114 @@
+/* src/components/timeline/Timeline.css */
+/**
+ * Main Timeline component styles
+ * Professional timeline layout with CapCut-inspired design
+ */
+
+.timeline-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0f172a;
+  border-top: 1px solid #334155;
+  overflow: hidden;
+}
+
+.timeline-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.timeline-content {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  position: relative;
+  background: #1e293b;
+  cursor: crosshair;
+}
+
+.timeline-content::-webkit-scrollbar {
+  height: 8px;
+}
+
+.timeline-content::-webkit-scrollbar-track {
+  background: #334155;
+}
+
+.timeline-content::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 4px;
+}
+
+.timeline-content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.timeline-tracks-container {
+  position: relative;
+  min-height: 100%;
+  background: 
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 99px,
+      #334155 100px
+    );
+}
+
+/* Timeline grid lines */
+.timeline-tracks-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(to right, #334155 1px, transparent 1px),
+    linear-gradient(to bottom, #334155 1px, transparent 1px);
+  background-size: 100px 60px;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .timeline-container {
+    height: 200px;
+  }
+  
+  .timeline-content {
+    min-height: 150px;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .timeline-container {
+    background: #0a0a0f;
+    border-top-color: #1a1a1f;
+  }
+  
+  .timeline-content {
+    background: #1a1a1f;
+  }
+  
+  .timeline-tracks-container {
+    background: 
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 99px,
+        #1a1a1f 100px
+      );
+  }
+  
+  .timeline-tracks-container::before {
+    background-image: 
+      linear-gradient(to right, #1a1a1f 1px, transparent 1px),
+      linear-gradient(to bottom, #1a1a1f 1px, transparent 1px);
+  }
+}

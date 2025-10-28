@@ -1,0 +1,168 @@
+/* src/components/timeline/TimelineHeader.css */
+/**
+ * Timeline Header component styles
+ */
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+  min-height: 40px;
+}
+
+.timeline-header-left,
+.timeline-header-center,
+.timeline-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.timeline-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.timeline-info-item {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.playback-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.playback-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: #334155;
+  color: #f1f5f9;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.playback-btn:hover {
+  background: #475569;
+  transform: translateY(-1px);
+}
+
+.playback-btn:active {
+  transform: translateY(0);
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: #334155;
+  color: #f1f5f9;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.zoom-btn:hover {
+  background: #475569;
+}
+
+.zoom-btn:active {
+  transform: scale(0.95);
+}
+
+.zoom-level {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+  min-width: 40px;
+  text-align: center;
+}
+
+.zoom-reset {
+  background: #3b82f6;
+}
+
+.zoom-reset:hover {
+  background: #2563eb;
+}
+
+.zoom-fit {
+  background: #10b981;
+}
+
+.zoom-fit:hover {
+  background: #059669;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .timeline-header {
+    padding: 6px 12px;
+    min-height: 36px;
+  }
+  
+  .timeline-info {
+    gap: 12px;
+  }
+  
+  .timeline-info-item {
+    font-size: 11px;
+  }
+  
+  .playback-btn,
+  .zoom-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .timeline-header {
+    background: #1a1a1f;
+    border-bottom-color: #2a2a2f;
+  }
+  
+  .timeline-info-item {
+    color: #a1a1a6;
+  }
+  
+  .playback-btn,
+  .zoom-btn {
+    background: #2a2a2f;
+    color: #f5f5f7;
+  }
+  
+  .playback-btn:hover,
+  .zoom-btn:hover {
+    background: #3a3a3f;
+  }
+  
+  .zoom-level {
+    color: #a1a1a6;
+  }
+}
