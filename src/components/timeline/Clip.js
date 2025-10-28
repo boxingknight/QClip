@@ -8,6 +8,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTimeline } from '../../hooks/useTimeline';
 import { useMagneticSnap } from '../../hooks/useMagneticSnap';
 import { timeToPixels, pixelsToTime } from '../../utils/timelineCalculations';
+import ClipContextMenu from './ClipContextMenu';
 import './Clip.css';
 
 const Clip = ({ clip, trackHeight, zoom, trackId }) => {
@@ -24,6 +25,7 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
   const [isTrimming, setIsTrimming] = useState(false);
   const [trimSide, setTrimSide] = useState(null); // 'left' or 'right'
   const [dragStart, setDragStart] = useState({ x: 0, startTime: 0, duration: 0 });
+  const [contextMenu, setContextMenu] = useState(null);
   const { snapToNearest } = useMagneticSnap();
   const clipRef = useRef(null);
 
@@ -51,6 +53,22 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
       selectClip(clip.id, false);
     }
   }, [clip.id, selectClip]);
+
+  // Handle context menu
+  const handleContextMenu = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Select clip if not already selected
+    if (!isSelected) {
+      selectClip(clip.id, false);
+    }
+    
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY
+    });
+  }, [clip.id, isSelected, selectClip]);
 
   // Handle trim start
   const handleTrimStart = useCallback((e, side) => {
@@ -225,15 +243,17 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
   };
 
   return (
-    <div
-      ref={clipRef}
-      className={`clip ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''} ${isTrimming ? 'trimming' : ''}`}
-      data-type={clip.type}
-      style={clipStyle}
-      onClick={handleClick}
-      onMouseDown={handleMouseDown}
-      title={`${clip.name} (${clip.duration.toFixed(2)}s)`}
-    >
+    <>
+      <div
+        ref={clipRef}
+        className={`clip ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''} ${isTrimming ? 'trimming' : ''}`}
+        data-type={clip.type}
+        style={clipStyle}
+        onClick={handleClick}
+        onMouseDown={handleMouseDown}
+        onContextMenu={handleContextMenu}
+        title={`${clip.name} (${clip.duration.toFixed(2)}s)`}
+      >
       {/* Clip thumbnail/preview */}
       <div className="clip-thumbnail">
         {clip.thumbnailUrl ? (
@@ -272,6 +292,16 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
       {/* Selection indicator */}
       {isSelected && <div className="clip-selection-outline" />}
     </div>
+
+      {/* Context menu */}
+      {contextMenu && (
+        <ClipContextMenu
+          clip={clip}
+          position={contextMenu}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+    </>
   );
 };
 

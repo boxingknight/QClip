@@ -6,6 +6,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useTimeline } from '../../hooks/useTimeline';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import TimelineHeader from './TimelineHeader';
 import TimelineRuler from './TimelineRuler';
 import TimelineTracks from './TimelineTracks';
@@ -14,6 +15,9 @@ import Playhead from './Playhead';
 import './Timeline.css';
 
 const Timeline = () => {
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts();
+  
   const timelineRef = useRef(null);
   const [viewportWidth, setViewportWidth] = useState(800);
   const [scrollLeft, setScrollLeft] = useState(0);
