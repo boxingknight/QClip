@@ -4,18 +4,16 @@ const fs = require('fs');
 
 // Get FFmpeg paths (works in both dev and production)
 function getFFmpegPaths() {
-  const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development';
+  // Check if we're in a packaged app
+  const isPackaged = !!process.resourcesPath;
+  const isDev = !isPackaged || process.env.NODE_ENV === 'development';
   
   console.log('[FFmpeg] Environment check:', { 
     NODE_ENV: process.env.NODE_ENV, 
     isDev, 
-    resourcesPath: process.resourcesPath,
-    isPackaged: process.resourcesPath !== undefined
+    isPackaged,
+    resourcesPath: process.resourcesPath
   });
-  
-  // Check if we're in a packaged app
-  const isPackaged = !!process.resourcesPath;
-  const isDev = !isPackaged || process.env.NODE_ENV === 'development';
   
   console.log('[FFmpeg] Environment:', { isDev, isPackaged, __dirname, resourcesPath: process.resourcesPath });
   
