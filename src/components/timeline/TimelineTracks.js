@@ -1,67 +1,34 @@
-// src/components/timeline/Playhead.js
+// src/components/timeline/TimelineTracks.js
 /**
- * Playhead component
- * Draggable playhead for timeline scrubbing
+ * TimelineTracks component
+ * Container for all timeline tracks
  */
 
-import React, { useState, useRef, useCallback } from 'react';
+import React from 'react';
 import { useTimeline } from '../../hooks/useTimeline';
-import './Playhead.css';
+import Track from './Track';
+import './TimelineTracks.css';
 
-const Playhead = ({ position, height }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, time: 0 });
-  const playheadRef = useRef(null);
-  
-  const { playhead, setPlayhead, magneticSnap } = useTimeline();
-
-  const handleMouseDown = useCallback((e) => {
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, time: playhead });
-    e.preventDefault();
-    e.stopPropagation();
-  }, [playhead]);
-
-  const handleMouseMove = useCallback((e) => {
-    if (!isDragging) return;
-    
-    const deltaX = e.clientX - dragStart.x;
-    const deltaTime = deltaX / 100; // 100 pixels per second base
-    const newTime = Math.max(0, dragStart.time + deltaTime);
-    
-    setPlayhead(newTime);
-  }, [isDragging, dragStart, setPlayhead]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+const TimelineTracks = () => {
+  const { tracks, clips, zoom } = useTimeline();
 
   return (
-    <div
-      ref={playheadRef}
-      className={`playhead ${isDragging ? 'dragging' : ''}`}
-      style={{
-        left: `${position}px`,
-        height: `${height}px`
-      }}
-      onMouseDown={handleMouseDown}
-    >
-      <div className="playhead-line" />
-      <div className="playhead-handle" />
+    <div className="timeline-tracks">
+      {tracks.map(track => {
+        // Filter clips for this track
+        const trackClips = clips.filter(clip => clip.trackId === track.id);
+        
+        return (
+          <Track 
+            key={track.id} 
+            track={track} 
+            clips={trackClips}
+            zoom={zoom}
+          />
+        );
+      })}
     </div>
   );
 };
 
-export default Playhead;
+export default TimelineTracks;
