@@ -536,10 +536,6 @@ export const TimelineProvider = ({ children }) => {
     dispatch({ type: 'ADD_CLIPS', clips });
   };
 
-  const selectClip = (clipId) => {
-    dispatch({ type: 'SELECT_CLIP', clipId });
-  };
-
   const setPlayhead = (time) => {
     dispatch({ type: 'SET_PLAYHEAD', time });
   };
