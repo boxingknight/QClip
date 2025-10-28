@@ -130,19 +130,30 @@ const timelineReducer = (state, action) => {
           : track
       );
 
+      // Auto-select first clip if no selection exists (for immediate playback)
+      const shouldAutoSelect = state.selection.clips.length === 0 && newClips.length > 0;
+      const updatedSelection = shouldAutoSelect
+        ? { 
+            clips: [newClips[0].id], 
+            tracks: [],
+            mode: 'single',
+            anchor: newClips[0].id
+          }
+        : state.selection;
+
+      console.log('ADD_CLIPS: Auto-selecting first clip?', { 
+        shouldAutoSelect, 
+        firstClipId: newClips[0]?.id,
+        updatedSelection 
+      });
+
       return {
         ...state,
         clips: [...state.clips, ...newClips],
         tracks: updatedTracks,
         clipTrims: newClipTrims,
-        selectedClipId: state.selectedClipId || (newClips.length > 0 ? newClips[0].id : null),
+        selection: updatedSelection,
         duration: Math.max(state.duration, ...newClips.map(c => c.startTime + c.duration))
-      };
-
-    case 'SELECT_CLIP':
-      return {
-        ...state,
-        selectedClipId: action.clipId
       };
 
     case 'SET_PLAYHEAD':
@@ -152,9 +163,10 @@ const timelineReducer = (state, action) => {
       };
 
     case 'SET_IN_POINT':
-      if (!state.selectedClipId) return state;
+      const selectedClipIdIn = state.selection.clips[0];
+      if (!selectedClipIdIn) return state;
       
-      const clipId = state.selectedClipId;
+      const clipId = selectedClipIdIn;
       const currentTrim = state.clipTrims[clipId] || { inPoint: 0, outPoint: 0 };
       
       return {
@@ -169,9 +181,10 @@ const timelineReducer = (state, action) => {
       };
 
     case 'SET_OUT_POINT':
-      if (!state.selectedClipId) return state;
+      const selectedClipIdOut = state.selection.clips[0];
+      if (!selectedClipIdOut) return state;
       
-      const clipIdOut = state.selectedClipId;
+      const clipIdOut = selectedClipIdOut;
       const currentTrimOut = state.clipTrims[clipIdOut] || { inPoint: 0, outPoint: 0 };
       
       return {
@@ -186,16 +199,17 @@ const timelineReducer = (state, action) => {
       };
 
     case 'RESET_TRIM':
-      if (!state.selectedClipId) return state;
+      const selectedClipIdReset = state.selection.clips[0];
+      if (!selectedClipIdReset) return state;
       
-      const selectedClip = state.clips.find(c => c.id === state.selectedClipId);
+      const selectedClip = state.clips.find(c => c.id === selectedClipIdReset);
       if (!selectedClip) return state;
       
       return {
         ...state,
         clipTrims: {
           ...state.clipTrims,
-          [state.selectedClipId]: {
+          [selectedClipIdReset]: {
             inPoint: 0,
             outPoint: selectedClip.duration || 0
           }
