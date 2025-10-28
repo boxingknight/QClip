@@ -155,7 +155,8 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
         // Apply magnetic snap if enabled
         if (magneticSnap) {
           const newTrimInPx = timeToPixels(newTrimIn, zoom);
-          newTrimIn = snapToNearest(newTrimInPx, clip.id);
+          const snappedPx = snapToNearest(newTrimInPx, clip.id);
+          newTrimIn = pixelsToTime(snappedPx, zoom); // ✅ CRITICAL FIX: Convert pixels back to time!
         }
 
         // Clamp values to prevent invalid states
@@ -177,17 +178,50 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
         // Trim from the end: move trimOut point, keep trimIn fixed
         let newTrimOut = dragStart.trimOut + deltaTime;
         
+        console.log('🔍 [RIGHT TRIM DEBUG - STEP 1] After deltaTime calculation:', {
+          dragStartTrimOut: dragStart.trimOut,
+          deltaTime,
+          newTrimOut_calculated: newTrimOut,
+          clipOriginalDuration: clip.originalDuration,
+          clipDuration: clip.duration,
+          clipTrimOut: clip.trimOut
+        });
+        
         // Apply magnetic snap if enabled
         if (magneticSnap) {
           const newTrimOutPx = timeToPixels(newTrimOut, zoom);
-          newTrimOut = snapToNearest(newTrimOutPx, clip.id);
+          const snappedPx = snapToNearest(newTrimOutPx, clip.id);
+          const beforeSnap = newTrimOut;
+          newTrimOut = pixelsToTime(snappedPx, zoom); // ✅ CRITICAL FIX: Convert pixels back to time!
+          console.log('🔍 [RIGHT TRIM DEBUG - STEP 2] After magnetic snap:', {
+            beforeSnap,
+            beforeSnapPx: newTrimOutPx,
+            snappedPx,
+            afterSnap: newTrimOut,
+            changed: beforeSnap !== newTrimOut
+          });
         }
 
         // Clamp values to prevent invalid states
+        const beforeFirstClamp = newTrimOut;
         newTrimOut = Math.max(dragStart.trimIn + minDuration, newTrimOut); // Can't make duration too small
-        newTrimOut = Math.min(newTrimOut, originalFullDuration); // Can't extend beyond original clip end
+        console.log('🔍 [RIGHT TRIM DEBUG - STEP 3] After first clamp (Math.max):', {
+          beforeFirstClamp,
+          afterFirstClamp: newTrimOut,
+          minAllowed: dragStart.trimIn + minDuration,
+          changed: beforeFirstClamp !== newTrimOut
+        });
         
-        console.log('[TRIM] Right trim:', { 
+        const beforeSecondClamp = newTrimOut;
+        newTrimOut = Math.min(newTrimOut, originalFullDuration); // Can't extend beyond original clip end
+        console.log('🔍 [RIGHT TRIM DEBUG - STEP 4] After second clamp (Math.min):', {
+          beforeSecondClamp,
+          afterSecondClamp: newTrimOut,
+          originalFullDuration,
+          changed: beforeSecondClamp !== newTrimOut
+        });
+        
+        console.log('[TRIM] Right trim FINAL:', { 
           deltaTime, 
           dragStartTrimOut: dragStart.trimOut,
           newTrimOut, 
