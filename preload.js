@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // File import APIs
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
   getFileAbsolutePath: (path) => ipcRenderer.invoke('get-file-absolute-path', path),
+  getVideoMetadata: (videoPath) => ipcRenderer.invoke('get-video-metadata', videoPath),
   
   // Export APIs
   exportVideo: (inputPath, outputPath, trimData) => 

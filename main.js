@@ -1,6 +1,6 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
-const { exportVideo, exportTimeline, renderTrimmedClip } = require('./electron/ffmpeg/videoProcessing');
+const { exportVideo, exportTimeline, renderTrimmedClip, getVideoMetadata } = require('./electron/ffmpeg/videoProcessing');
 const os = require('os');
 
 // Global error handlers
@@ -62,6 +62,18 @@ ipcMain.handle('open-file-dialog', async () => {
 
 ipcMain.handle('get-file-absolute-path', async (event, filePath) => {
   return path.resolve(filePath);
+});
+
+// Get video metadata handler
+ipcMain.handle('get-video-metadata', async (event, videoPath) => {
+  try {
+    console.log('Metadata request received:', videoPath);
+    const metadata = await getVideoMetadata(videoPath);
+    return metadata;
+  } catch (error) {
+    console.error('Metadata extraction failed:', error);
+    throw error;
+  }
 });
 
 // Export video handler

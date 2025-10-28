@@ -345,5 +345,54 @@ async function renderTrimmedClip(inputPath, outputPath, trimData, onProgress) {
   });
 }
 
-module.exports = { exportVideo, exportTimeline, renderTrimmedClip };
+/**
+ * Get video metadata using FFprobe
+ * @param {string} videoPath - Path to video file
+ * @returns {Promise<Object>} Video metadata
+ */
+async function getVideoMetadata(videoPath) {
+  return new Promise((resolve, reject) => {
+    try {
+      // Update paths each time to ensure correct in production
+      updateFFmpegPaths();
+      
+      console.log('[METADATA] Extracting metadata for:', videoPath);
+      
+      ffmpeg.ffprobe(videoPath, (err, metadata) => {
+        if (err) {
+          console.error('[METADATA ERROR]', err.message);
+          reject(new Error(`Failed to extract metadata: ${err.message}`));
+          return;
+        }
+
+        try {
+          const videoStream = metadata.streams.find(s => s.codec_type === 'video');
+          const audioStream = metadata.streams.find(s => s.codec_type === 'audio');
+
+          const result = {
+            duration: parseFloat(metadata.format.duration) || 0,
+            width: videoStream?.width || 0,
+            height: videoStream?.height || 0,
+            fps: videoStream?.r_frame_rate ? eval(videoStream.r_frame_rate) : 30,
+            codec: videoStream?.codec_name || 'unknown',
+            hasAudio: !!audioStream,
+            fileSize: parseInt(metadata.format.size) || 0,
+            thumbnailUrl: null // Could add thumbnail generation later
+          };
+
+          console.log('[METADATA] Extracted:', result);
+          resolve(result);
+        } catch (parseError) {
+          console.error('[METADATA PARSE ERROR]', parseError);
+          reject(new Error(`Failed to parse metadata: ${parseError.message}`));
+        }
+      });
+    } catch (error) {
+      console.error('[METADATA ERROR]', error);
+      reject(error);
+    }
+  });
+}
+
+module.exports = { exportVideo, exportTimeline, renderTrimmedClip, getVideoMetadata };
 
