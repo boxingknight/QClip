@@ -107,11 +107,12 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
       // Update playback context with duration
       updatePlaybackState({ duration: video.duration });
       
-      // Send absolute timeline time to parent (not relative)
-      onTimeUpdate?.({
-        currentTime: playhead !== undefined ? playhead : clipStartTime,
-        duration: video.duration
-      });
+      // Don't send time update on load - this causes feedback loop
+      // The video will naturally send time updates as it plays
+      // onTimeUpdate?.({
+      //   currentTime: playhead !== undefined ? playhead : clipStartTime,
+      //   duration: video.duration
+      // });
       
       // 🎯 CRITICAL: Auto-play if playback was active (for continuous playback)
       if (playbackIsPlaying) {
@@ -154,7 +155,7 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
       setIsLoading(false);
       setError(null);
     };
-  }, [videoSrc, selectedClip?.trimmedPath, selectedClip?.id, playhead]);
+  }, [videoSrc, selectedClip?.trimmedPath, selectedClip?.id]);
 
   // Note: Event handlers are now in useEffect with proper cleanup
   // Keep inline handlers for video element compatibility
@@ -244,10 +245,9 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
             const current = video.currentTime;
             
             // 🎯 CRITICAL: Convert video time to absolute timeline time
-            // Video currentTime is relative to trimIn (e.g., if trimIn=3, video plays from 3s)
-            // Timeline time = clip.startTime + (video.currentTime - trimIn)
-            // But since we seeked to (trimIn + relativeTimeInClip), we need to reverse:
-            // Timeline time = clip.startTime + (current - trimIn)
+            // We seeked to: videoTime = trimIn + (playhead - clipStartTime)
+            // So: current = trimIn + (playhead - clipStartTime)
+            // Therefore: timelineTime = clipStartTime + (current - trimIn)
             const clipStartTime = selectedClip.startTime || 0;
             const trimIn = selectedClip.trimIn || 0;
             const timelineTime = clipStartTime + (current - trimIn);
