@@ -32,15 +32,49 @@ const getDurationFromVideoElement = (filePath) => {
     
     logger.debug('Video element fallback: loading metadata', { filePath, videoSrc });
     
+    let resolved = false;
+    const cleanup = () => {
+      if (!resolved) {
+        resolved = true;
+        video.remove();
+        if (timeout) clearTimeout(timeout);
+      }
+    };
+    
     const timeout = setTimeout(() => {
-      video.remove();
+      console.warn('[VIDEO_ELEMENT_FALLBACK] ⏱️ Timeout after 10 seconds', { filePath });
+      cleanup();
       logger.warn('Video element timeout reading duration', { filePath });
       resolve(0);
-    }, 5000); // 5 second timeout
+    }, 10000); // Increased to 10 seconds for slow WebM files
+    
+    // 🎯 CRITICAL FIX: Handle durationchange event - WebM files may report Infinity initially
+    // This event fires when the duration becomes available (after parsing)
+    const handleDurationChange = () => {
+      if (resolved) return; // Already resolved
+      
+      const duration = video.duration || 0;
+      
+      console.log('[VIDEO_ELEMENT_FALLBACK] durationchange event', {
+        filePath,
+        rawDuration: video.duration,
+        duration,
+        isFinite: isFinite(duration),
+        isValid: duration > 0 && !isNaN(duration) && isFinite(duration),
+        resolved
+      });
+      
+      // If we have a valid duration now, resolve
+      if (duration > 0 && !isNaN(duration) && isFinite(duration)) {
+        console.log('[VIDEO_ELEMENT_FALLBACK] ✅ SUCCESS: Got valid duration from durationchange', { filePath, duration });
+        cleanup();
+        logger.info('Got duration from video element (durationchange)', { filePath, duration });
+        resolve(duration);
+      }
+    };
     
     video.addEventListener('loadedmetadata', () => {
-      clearTimeout(timeout);
-      const duration = video.duration || 0;
+      let duration = video.duration || 0;
       
       console.log('[VIDEO_ELEMENT_FALLBACK] loadedmetadata event fired', {
         filePath,
@@ -51,25 +85,88 @@ const getDurationFromVideoElement = (filePath) => {
         isValid: duration > 0 && !isNaN(duration) && isFinite(duration)
       });
       
-      video.remove();
-      
+      // Check if duration is valid
       if (duration > 0 && !isNaN(duration) && isFinite(duration)) {
-        console.log('[VIDEO_ELEMENT_FALLBACK] ✅ SUCCESS: Got valid duration', { filePath, duration });
+        console.log('[VIDEO_ELEMENT_FALLBACK] ✅ SUCCESS: Got valid duration from loadedmetadata', { filePath, duration });
+        cleanup();
         logger.info('Got duration from video element', { filePath, duration });
         resolve(duration);
-      } else {
-        console.error('[VIDEO_ELEMENT_FALLBACK] ❌ FAILED: Invalid duration from video element', { 
-          filePath, 
-          duration,
-          rawDuration: video.duration
-        });
-        logger.warn('Invalid duration from video element', { filePath, duration });
-        resolve(0);
+        return;
       }
+      
+      // 🎯 CRITICAL: If duration is Infinity, try multiple methods to get actual duration
+      // This is a known WebM issue - duration isn't available until file is fully parsed
+      if (!isFinite(duration) || duration === Infinity) {
+        console.log('[VIDEO_ELEMENT_FALLBACK] ⚠️ Duration is Infinity, attempting multiple methods to get duration', { filePath });
+        
+        // Method 1: Try seeking to end to force duration calculation
+        try {
+          video.currentTime = 1e10; // Seek to very large time
+        } catch (e) {
+          console.warn('[VIDEO_ELEMENT_FALLBACK] Seek failed:', e);
+        }
+        
+        // Method 2: Wait for seek to complete and check duration
+        const checkAfterSeek = () => {
+          duration = video.duration || 0;
+          
+          console.log('[VIDEO_ELEMENT_FALLBACK] After seek attempt', {
+            filePath,
+            rawDuration: video.duration,
+            duration,
+            isFinite: isFinite(duration),
+            currentTime: video.currentTime,
+            networkState: video.networkState,
+            readyState: video.readyState
+          });
+          
+          if (duration > 0 && !isNaN(duration) && isFinite(duration)) {
+            console.log('[VIDEO_ELEMENT_FALLBACK] ✅ SUCCESS: Got duration after seek', { filePath, duration });
+            cleanup();
+            logger.info('Got duration from video element (after seek)', { filePath, duration });
+            resolve(duration);
+            return true;
+          }
+          return false;
+        };
+        
+        // Check immediately and after delays
+        if (!checkAfterSeek()) {
+          setTimeout(() => {
+            if (!checkAfterSeek()) {
+              // Still Infinity - wait for durationchange event (already set up)
+              console.log('[VIDEO_ELEMENT_FALLBACK] Still Infinity, waiting for durationchange event', { filePath });
+              // Don't cleanup yet - durationchange handler will resolve
+            }
+          }, 100);
+          
+          // Also try after longer delay - WebM parsing can be slow
+          setTimeout(() => {
+            if (!resolved && !checkAfterSeek()) {
+              console.warn('[VIDEO_ELEMENT_FALLBACK] Still Infinity after delays, waiting for durationchange', { filePath });
+            }
+          }, 500);
+        }
+        
+        return; // Don't cleanup yet, wait for durationchange or timeout
+      }
+      
+      // If we got here with invalid duration (0, NaN, etc), give up
+      console.error('[VIDEO_ELEMENT_FALLBACK] ❌ FAILED: Invalid duration from loadedmetadata', { 
+        filePath, 
+        duration,
+        rawDuration: video.duration
+      });
+      cleanup();
+      logger.warn('Invalid duration from video element', { filePath, duration });
+      resolve(0);
     });
     
+    // Listen for durationchange - this fires when duration becomes available
+    video.addEventListener('durationchange', handleDurationChange);
+    
     video.addEventListener('error', (e) => {
-      clearTimeout(timeout);
+      cleanup();
       
       const errorDetails = {
         code: video.error?.code,
@@ -86,7 +183,6 @@ const getDurationFromVideoElement = (filePath) => {
         videoError: errorDetails
       });
       
-      video.remove();
       logger.warn('Video element error reading duration', { filePath, error: e, errorDetails });
       resolve(0);
     });
