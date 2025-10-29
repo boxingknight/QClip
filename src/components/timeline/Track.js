@@ -7,11 +7,12 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useTimeline } from '../../hooks/useTimeline';
 import { timeToPixels, pixelsToTime } from '../../utils/timelineCalculations';
+import { calculateSnapTargets, findSnapTarget, isValidDropPosition } from '../../utils/dragDropCalculations';
 import Clip from './Clip';
 import './Track.css';
 
 const Track = ({ track, clips, zoom }) => {
-  const { updateTrackSettings, removeTrack, addClip, clips: timelineClips } = useTimeline();
+  const { updateTrackSettings, removeTrack, addClip, moveClip, clips: timelineClips } = useTimeline();
   const [isResizing, setIsResizing] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(track.name);
@@ -109,10 +110,19 @@ const Track = ({ track, clips, zoom }) => {
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
+    
     if (!track.locked) {
       setIsDragOver(true);
-      // Accept both 'copy' (from MediaLibrary) and 'move' (from within Timeline)
-      e.dataTransfer.dropEffect = e.dataTransfer.effectAllowed === 'copy' ? 'copy' : 'move';
+      
+      // Check drag data type to set appropriate drop effect
+      // Note: Can't reliably get data during dragover in all browsers, so use effectAllowed
+      if (e.dataTransfer.effectAllowed === 'copy') {
+        // Media Library item - adding new clip
+        e.dataTransfer.dropEffect = 'copy';
+      } else if (e.dataTransfer.effectAllowed === 'move') {
+        // Timeline clip - repositioning
+        e.dataTransfer.dropEffect = 'move';
+      }
     }
   }, [track.locked]);
 
@@ -139,23 +149,37 @@ const Track = ({ track, clips, zoom }) => {
     }
 
     try {
-      // First try to get JSON data (from MediaLibrary)
+      // Get JSON data (from both MediaLibrary and Timeline clips)
       const jsonData = e.dataTransfer.getData('application/json');
       console.log('🎬 [TRACK] JSON data from drag:', jsonData ? 'Present' : 'Missing');
       
+      let dragData = null;
       let sourceClip = null;
+      let isMediaLibraryItem = false;
       
       if (jsonData) {
         try {
-          const data = JSON.parse(jsonData);
-          console.log('🎬 [TRACK] Parsed drag data:', data);
+          dragData = JSON.parse(jsonData);
+          console.log('🎬 [TRACK] Parsed drag data:', dragData);
           
-          if (data.type === 'media-library-item') {
-            sourceClip = data.mediaItem;
+          // Handle Media Library items (PRESERVE - existing functionality)
+          if (dragData.type === 'media-library-item') {
+            sourceClip = dragData.mediaItem;
+            isMediaLibraryItem = true;
             console.log('🎬 [TRACK] ✅ Dropping MediaLibrary item:', {
               name: sourceClip.name,
               duration: sourceClip.duration,
               path: sourceClip.path
+            });
+          }
+          // Handle Timeline clips (NEW)
+          else if (dragData.type === 'timeline-clip') {
+            sourceClip = dragData.clip;
+            isMediaLibraryItem = false;
+            console.log('🎬 [TRACK] ✅ Dropping Timeline clip:', {
+              clipId: dragData.clipId,
+              trackId: dragData.trackId,
+              name: sourceClip.name
             });
           }
         } catch (error) {
@@ -163,18 +187,20 @@ const Track = ({ track, clips, zoom }) => {
         }
       }
       
-      // Fallback to text/plain (from Timeline)
+      // Fallback to text/plain (for compatibility)
       if (!sourceClip) {
         const clipId = e.dataTransfer.getData('text/plain');
-        console.log('🎬 [TRACK] text/plain data:', clipId);
-        sourceClip = timelineClips.find(clip => clip.id === clipId);
-        if (sourceClip) {
-          console.log('🎬 [TRACK] ✅ Dropping Timeline clip:', clipId);
+        if (clipId) {
+          sourceClip = timelineClips.find(clip => clip.id === clipId);
+          if (sourceClip) {
+            isMediaLibraryItem = false; // Timeline clip
+            console.log('🎬 [TRACK] ✅ Dropping Timeline clip (fallback):', clipId);
+          }
         }
       }
       
       if (!sourceClip) {
-        console.error('🎬 [TRACK] ❌ Source clip not found in either MediaLibrary or Timeline');
+        console.error('🎬 [TRACK] ❌ Source clip not found');
         return;
       }
 
@@ -189,46 +215,98 @@ const Track = ({ track, clips, zoom }) => {
         zoom
       });
 
-      // Create timeline clip from source clip
-      const timelineClip = {
-        id: `timeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        name: sourceClip.name,
-        path: sourceClip.path,
-        duration: sourceClip.duration || 10, // Default duration if not available
-        startTime: Math.max(0, dropTime),
-        trackId: track.id,
-        type: track.type,
-        thumbnailUrl: sourceClip.thumbnailUrl,
-        fileSize: sourceClip.fileSize,
-        // Add all metadata properties
-        width: sourceClip.width,
-        height: sourceClip.height,
-        fps: sourceClip.fps,
-        codec: sourceClip.codec,
-        hasAudio: sourceClip.hasAudio,
-        originalDuration: sourceClip.duration,
-        trimIn: 0,
-        trimOut: sourceClip.duration,
-        trimmedPath: null,
-        isTrimmed: false,
-        trimStartOffset: 0,
-        selected: false,
-        locked: false,
-        effects: []
-      };
+      // Handle Media Library items (PRESERVE existing behavior)
+      if (isMediaLibraryItem) {
+        // Create timeline clip from Media Library item
+        // Use existing snap-to-end logic from ADD_CLIP reducer
+        const timelineClip = {
+          id: `timeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          name: sourceClip.name,
+          path: sourceClip.path,
+          duration: sourceClip.duration || 10,
+          startTime: Math.max(0, dropTime), // Will be adjusted by ADD_CLIP reducer to snap-to-end
+          trackId: track.id,
+          type: track.type,
+          thumbnailUrl: sourceClip.thumbnailUrl,
+          fileSize: sourceClip.fileSize,
+          width: sourceClip.width,
+          height: sourceClip.height,
+          fps: sourceClip.fps,
+          codec: sourceClip.codec,
+          hasAudio: sourceClip.hasAudio,
+          originalDuration: sourceClip.duration,
+          trimIn: 0,
+          trimOut: sourceClip.duration,
+          trimmedPath: null,
+          isTrimmed: false,
+          trimStartOffset: 0,
+          selected: false,
+          locked: false,
+          effects: []
+        };
 
-      console.log('🎬 [TRACK] Calling addClip with:', {
-        trackId: track.id,
-        clipId: timelineClip.id,
-        clipName: timelineClip.name
-      });
+        addClip(track.id, timelineClip);
+        console.log('🎬 [TRACK] ✅ Media Library clip added to timeline!');
+        return; // Exit early after handling Media Library
+      }
 
-      addClip(track.id, timelineClip);
-      console.log('🎬 [TRACK] ✅ Clip added to timeline successfully!', timelineClip);
+      // Handle Timeline clips (NEW - with snap-to-clip and overlap prevention)
+      if (dragData && dragData.type === 'timeline-clip') {
+        const sourceTrackId = dragData.trackId;
+        
+        // Calculate snap targets using time-based calculation
+        const allOtherClips = timelineClips.filter(c => c.id !== sourceClip.id);
+        const snapTargets = calculateSnapTargets(
+          sourceClip,
+          allOtherClips,
+          0.5 // 0.5 second threshold
+        );
+        
+        // Find closest snap target
+        const snapTarget = findSnapTarget(dropTime, snapTargets, 0.5);
+        const finalTime = snapTarget ? snapTarget.time : dropTime;
+        
+        console.log('🎬 [TRACK] Snap calculation:', {
+          dropTime,
+          snapTargets: snapTargets.length,
+          snappedTime: finalTime,
+          snapTarget: snapTarget
+        });
+
+        // Validate drop position (overlap prevention)
+        const trackClips = timelineClips.filter(c => c.trackId === track.id);
+        const isValid = isValidDropPosition(
+          track.id,
+          finalTime,
+          sourceClip,
+          timelineClips,
+          trackClips
+        );
+
+        if (isValid) {
+          // Move clip using existing moveClip function
+          moveClip(sourceClip.id, finalTime, track.id);
+          console.log('🎬 [TRACK] ✅ Timeline clip moved successfully:', {
+            clipId: sourceClip.id,
+            fromTrack: sourceTrackId,
+            toTrack: track.id,
+            newTime: finalTime
+          });
+        } else {
+          console.warn('🎬 [TRACK] ⚠️ Invalid drop position (overlap prevented):', {
+            clipId: sourceClip.id,
+            dropTime: finalTime,
+            trackId: track.id
+          });
+          // Could show toast notification here for user feedback
+        }
+        return; // Exit after handling Timeline clip
+      }
+
     } catch (error) {
       console.error('🎬 [TRACK] ❌ Error handling drop:', error, error.stack);
     }
-  }, [track.locked, track.id, track.type, timelineClips, zoom, addClip]);
+  }, [track.locked, track.id, track.type, timelineClips, zoom, addClip, moveClip]);
 
   return (
     <div 

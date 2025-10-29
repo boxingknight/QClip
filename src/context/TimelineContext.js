@@ -1,5 +1,5 @@
 // src/context/TimelineContext.js
-import React, { createContext, useContext, useReducer } from 'react';
+import React, { createContext, useContext, useReducer, useState, useCallback } from 'react';
 
 const TimelineContext = createContext();
 
@@ -662,6 +662,72 @@ const timelineReducer = (state, action) => {
 export const TimelineProvider = ({ children }) => {
   const [state, dispatch] = useReducer(timelineReducer, initialState);
 
+  // Drag state management (temporary UI state, not part of reducer)
+  const [dragState, setDragState] = useState({
+    isDragging: false,
+    draggedClip: null,
+    dragStartTrack: null,
+    dragStartPosition: null,
+    dropTarget: null,
+    snapTarget: null,
+    isValidDrop: false
+  });
+
+  // Drag state management functions
+  const startDrag = useCallback((clipId, trackId, startTime) => {
+    const clip = state.clips.find(c => c.id === clipId);
+    if (!clip) {
+      console.warn('🎬 [DRAG] Clip not found for drag:', clipId);
+      return;
+    }
+    
+    setDragState({
+      isDragging: true,
+      draggedClip: clip,
+      dragStartTrack: trackId,
+      dragStartPosition: startTime,
+      dropTarget: null,
+      snapTarget: null,
+      isValidDrop: false
+    });
+    
+    console.log('🎬 [DRAG] Started:', { clipId, trackId, startTime });
+  }, [state.clips]);
+
+  const updateDrag = useCallback((trackId, time) => {
+    // Note: Snap calculation will be done in Track component using utilities
+    // This just updates the drop target
+    setDragState(prev => {
+      if (!prev.isDragging) return prev;
+      
+      return {
+        ...prev,
+        dropTarget: trackId,
+        // snapTarget will be calculated in Track component
+        // isValidDrop will be calculated in Track component
+      };
+    });
+  }, []);
+
+  const completeDrag = useCallback(() => {
+    console.log('🎬 [DRAG] Completed');
+    setDragState({
+      isDragging: false,
+      draggedClip: null,
+      dragStartTrack: null,
+      dragStartPosition: null,
+      dropTarget: null,
+      snapTarget: null,
+      isValidDrop: false
+    });
+  }, []);
+
+  const cancelDrag = useCallback(() => {
+    console.log('🎬 [DRAG] Cancelled');
+    // Restore original position if needed (could be added later)
+    completeDrag();
+  }, [completeDrag]);
+
   const addClips = (clips) => {
     dispatch({ type: 'ADD_CLIPS', clips });
   };
@@ -908,7 +974,14 @@ export const TimelineProvider = ({ children }) => {
     // Helpers
     getSelectedClip,
     getSelectedClips,
-    getCurrentTrimData
+    getCurrentTrimData,
+    
+    // Drag & Drop State Management
+    dragState,
+    startDrag,
+    updateDrag,
+    completeDrag,
+    cancelDrag
   };
 
   return (

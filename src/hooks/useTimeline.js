@@ -69,7 +69,13 @@ export const useTimeline = (options = {}) => {
     canUndo,
     canRedo,
     getSelectedClip,
-    getSelectedClips
+    getSelectedClips,
+    // Drag & Drop state and functions
+    dragState,
+    startDrag,
+    updateDrag,
+    completeDrag,
+    cancelDrag
   } = timelineContext;
 
   // Use magnetic snap hook
@@ -298,6 +304,13 @@ export const useTimeline = (options = {}) => {
     
     // Configuration
     pixelsPerSecond,
-    enableMagneticSnap
+    enableMagneticSnap,
+    
+    // Drag & Drop state and functions
+    dragState,
+    startDrag,
+    updateDrag,
+    completeDrag,
+    cancelDrag
   };
 };

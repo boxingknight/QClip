@@ -15,16 +15,20 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
   const {
     selection,
     selectClip,
-    moveClip,
     trimClip,
     saveState,
-    magneticSnap
+    magneticSnap,
+    // Drag & Drop state and functions
+    dragState,
+    startDrag,
+    completeDrag
   } = useTimeline();
   
-  const [isDragging, setIsDragging] = useState(false);
+  // Remove isDragging state (now using dragState from context)
+  // Keep trimming state (still uses mouse events for precision)
   const [isTrimming, setIsTrimming] = useState(false);
   const [trimSide, setTrimSide] = useState(null); // 'left' or 'right'
-  const [dragStart, setDragStart] = useState({ x: 0, startTime: 0, duration: 0 });
+  const [trimDragStart, setTrimDragStart] = useState({ x: 0, trimIn: 0, trimOut: 0 });
   const [contextMenu, setContextMenu] = useState(null);
   const { snapToNearest } = useMagneticSnap();
   const clipRef = useRef(null);
@@ -38,34 +42,7 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
     height: `${trackHeight - 32}px`
   };
   
-  // 🔍 DEBUG: Log clip positioning calculations
-  console.log(`[CLIP POSITIONING] ${clip.name}:`, {
-    startTime: clip.startTime,
-    duration: clip.duration,
-    zoom: zoom,
-    leftPx: timeToPixels(clip.startTime, zoom),
-    widthPx: timeToPixels(clip.duration, zoom),
-    trackHeight: trackHeight,
-    finalHeight: trackHeight - 32,
-    clipStyle: clipStyle
-  });
-  
-  // Debug: Log when clip duration changes or trackId changes
-  useEffect(() => {
-    console.log('[CLIP RENDER]', {
-      clipId: clip.id,
-      clipName: clip.name,
-      trackId: clip.trackId,
-      propTrackId: trackId,
-      duration: clip.duration,
-      startTime: clip.startTime,
-      trimIn: clip.trimIn,
-      trimOut: clip.trimOut,
-      width: clipStyle.width,
-      left: clipStyle.left,
-      isSelected
-    });
-  }, [clip.id, clip.name, clip.trackId, trackId, clip.duration, clip.startTime, clip.trimIn, clip.trimOut, clipStyle.width, clipStyle.left, isSelected]);
+  // Calculate clip style (no debug logging needed)
 
   // Handle clip selection
   const handleClick = useCallback((e) => {
@@ -120,188 +97,139 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
 
     setIsTrimming(true);
     setTrimSide(side);
-    setDragStart({
+    setTrimDragStart({
       x: e.clientX,
-      startTime: clip.startTime,
-      duration: clip.duration,
       trimIn: clip.trimIn,
       trimOut: clip.trimOut
     });
   }, [clip.id, clip.startTime, clip.duration, clip.trimIn, clip.trimOut, isSelected, selectClip]);
 
-  // Handle drag start
-  const handleMouseDown = useCallback((e) => {
-    // Don't start drag if clicking on trim handles
-    if (e.target.classList.contains('clip-trim-handle')) {
+  // Handle HTML5 drag start (for moving clips)
+  const handleDragStart = useCallback((e) => {
+    // Prevent drag if clip is locked
+    if (clip.locked) {
+      e.preventDefault();
       return;
     }
-
-    e.preventDefault();
-    e.stopPropagation();
+    
+    // Don't start drag if clicking on trim handles
+    if (e.target.classList.contains('clip-trim-handle') || 
+        e.target.closest('.clip-trim-handle')) {
+      e.preventDefault();
+      return;
+    }
     
     // Select clip if not already selected
     if (!isSelected) {
       selectClip(clip.id, false);
     }
-
-    setIsDragging(true);
-    setDragStart({
-      x: e.clientX,
+    
+    // Set drag data (similar to Media Library format but different type)
+    e.dataTransfer.effectAllowed = 'move'; // Use 'move' to indicate repositioning
+    e.dataTransfer.setData('application/json', JSON.stringify({
+      type: 'timeline-clip',  // Different type from 'media-library-item'
+      clipId: clip.id,
+      trackId: clip.trackId,
       startTime: clip.startTime,
-      duration: clip.duration
-    });
-  }, [clip.id, clip.startTime, clip.duration, isSelected, selectClip]);
+      clip: clip  // Include full clip data
+    }));
+    
+    // Also set text/plain for fallback compatibility
+    e.dataTransfer.setData('text/plain', clip.id);
+    
+    // Start drag state in context (for visual feedback)
+    if (startDrag) {
+      startDrag(clip.id, clip.trackId, clip.startTime);
+    }
+    
+    console.log('🎬 [CLIP] Drag started:', { clipId: clip.id, trackId: clip.trackId });
+  }, [clip, isSelected, selectClip, startDrag]);
 
-  // Handle drag/trim move
+  // Handle HTML5 drag end (cleanup)
+  const handleDragEnd = useCallback((e) => {
+    // Clean up drag state in context
+    if (completeDrag) {
+      completeDrag();
+    }
+    
+    console.log('🎬 [CLIP] Drag ended');
+  }, [completeDrag]);
+
+  // Handle trim move (only trimming now - dragging uses HTML5 drag & drop)
   const handleMouseMove = useCallback((e) => {
-    if (!isDragging && !isTrimming) return;
+    if (!isTrimming) return;
 
-    const deltaX = e.clientX - dragStart.x;
+    const deltaX = e.clientX - trimDragStart.x;
     const deltaTime = pixelsToTime(deltaX, zoom);
+    const minDuration = 0.1; // Minimum clip duration in seconds
+    
+    // Get the original full duration from when clip was first imported (NEVER changes)
+    const originalFullDuration = clip.originalDuration || clip.duration;
 
-    if (isTrimming) {
-      // Handle trimming using proper trim points
-      const minDuration = 0.1; // Minimum clip duration in seconds
+    if (trimSide === 'left') {
+      // Trim from the start: move trimIn point, keep trimOut fixed
+      let newTrimIn = trimDragStart.trimIn + deltaTime;
       
-      // Get the original full duration from when clip was first imported (NEVER changes)
-      const originalFullDuration = clip.originalDuration || clip.duration;
-
-      if (trimSide === 'left') {
-        // Trim from the start: move trimIn point, keep trimOut fixed
-        let newTrimIn = dragStart.trimIn + deltaTime;
-        
-        // Apply magnetic snap if enabled
-        if (magneticSnap) {
-          const newTrimInPx = timeToPixels(newTrimIn, zoom);
-          const snappedPx = snapToNearest(newTrimInPx, clip.id);
-          newTrimIn = pixelsToTime(snappedPx, zoom); // ✅ CRITICAL FIX: Convert pixels back to time!
-        }
-
-        // Clamp values to prevent invalid states
-        newTrimIn = Math.max(0, newTrimIn); // Can't go before start of original clip
-        newTrimIn = Math.min(newTrimIn, dragStart.trimOut - minDuration); // Can't make duration too small
-        
-        console.log('[TRIM] Left trim:', { 
-          deltaTime, 
-          dragStartTrimIn: dragStart.trimIn,
-          newTrimIn, 
-          trimOut: dragStart.trimOut,
-          newDuration: dragStart.trimOut - newTrimIn 
-        });
-        
-        // Update clip trim points
-        trimClip(clip.id, newTrimIn, dragStart.trimOut);
-        
-      } else if (trimSide === 'right') {
-        // Trim from the end: move trimOut point, keep trimIn fixed
-        let newTrimOut = dragStart.trimOut + deltaTime;
-        
-        console.log('🔍 [RIGHT TRIM DEBUG - STEP 1] After deltaTime calculation:', {
-          dragStartTrimOut: dragStart.trimOut,
-          deltaTime,
-          newTrimOut_calculated: newTrimOut,
-          clipOriginalDuration: clip.originalDuration,
-          clipDuration: clip.duration,
-          clipTrimOut: clip.trimOut
-        });
-        
-        // Apply magnetic snap if enabled
-        if (magneticSnap) {
-          const newTrimOutPx = timeToPixels(newTrimOut, zoom);
-          const snappedPx = snapToNearest(newTrimOutPx, clip.id);
-          const beforeSnap = newTrimOut;
-          newTrimOut = pixelsToTime(snappedPx, zoom); // ✅ CRITICAL FIX: Convert pixels back to time!
-          console.log('🔍 [RIGHT TRIM DEBUG - STEP 2] After magnetic snap:', {
-            beforeSnap,
-            beforeSnapPx: newTrimOutPx,
-            snappedPx,
-            afterSnap: newTrimOut,
-            changed: beforeSnap !== newTrimOut
-          });
-        }
-
-        // Clamp values to prevent invalid states
-        const beforeFirstClamp = newTrimOut;
-        newTrimOut = Math.max(dragStart.trimIn + minDuration, newTrimOut); // Can't make duration too small
-        console.log('🔍 [RIGHT TRIM DEBUG - STEP 3] After first clamp (Math.max):', {
-          beforeFirstClamp,
-          afterFirstClamp: newTrimOut,
-          minAllowed: dragStart.trimIn + minDuration,
-          changed: beforeFirstClamp !== newTrimOut
-        });
-        
-        const beforeSecondClamp = newTrimOut;
-        newTrimOut = Math.min(newTrimOut, originalFullDuration); // Can't extend beyond original clip end
-        console.log('🔍 [RIGHT TRIM DEBUG - STEP 4] After second clamp (Math.min):', {
-          beforeSecondClamp,
-          afterSecondClamp: newTrimOut,
-          originalFullDuration,
-          changed: beforeSecondClamp !== newTrimOut
-        });
-        
-        console.log('[TRIM] Right trim FINAL:', { 
-          deltaTime, 
-          dragStartTrimOut: dragStart.trimOut,
-          newTrimOut, 
-          trimIn: dragStart.trimIn,
-          newDuration: newTrimOut - dragStart.trimIn,
-          originalFullDuration
-        });
-        
-        // Update clip trim points
-        trimClip(clip.id, dragStart.trimIn, newTrimOut);
-      }
-    } else if (isDragging) {
-      // Handle normal dragging
-      let newStartTime = dragStart.startTime + deltaTime;
-
       // Apply magnetic snap if enabled
       if (magneticSnap) {
-        const newStartTimePx = timeToPixels(newStartTime, zoom);
-        newStartTime = snapToNearest(newStartTimePx, clip.id);
+        const newTrimInPx = timeToPixels(newTrimIn, zoom);
+        const snappedPx = snapToNearest(newTrimInPx, clip.id);
+        newTrimIn = pixelsToTime(snappedPx, zoom);
       }
 
-      // Clamp to non-negative time
-      newStartTime = Math.max(0, newStartTime);
+      // Clamp values to prevent invalid states
+      newTrimIn = Math.max(0, newTrimIn);
+      newTrimIn = Math.min(newTrimIn, trimDragStart.trimOut - minDuration);
+      
+      // Update clip trim points
+      trimClip(clip.id, newTrimIn, trimDragStart.trimOut);
+      
+    } else if (trimSide === 'right') {
+      // Trim from the end: move trimOut point, keep trimIn fixed
+      let newTrimOut = trimDragStart.trimOut + deltaTime;
+      
+      // Apply magnetic snap if enabled
+      if (magneticSnap) {
+        const newTrimOutPx = timeToPixels(newTrimOut, zoom);
+        const snappedPx = snapToNearest(newTrimOutPx, clip.id);
+        newTrimOut = pixelsToTime(snappedPx, zoom);
+      }
 
-      // Update clip position
-      moveClip(clip.id, trackId, newStartTime);
+      // Clamp values to prevent invalid states
+      newTrimOut = Math.max(trimDragStart.trimIn + minDuration, newTrimOut);
+      newTrimOut = Math.min(newTrimOut, originalFullDuration);
+      
+      // Update clip trim points
+      trimClip(clip.id, trimDragStart.trimIn, newTrimOut);
     }
   }, [
-    isDragging,
     isTrimming,
     trimSide,
-    dragStart,
+    trimDragStart,
     zoom,
     magneticSnap,
     snapToNearest,
     clip.id,
-    moveClip,
-    trimClip,
-    trackId
+    clip.originalDuration,
+    clip.duration,
+    trimClip
   ]);
 
-  // Handle drag/trim end
+  // Handle trim end (only trimming now)
   const handleMouseUp = useCallback(() => {
-    if (isDragging || isTrimming) {
-      setIsDragging(false);
+    if (isTrimming) {
       setIsTrimming(false);
       setTrimSide(null);
       saveState(); // Save state for undo/redo
     }
-  }, [isDragging, isTrimming, saveState]);
+  }, [isTrimming, saveState]);
 
-  // Setup drag/trim listeners
+  // Setup trim listeners (only for trimming - dragging uses HTML5 drag & drop)
   useEffect(() => {
-    if (isDragging || isTrimming) {
+    if (isTrimming) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-      
-      if (isDragging) {
-        document.body.style.cursor = 'grabbing';
-      } else if (isTrimming) {
-        document.body.style.cursor = 'ew-resize';
-      }
+      document.body.style.cursor = 'ew-resize';
       
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
@@ -309,7 +237,7 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
         document.body.style.cursor = 'default';
       };
     }
-  }, [isDragging, isTrimming, handleMouseMove, handleMouseUp]);
+  }, [isTrimming, handleMouseMove, handleMouseUp]);
 
   // Get clip type icon
   const getClipIcon = () => {
@@ -333,11 +261,13 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
     <>
       <div
         ref={clipRef}
-        className={`clip ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''} ${isTrimming ? 'trimming' : ''}`}
+        className={`clip ${isSelected ? 'selected' : ''} ${dragState?.isDragging && dragState?.draggedClip?.id === clip.id ? 'dragging' : ''} ${isTrimming ? 'trimming' : ''}`}
         data-type={clip.type}
         style={clipStyle}
+        draggable={!clip.locked}  // Only draggable if not locked
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
         onClick={handleClick}
-        onMouseDown={handleMouseDown}
         onContextMenu={handleContextMenu}
         title={`${clip.name} (${clip.duration.toFixed(2)}s)`}
       >

@@ -218,8 +218,8 @@ Successfully refactored ClipForge's state management from local useState to Cont
 
 ---
 
-### PR#14: Drag & Drop Clips 📋 PLANNED
-**Status:** 📋 PLANNING COMPLETE  
+### PR#14: Drag & Drop Clips 📋 PLANNING COMPLETE
+**Status:** ✅ PLANNING COMPLETE  
 **Timeline:** 4-6 hours estimated  
 **Priority:** Critical - Core editing interaction  
 **Complexity:** MEDIUM-HIGH  
@@ -785,7 +785,7 @@ A visual timeline component that displays imported video clips horizontally with
 - ✅ PR#11: State Management Refactor (4 hours) - **COMPLETE**
 - ✅ PR#12: UI Component Library (6 hours) - **COMPLETE**
 - ✅ PR#13: Professional Timeline Implementation (25 hours) - **COMPLETE**
-- 📋 PR#14: Drag & Drop Clips (4-6 hours) - **PLANNED**
+- ✅ PR#14: Drag & Drop Clips (4-6 hours) - **PLANNING COMPLETE**
 - 📋 PR#15: Split & Delete Clips (4-6 hours) - **PLANNED**
 
 ### V2 Advanced Features (Planned)
@@ -815,9 +815,9 @@ A visual timeline component that displays imported video clips horizontally with
 ## Total Documentation
 
 ### Current Stats
-- **Files:** 61 documents (MVP + V2 PRs documented)  
-- **Words:** ~278,000 words
-- **Planning Time:** ~17 hours invested
+- **Files:** 66 documents (MVP + V2 PRs documented)  
+- **Words:** ~299,000 words
+- **Planning Time:** ~19 hours invested
 - **Implementation Time:** ~30 hours (MVP + PR#11 complete)
 - **ROI:** Excellent (comprehensive planning prevents bugs)
 
