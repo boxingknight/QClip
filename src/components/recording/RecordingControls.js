@@ -11,6 +11,7 @@ const RecordingControls = () => {
     isRecording,
     recordingDuration,
     recordingSource,
+    setRecordingSource,
     getAvailableSources,
     startRecording,
     stopRecording,
@@ -25,30 +26,34 @@ const RecordingControls = () => {
     try {
       setIsLoading(true);
       
-      // Show source picker if no source selected
-      if (!recordingSource) {
-        const sources = await getAvailableSources();
-        const selectedSource = await new Promise((resolve) => {
-          showModal('source-picker', {
-            sources,
-            onSelect: resolve,
-            onCancel: () => resolve(null)
-          });
+      // Always get sources and show picker if multiple screens available
+      const sources = await getAvailableSources();
+      
+      // Always show source picker (allows user to change selection)
+      const selectedSource = await new Promise((resolve) => {
+        showModal('source-picker', {
+          sources,
+          onSelect: resolve,
+          onCancel: () => resolve(null)
         });
-        
-        if (!selectedSource) {
-          setIsLoading(false);
-          return;
-        }
-        setRecordingSource(selectedSource);
+      });
+      
+      if (!selectedSource) {
+        setIsLoading(false);
+        return;
       }
       
-      await startRecording(recordingSource.id, {
+      // Set the selected source
+      setRecordingSource(selectedSource);
+      
+      // Start recording with selected source
+      await startRecording(selectedSource.id, {
         includeAudio: true,
         quality: 'high'
       });
     } catch (err) {
       console.error('Failed to start recording', err);
+      // Error state is handled by RecordingContext
     } finally {
       setIsLoading(false);
     }

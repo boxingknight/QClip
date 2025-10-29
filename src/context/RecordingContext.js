@@ -64,20 +64,14 @@ export const RecordingProvider = ({ children }) => {
 
   // Start recording
   const startRecording = useCallback(async (sourceId, options = {}) => {
+    let timer = null;
     try {
       setError(null);
       logger.info('Starting screen recording', { sourceId, options });
       
-      // Get media stream
+      // Get media stream - Electron desktopCapturer format
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: options.includeAudio !== false 
-          ? { 
-              mandatory: { 
-                chromeMediaSource: 'desktop',
-                chromeMediaSourceId: sourceId
-              } 
-            }
-          : false,
+        audio: false, // System audio requires additional setup, handle separately if needed
         video: {
           mandatory: {
             chromeMediaSource: 'desktop',
@@ -123,15 +117,25 @@ export const RecordingProvider = ({ children }) => {
       setRecordedChunks([]);
       
       // Start duration timer
-      const timer = setInterval(() => {
+      timer = setInterval(() => {
         setRecordingDuration(prev => prev + 1);
       }, 1000);
+      
+      // Store timer ref for cleanup
+      window.recordingTimer = timer;
       
       logger.info('Recording started successfully');
       return timer;
     } catch (error) {
+      // Clean up timer if recording failed
+      if (timer) {
+        clearInterval(timer);
+      }
       logger.error('Failed to start recording', error);
       setError(`Failed to start recording: ${error.message}`);
+      setIsRecording(false);
+      setMediaRecorder(null);
+      setMediaStream(null);
       throw error;
     }
   }, []);
@@ -146,29 +150,50 @@ export const RecordingProvider = ({ children }) => {
       
       logger.info('Stopping recording');
       
+      // Clear duration timer
+      if (window.recordingTimer) {
+        clearInterval(window.recordingTimer);
+        window.recordingTimer = null;
+      }
+      
+      const chunks = [];
+      
+      // Collect all chunks before stopping
+      const collectChunks = () => {
+        if (recordedChunks.length > 0) {
+          chunks.push(...recordedChunks);
+        }
+      };
+      
       const handleStop = () => {
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const allChunks = chunks.length > 0 ? chunks : recordedChunks;
+        const blob = new Blob(allChunks, { type: 'video/webm' });
         setIsRecording(false);
         setMediaRecorder(null);
         setMediaStream(null);
         setRecordingDuration(0);
         setStartTime(null);
+        setRecordedChunks([]);
         logger.info('Recording stopped', { blobSize: blob.size });
         resolve(blob);
       };
       
-      if (mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-      }
+      // Setup one-time stop handler
+      const oneTimeStopHandler = () => {
+        mediaRecorder.removeEventListener('stop', oneTimeStopHandler);
+        collectChunks();
+        handleStop();
+      };
       
-      // Wait for onstop event (handled in startRecording setup)
-      setTimeout(() => {
-        if (recordedChunks.length > 0) {
-          handleStop();
-        } else {
-          reject(new Error('No recording data collected'));
-        }
-      }, 500);
+      mediaRecorder.addEventListener('stop', oneTimeStopHandler);
+      
+      if (mediaRecorder.state === 'recording' || mediaRecorder.state === 'paused') {
+        mediaRecorder.stop();
+      } else {
+        // Already stopped, just cleanup
+        collectChunks();
+        handleStop();
+      }
     });
   }, [mediaRecorder, isRecording, recordedChunks]);
 
@@ -254,6 +279,7 @@ export const RecordingProvider = ({ children }) => {
     isRecording,
     isPaused,
     recordingSource,
+    setRecordingSource,
     recordedChunks,
     recordingDuration,
     recordingSettings,

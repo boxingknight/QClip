@@ -17,7 +17,7 @@ import { ToastContainer } from './components/ui/Toast';
 import Toolbar, { ToolbarGroups } from './components/ui/Toolbar';
 import LayoutToolbar from './components/ui/LayoutToolbar';
 import ResizeHandle from './components/ui/ResizeHandle';
-import { RecordingControls } from './components/recording';
+import { RecordingControls, SourcePicker } from './components/recording';
 // Removed StatusBar import - now integrated into Timeline
 import { logger } from './utils/logger';
 import { validateInPoint, validateOutPoint } from './utils/trimValidation';
@@ -66,7 +66,7 @@ function AppContent() {
   } = useMediaLibrary();
   
   const { setModified } = useProject();
-  const { setImportStatus, importStatus, showModal, showToast } = useUI();
+  const { setImportStatus, importStatus, showModal, showToast, modals, hideModal } = useUI();
   const { 
     sidebar, 
     main, 
@@ -554,7 +554,7 @@ function AppContent() {
         {/* UI Components */}
         <ToastContainer />
         
-        {/* Test Modal */}
+        {/* Export Settings Modal */}
         <Modal
           modalName="exportSettings"
           title="Export Settings"
@@ -579,6 +579,36 @@ function AppContent() {
               </button>
             </div>
           </div>
+        </Modal>
+        
+        {/* Source Picker Modal */}
+        <Modal
+          modalName="source-picker"
+          title="Select Recording Source"
+          size="large"
+        >
+          {(() => {
+            const modalData = modals['source-picker']?.data;
+            if (!modalData) return null;
+            
+            return (
+              <SourcePicker
+                sources={modalData.sources || []}
+                onSelect={(source) => {
+                  if (modalData.onSelect) {
+                    modalData.onSelect(source);
+                  }
+                  hideModal('source-picker');
+                }}
+                onCancel={() => {
+                  if (modalData.onCancel) {
+                    modalData.onCancel();
+                  }
+                  hideModal('source-picker');
+                }}
+              />
+            );
+          })()}
         </Modal>
       </div>
     </ErrorBoundary>
