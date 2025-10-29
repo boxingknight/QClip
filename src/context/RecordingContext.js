@@ -92,11 +92,31 @@ export const RecordingProvider = ({ children }) => {
       
       // Local chunks array - collects data directly, avoids state timing issues
       const chunks = [];
+      let chunksComplete = false;
+      let pendingDataPromise = null;
       
+      // Track if we've received all chunks (including final metadata chunk)
       mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
           chunks.push(event.data);
-          logger.debug('Chunk received', { size: event.data.size, totalChunks: chunks.length });
+          logger.debug('Chunk received', { 
+            size: event.data.size, 
+            totalChunks: chunks.length,
+            totalSize: chunks.reduce((sum, c) => sum + c.size, 0)
+          });
+          
+          // Resolve pending promise if waiting for data
+          if (pendingDataPromise && event.data.size > 0) {
+            pendingDataPromise.resolve();
+            pendingDataPromise = null;
+          }
+        } else if (event.data.size === 0 && chunks.length > 0) {
+          // Empty chunk after recording stops = final metadata chunk
+          chunksComplete = true;
+          if (pendingDataPromise) {
+            pendingDataPromise.resolve();
+            pendingDataPromise = null;
+          }
         }
       };
       
@@ -105,18 +125,66 @@ export const RecordingProvider = ({ children }) => {
         recordingResolve = resolve;
         recordingReject = reject;
         
-        mediaRecorder.onstop = () => {
+        mediaRecorder.onstop = async () => {
           try {
+            logger.info('onstop event fired', { chunksCount: chunks.length });
+            
+            // CRITICAL: Wait for final data chunk after stop()
+            // MediaRecorder may send final metadata chunk AFTER onstop fires
+            // Wait up to 500ms for final chunk, then proceed
+            const waitForFinalChunk = () => {
+              return new Promise((resolveWait) => {
+                if (chunksComplete || chunks.length === 0) {
+                  resolveWait();
+                  return;
+                }
+                
+                // Set up promise to resolve when data arrives
+                pendingDataPromise = { resolve: resolveWait };
+                
+                // Timeout fallback - proceed after 500ms even if no chunk
+                setTimeout(() => {
+                  if (pendingDataPromise) {
+                    pendingDataPromise = null;
+                  }
+                  logger.warn('Timeout waiting for final chunk, proceeding anyway');
+                  resolveWait();
+                }, 500);
+              });
+            };
+            
+            // Wait for final chunk
+            await waitForFinalChunk();
+            
+            // Small additional delay to ensure WebM container is finalized
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
             // Create blob from all collected chunks
             const blob = new Blob(chunks, { type: mimeType });
+            const totalSize = chunks.reduce((sum, chunk) => sum + chunk.size, 0);
+            
             logger.info('Recording stopped, blob created', { 
               size: blob.size, 
               chunks: chunks.length,
-              totalSize: chunks.reduce((sum, chunk) => sum + chunk.size, 0)
+              totalSize: totalSize,
+              blobSize: blob.size,
+              sizesMatch: blob.size === totalSize
             });
             
+            // Validate blob
+            if (blob.size === 0) {
+              throw new Error('Blob is empty - no recording data collected');
+            }
+            
+            if (blob.size < 1024) {
+              logger.warn('Blob is very small, may be incomplete', { size: blob.size });
+            }
+            
             // Stop all tracks
-            stream.getTracks().forEach(track => track.stop());
+            stream.getTracks().forEach(track => {
+              track.stop();
+              logger.debug('Track stopped', { kind: track.kind, id: track.id });
+            });
             
             // Update state with final blob
             setRecordedChunks([blob]);
@@ -187,10 +255,28 @@ export const RecordingProvider = ({ children }) => {
     }
     
     try {
-      // Request final chunk before stopping
+      // CRITICAL: Properly stop MediaRecorder to ensure WebM finalization
       if (mediaRecorder.state === 'recording' || mediaRecorder.state === 'paused') {
-        mediaRecorder.requestData(); // Request final chunk
+        // Request data BEFORE stopping - this ensures final chunk is requested
+        mediaRecorder.requestData();
+        
+        // Small delay to allow requestData to process
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
+        // Now stop - this will trigger onstop event
         mediaRecorder.stop();
+        
+        // Request data AGAIN after stop - sometimes needed for final metadata chunk
+        // Note: This might not work in all browsers, but helps with WebM finalization
+        setTimeout(() => {
+          if (mediaRecorder.state === 'inactive') {
+            try {
+              mediaRecorder.requestData();
+            } catch (e) {
+              // Ignore - recorder already stopped
+            }
+          }
+        }, 100);
       }
       
       // Wait for the stop promise (which waits for all chunks via onstop event)
@@ -227,10 +313,23 @@ export const RecordingProvider = ({ children }) => {
       const savePath = await window.electronAPI.showSaveDialog();
       
       if (!savePath.canceled && savePath.filePath) {
-        // Ensure .webm extension for recordings
-        const filePath = savePath.filePath.endsWith('.webm') || savePath.filePath.endsWith('.mp4')
-          ? savePath.filePath
-          : `${savePath.filePath}.webm`;
+        // CRITICAL: Always save as .webm since we're recording WebM format
+        // WebM data in MP4 container = corrupted file with duration: 0
+        let filePath = savePath.filePath;
+        
+        // Remove any extension the user might have added
+        if (filePath.endsWith('.mp4')) {
+          filePath = filePath.slice(0, -4) + '.webm';
+          logger.warn('User selected .mp4 extension, converting to .webm (recording is WebM format)');
+        } else if (!filePath.endsWith('.webm')) {
+          filePath = `${filePath}.webm`;
+        }
+        
+        logger.info('Saving recording file', { 
+          originalPath: savePath.filePath, 
+          finalPath: filePath,
+          blobSize: blob.size
+        });
         // Convert Blob to ArrayBuffer for IPC (Blobs can't be serialized)
         const arrayBuffer = await blob.arrayBuffer();
         
