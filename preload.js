@@ -38,6 +38,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     
     // Return unsubscribe function
     return () => ipcRenderer.removeListener('export-progress-update', handler);
-  }
+  },
+  
+  // Screen recording APIs
+  getScreenSources: () => ipcRenderer.invoke('get-screen-sources'),
+  requestScreenPermission: () => ipcRenderer.invoke('request-screen-permission'),
+  saveRecordingFile: (blob, filePath) => ipcRenderer.invoke('save-recording-file', blob, filePath)
 });
 

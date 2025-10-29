@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, desktopCapturer } = require('electron');
 const path = require('path');
 const { exportVideo, exportTimeline, renderTrimmedClip, getVideoMetadata } = require('./electron/ffmpeg/videoProcessing');
 const os = require('os');
@@ -167,5 +167,62 @@ ipcMain.handle('show-save-dialog', async () => {
   }
   
   return { filePath: result.filePath };
+});
+
+// Screen recording handlers
+ipcMain.handle('get-screen-sources', async () => {
+  try {
+    console.log('Getting screen sources...');
+    const sources = await desktopCapturer.getSources({
+      types: ['window', 'screen'],
+      thumbnailSize: { width: 150, height: 150 }
+    });
+    
+    console.log(`Found ${sources.length} screen sources`);
+    
+    return sources.map(source => ({
+      id: source.id,
+      name: source.name,
+      displayId: source.display_id || '',
+      thumbnail: source.thumbnail.toDataURL()
+    }));
+  } catch (error) {
+    console.error('Failed to get screen sources:', error);
+    throw new Error(`Unable to access screen sources: ${error.message}`);
+  }
+});
+
+ipcMain.handle('request-screen-permission', async () => {
+  // macOS requires screen recording permission
+  // Electron handles this automatically on first use
+  console.log('Screen recording permission requested');
+  return true;
+});
+
+ipcMain.handle('save-recording-file', async (event, blob, filePath) => {
+  try {
+    const fs = require('fs').promises;
+    const buffer = Buffer.from(await blob.arrayBuffer());
+    await fs.writeFile(filePath, buffer);
+    console.log('Recording saved to:', filePath);
+    return filePath;
+  } catch (error) {
+    console.error('Failed to save recording:', error);
+    throw error;
+  }
+});
+
+app.on('ready', createWindow);
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
 });
 
