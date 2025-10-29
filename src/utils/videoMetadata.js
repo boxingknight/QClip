@@ -11,8 +11,20 @@ const getDurationFromVideoElement = (filePath) => {
     video.preload = 'metadata';
     
     // Convert file path to file:// URL for Electron
-    const videoSrc = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+    // Electron requires file:/// (three slashes) for absolute paths
+    let videoSrc;
+    if (filePath.startsWith('file://')) {
+      videoSrc = filePath;
+    } else {
+      // Ensure we have the proper file:/// format with three slashes
+      // On macOS/Linux: /Users/... becomes file:///Users/...
+      // On Windows: C:\... becomes file:///C:/...
+      const normalizedPath = filePath.replace(/\\/g, '/'); // Normalize Windows paths
+      videoSrc = `file://${normalizedPath}`;
+    }
     video.src = videoSrc;
+    
+    logger.debug('Video element fallback: loading metadata', { filePath, videoSrc });
     
     const timeout = setTimeout(() => {
       video.remove();

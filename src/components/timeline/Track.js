@@ -261,7 +261,7 @@ const Track = ({ track, clips, zoom }) => {
           id: `timeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           name: sourceClip.name,
           path: sourceClip.path,
-          duration: sourceClip.duration || 10,
+          duration: sourceClip.duration || 0, // Don't default to 10! This was causing wrong duration
           startTime: Math.max(0, dropTime), // Will be adjusted by ADD_CLIP reducer to snap-to-end
           trackId: track.id,
           type: track.type,
