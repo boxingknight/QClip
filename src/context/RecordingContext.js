@@ -4,6 +4,7 @@
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { logger } from '../utils/logger';
+import { getWebcamDevices } from '../utils/webcamUtils';
 
 const RecordingContext = createContext();
 
@@ -20,6 +21,7 @@ export const RecordingProvider = ({ children }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingSource, setRecordingSource] = useState(null);
+  const [recordingType, setRecordingType] = useState(null); // 'screen' or 'webcam'
   const [mediaStream, setMediaStream] = useState(null);
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [recordedChunks, setRecordedChunks] = useState([]);
@@ -34,6 +36,11 @@ export const RecordingProvider = ({ children }) => {
   });
   const [savedRecordings, setSavedRecordings] = useState([]);
   const [error, setError] = useState(null);
+  
+  // Webcam-specific state
+  const [selectedWebcamId, setSelectedWebcamId] = useState(null);
+  const [availableWebcams, setAvailableWebcams] = useState([]);
+  const [previewStream, setPreviewStream] = useState(null);
 
   // Get available screen sources
   const getAvailableSources = useCallback(async () => {
@@ -59,6 +66,182 @@ export const RecordingProvider = ({ children }) => {
       logger.error('Failed to get screen sources', error);
       setError('Unable to access screen sources. Please check permissions.');
       throw error;
+    }
+  }, []);
+
+  // Get available webcam devices
+  const getWebcamDevicesList = useCallback(async () => {
+    try {
+      setError(null);
+      logger.info('Getting available webcam devices');
+      
+      const devices = await getWebcamDevices();
+      setAvailableWebcams(devices);
+      
+      logger.info(`Found ${devices.length} webcam devices`);
+      return devices;
+    } catch (error) {
+      logger.error('Failed to get webcam devices', error);
+      setError(error.message || 'Unable to access webcam devices. Please check permissions.');
+      throw error;
+    }
+  }, []);
+
+  // Start webcam recording
+  const startWebcamRecording = useCallback(async (deviceId, settings = {}) => {
+    let timer = null;
+    let recordingResolve = null;
+    let recordingReject = null;
+    
+    try {
+      setError(null);
+      logger.info('Starting webcam recording', { deviceId, settings });
+      
+      // Parse resolution
+      const resolution = settings.resolution || '1280x720';
+      const [width, height] = resolution.split('x').map(Number);
+      const framerate = settings.framerate || 30;
+      
+      // Get webcam stream
+      const streamConstraints = {
+        video: {
+          deviceId: { exact: deviceId },
+          width: { ideal: width },
+          height: { ideal: height },
+          frameRate: { ideal: framerate }
+        },
+        audio: settings.audio !== false // Include audio if enabled
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(streamConstraints);
+      
+      // Setup MediaRecorder
+      const mimeType = 'video/webm;codecs=vp9,opus';
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: settings.quality === 'high' ? 8000000 : 4000000
+      });
+      
+      // Local chunks array
+      const chunks = [];
+      let chunksComplete = false;
+      let pendingDataPromise = null;
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          chunks.push(event.data);
+          logger.debug('Chunk received', { 
+            size: event.data.size, 
+            totalChunks: chunks.length
+          });
+          
+          if (pendingDataPromise && event.data.size > 0) {
+            pendingDataPromise.resolve();
+            pendingDataPromise = null;
+          }
+        } else if (event.data.size === 0 && chunks.length > 0) {
+          chunksComplete = true;
+          if (pendingDataPromise) {
+            pendingDataPromise.resolve();
+            pendingDataPromise = null;
+          }
+        }
+      };
+      
+      // Create promise for stop event
+      const stopPromise = new Promise((resolve, reject) => {
+        recordingResolve = resolve;
+        recordingReject = reject;
+        
+        mediaRecorder.onstop = async () => {
+          try {
+            logger.info('onstop event fired', { chunksCount: chunks.length });
+            
+            // Wait for final chunk
+            const waitForFinalChunk = () => {
+              return new Promise((resolveWait) => {
+                if (chunksComplete || chunks.length === 0) {
+                  resolveWait();
+                  return;
+                }
+                
+                pendingDataPromise = { resolve: resolveWait };
+                
+                setTimeout(() => {
+                  if (pendingDataPromise) {
+                    pendingDataPromise = null;
+                  }
+                  logger.warn('Timeout waiting for final chunk, proceeding anyway');
+                  resolveWait();
+                }, 500);
+              });
+            };
+            
+            await waitForFinalChunk();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            const blob = new Blob(chunks, { type: mimeType });
+            
+            if (blob.size === 0) {
+              throw new Error('Blob is empty - no recording data collected');
+            }
+            
+            stream.getTracks().forEach(track => {
+              track.stop();
+              logger.debug('Track stopped', { kind: track.kind, id: track.id });
+            });
+            
+            setRecordedChunks([blob]);
+            resolve(blob);
+          } catch (error) {
+            logger.error('Error creating blob from chunks', error);
+            reject(error);
+          }
+        };
+      });
+      
+      mediaRecorder._stopPromise = stopPromise;
+      mediaRecorder._chunks = chunks;
+      
+      mediaRecorder.onerror = (event) => {
+        logger.error('MediaRecorder error', event);
+        setError('Recording error occurred');
+        if (recordingReject) {
+          recordingReject(new Error('MediaRecorder error occurred'));
+        }
+      };
+      
+      // Start recording
+      mediaRecorder.start(1000);
+      setMediaRecorder(mediaRecorder);
+      setMediaStream(stream);
+      setIsRecording(true);
+      setRecordingType('webcam');
+      setRecordingSource({ type: 'webcam', deviceId });
+      setSelectedWebcamId(deviceId);
+      setStartTime(Date.now());
+      setRecordedChunks([]);
+      
+      // Start duration timer
+      timer = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+      
+      window.recordingTimer = timer;
+      
+      logger.info('Webcam recording started successfully');
+      return true;
+    } catch (error) {
+      if (timer) {
+        clearInterval(timer);
+      }
+      logger.error('Failed to start webcam recording', error);
+      setError(`Failed to start webcam recording: ${error.message}`);
+      setIsRecording(false);
+      setMediaRecorder(null);
+      setMediaStream(null);
+      setRecordingType(null);
+      return false;
     }
   }, []);
 
@@ -213,6 +396,7 @@ export const RecordingProvider = ({ children }) => {
       setMediaRecorder(mediaRecorder);
       setMediaStream(stream);
       setIsRecording(true);
+      setRecordingType('screen');
       setStartTime(Date.now());
       setRecordedChunks([]);
       
@@ -289,6 +473,7 @@ export const RecordingProvider = ({ children }) => {
       setRecordingDuration(0);
       setStartTime(null);
       setRecordedChunks([]);
+      setRecordingType(null);
       
       logger.info('Recording stopped successfully', { blobSize: blob.size });
       return blob;
@@ -380,6 +565,7 @@ export const RecordingProvider = ({ children }) => {
     setRecordedChunks([]);
     setRecordingDuration(0);
     setStartTime(null);
+    setRecordingType(null);
     setError(null);
     logger.info('Recording cancelled');
   }, [mediaRecorder, isRecording, mediaStream]);
@@ -400,6 +586,7 @@ export const RecordingProvider = ({ children }) => {
     isRecording,
     isPaused,
     recordingSource,
+    recordingType,
     setRecordingSource,
     recordedChunks,
     recordingDuration,
@@ -407,9 +594,18 @@ export const RecordingProvider = ({ children }) => {
     savedRecordings,
     error,
     
+    // Webcam-specific state
+    selectedWebcamId,
+    setSelectedWebcamId,
+    availableWebcams,
+    previewStream,
+    setPreviewStream,
+    
     // Actions
     getAvailableSources,
+    getWebcamDevices: getWebcamDevicesList,
     startRecording,
+    startWebcamRecording,
     stopRecording,
     saveRecording,
     cancelRecording,

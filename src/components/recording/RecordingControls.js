@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { useRecording } from '../../context/RecordingContext';
 import { useUI } from '../../context/UIContext';
+import { useMediaLibrary } from '../../context/MediaLibraryContext';
 import RecordingButton from './RecordingButton';
 import RecordingIndicator from './RecordingIndicator';
 import SourcePicker from './SourcePicker';
+import WebcamRecordingControls from './WebcamRecordingControls';
 import './RecordingControls.css';
 
 const RecordingControls = () => {
+  const [recordingMode, setRecordingMode] = useState('screen'); // 'screen' or 'webcam'
   const {
     isRecording,
     recordingDuration,
@@ -19,7 +22,8 @@ const RecordingControls = () => {
     error
   } = useRecording();
   
-  const { showModal, hideModal } = useUI();
+  const { showModal, hideModal, showToast } = useUI();
+  const { addMediaItems } = useMediaLibrary();
   const [isLoading, setIsLoading] = useState(false);
   
   const handleStartRecording = async () => {
@@ -71,38 +75,90 @@ const RecordingControls = () => {
     }
   };
   
+  // Handle recording saved callback for webcam
+  const handleWebcamRecordingSaved = (recordingFile) => {
+    // Add to Media Library
+    const mediaItem = {
+      id: recordingFile.id || `media-${Date.now()}`,
+      name: recordingFile.name,
+      path: recordingFile.path,
+      duration: recordingFile.duration || 0,
+      fileSize: recordingFile.size || 0,
+      thumbnailUrl: recordingFile.thumbnail || null,
+      width: recordingFile.width || 1280,
+      height: recordingFile.height || 720,
+      fps: recordingFile.fps || 30,
+      codec: recordingFile.codec || 'vp9',
+      hasAudio: true, // Webcam recordings include audio
+      type: 'video'
+    };
+    
+    addMediaItems([mediaItem]);
+    
+    showToast({
+      type: 'success',
+      title: 'Recording Saved',
+      message: `Webcam recording added to Media Library: ${recordingFile.name}`,
+      duration: 3000
+    });
+  };
+
   return (
     <div className="recording-controls">
-      {error && (
-        <div className="recording-error">
-          <span className="error-icon">⚠️</span>
-          <span className="error-message">{error}</span>
-        </div>
-      )}
-      
-      {!isRecording ? (
-        <RecordingButton
-          onClick={handleStartRecording}
-          label="Start Recording"
-          icon="●"
-          loading={isLoading}
-          disabled={isLoading}
-        />
+      {/* Recording mode selector */}
+      <div className="recording-mode-selector">
+        <button
+          className={`mode-button ${recordingMode === 'screen' ? 'active' : ''}`}
+          onClick={() => setRecordingMode('screen')}
+          disabled={isRecording}
+        >
+          🖥️ Screen
+        </button>
+        <button
+          className={`mode-button ${recordingMode === 'webcam' ? 'active' : ''}`}
+          onClick={() => setRecordingMode('webcam')}
+          disabled={isRecording}
+        >
+          📷 Webcam
+        </button>
+      </div>
+
+      {recordingMode === 'webcam' ? (
+        <WebcamRecordingControls onRecordingSaved={handleWebcamRecordingSaved} />
       ) : (
-        <div className="recording-active">
-          <RecordingIndicator
-            duration={recordingDuration}
-            source={recordingSource}
-          />
-          <RecordingButton
-            onClick={handleStopRecording}
-            label="Stop Recording"
-            icon="■"
-            variant="danger"
-            loading={isLoading}
-            disabled={isLoading}
-          />
-        </div>
+        <>
+          {error && (
+            <div className="recording-error">
+              <span className="error-icon">⚠️</span>
+              <span className="error-message">{error}</span>
+            </div>
+          )}
+          
+          {!isRecording ? (
+            <RecordingButton
+              onClick={handleStartRecording}
+              label="Start Recording"
+              icon="●"
+              loading={isLoading}
+              disabled={isLoading}
+            />
+          ) : (
+            <div className="recording-active">
+              <RecordingIndicator
+                duration={recordingDuration}
+                source={recordingSource}
+              />
+              <RecordingButton
+                onClick={handleStopRecording}
+                label="Stop Recording"
+                icon="■"
+                variant="danger"
+                loading={isLoading}
+                disabled={isLoading}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

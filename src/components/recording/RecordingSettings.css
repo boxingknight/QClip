@@ -1,0 +1,88 @@
+/* RecordingSettings.css - Recording settings styling */
+
+.recording-settings {
+  background: var(--color-surface);
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-secondary);
+}
+
+.recording-settings h3 {
+  margin: 0 0 1rem 0;
+  color: var(--color-text-primary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.setting-group {
+  margin-bottom: 1rem;
+}
+
+.setting-group:last-child {
+  margin-bottom: 0;
+}
+
+.setting-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  font-size: 14px;
+}
+
+.setting-select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.setting-select:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.setting-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.setting-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label:hover:not(:has(.checkbox-input:disabled)) {
+  color: var(--color-text-primary);
+}
+
+.checkbox-input {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.checkbox-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.checkbox-label span {
+  color: var(--color-text-primary);
+  font-size: 14px;
+}
+

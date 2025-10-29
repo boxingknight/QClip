@@ -2,3 +2,7 @@ export { default as RecordingControls } from './RecordingControls';
 export { default as RecordingButton } from './RecordingButton';
 export { default as RecordingIndicator } from './RecordingIndicator';
 export { default as SourcePicker } from './SourcePicker';
+export { default as WebcamRecordingControls } from './WebcamRecordingControls';
+export { default as DeviceSelector } from './DeviceSelector';
+export { default as WebcamPreview } from './WebcamPreview';
+export { default as RecordingSettings } from './RecordingSettings';

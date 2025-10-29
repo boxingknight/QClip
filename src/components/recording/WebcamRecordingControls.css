@@ -1,0 +1,157 @@
+/* WebcamRecordingControls.css - Main webcam recording controls styling */
+
+.webcam-recording-controls {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+}
+
+.controls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.controls-header h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.recording-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-error);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.recording-status .recording-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-error);
+  border-radius: 50%;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+}
+
+.error-banner {
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  margin-bottom: 1rem;
+  font-size: 14px;
+}
+
+.controls-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+}
+
+.preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.main-preview {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.preview-error {
+  padding: 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  text-align: center;
+  font-size: 14px;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.recording-buttons {
+  margin-top: 1rem;
+}
+
+.start-recording {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 16px;
+  font-weight: 600;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.start-recording:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.start-recording:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.stop-recording {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 16px;
+  font-weight: 600;
+  background: var(--color-error);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.stop-recording:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.stop-recording:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .controls-content {
+    grid-template-columns: 1fr;
+  }
+
+  .main-preview {
+    max-width: 100%;
+  }
+}
+
