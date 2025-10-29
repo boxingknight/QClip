@@ -3,7 +3,7 @@ import { usePlayback } from '../context/PlaybackContext';
 import { logger } from '../utils/logger';
 import '../styles/VideoPlayer.css';
 
-const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onClipEnd }) => {
+const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onClipEnd, playhead }) => {
   const videoRef = useRef(null);
   const { registerVideo, updatePlaybackState, isPlaying: playbackIsPlaying } = usePlayback();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -70,7 +70,7 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
     };
 
   const handleLoadedMetadata = () => {
-    if (video) {
+    if (video && selectedClip) {
       setDuration(video.duration);
       setIsLoading(false);
       setError(null);
@@ -79,32 +79,41 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
         duration: video.duration 
       });
       
-      // 🎯 CRITICAL: Seek to trimIn point if clip is trimmed
-      // This ensures playback starts from the visible portion on the timeline
-      const trimIn = selectedClip?.trimIn || 0;
-      if (trimIn > 0) {
-        console.log('[VideoPlayer] Seeking to trimIn:', trimIn, 'Video duration:', video.duration);
-        video.currentTime = trimIn;
-        setCurrentTime(trimIn);
-        console.log('[VideoPlayer] After seek - video.currentTime:', video.currentTime);
-      } else {
-        console.log('[VideoPlayer] No trimIn, setting currentTime to 0');
-        setCurrentTime(0);
-      }
+      // 🎯 CRITICAL FIX: Calculate video time from absolute timeline playhead position
+      // Timeline playhead is absolute (e.g., 5.0 seconds from timeline start)
+      // Video time = (playhead - clip.startTime) + trimIn
+      // This ensures we seek to the correct position even after splits
+      const clipStartTime = selectedClip.startTime || 0;
+      const trimIn = selectedClip.trimIn || 0;
+      const relativeTimeInClip = playhead !== undefined ? Math.max(0, playhead - clipStartTime) : 0;
+      const videoTime = trimIn + relativeTimeInClip;
+      
+      // Clamp to video duration
+      const clampedVideoTime = Math.min(videoTime, video.duration);
+      
+      console.log('[VideoPlayer] Seeking to video position:', {
+        playhead,
+        clipStartTime,
+        relativeTimeInClip,
+        trimIn,
+        videoTime,
+        clampedVideoTime,
+        videoDuration: video.duration
+      });
+      
+      video.currentTime = clampedVideoTime;
+      setCurrentTime(clampedVideoTime);
       
       // Update playback context with duration
       updatePlaybackState({ duration: video.duration });
       
-      // 🎯 CRITICAL FIX: Reset timeline playhead to 0 when video loads
-      // This prevents scrubber from appearing in empty space
-      // The video will play from trimIn, but timeline shows 0 as starting point
+      // Send absolute timeline time to parent (not relative)
       onTimeUpdate?.({
-        currentTime: 0, // Always start timeline at 0, regardless of trimIn
+        currentTime: playhead !== undefined ? playhead : clipStartTime,
         duration: video.duration
       });
       
       // 🎯 CRITICAL: Auto-play if playback was active (for continuous playback)
-      // This ensures clips automatically play when switching during timeline playback
       if (playbackIsPlaying) {
         console.log('[VideoPlayer] Auto-playing next clip (playback was active)');
         video.play().catch((err) => {
@@ -112,6 +121,14 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
           setError('Failed to auto-play next clip');
         });
       }
+    } else if (video) {
+      // No clip selected - just load metadata
+      setDuration(video.duration);
+      setIsLoading(false);
+      setError(null);
+      video.currentTime = 0;
+      setCurrentTime(0);
+      updatePlaybackState({ duration: video.duration });
     }
   };
 
@@ -137,7 +154,7 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
       setIsLoading(false);
       setError(null);
     };
-  }, [videoSrc, selectedClip?.trimmedPath]);
+  }, [videoSrc, selectedClip?.trimmedPath, selectedClip?.id, playhead]);
 
   // Note: Event handlers are now in useEffect with proper cleanup
   // Keep inline handlers for video element compatibility
@@ -223,29 +240,33 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
         className="video-element"
         onTimeUpdate={() => {
           const video = videoRef.current;
-          if (video) {
+          if (video && selectedClip) {
             const current = video.currentTime;
             
-            // 🎯 CRITICAL: Convert video time to timeline time
-            // Video time is relative to trimIn, timeline time is absolute
-            const trimIn = selectedClip?.trimIn || 0;
-            const timelineTime = trimIn + current;
+            // 🎯 CRITICAL: Convert video time to absolute timeline time
+            // Video currentTime is relative to trimIn (e.g., if trimIn=3, video plays from 3s)
+            // Timeline time = clip.startTime + (video.currentTime - trimIn)
+            // But since we seeked to (trimIn + relativeTimeInClip), we need to reverse:
+            // Timeline time = clip.startTime + (current - trimIn)
+            const clipStartTime = selectedClip.startTime || 0;
+            const trimIn = selectedClip.trimIn || 0;
+            const timelineTime = clipStartTime + (current - trimIn);
             
             console.log('[VideoPlayer] onTimeUpdate:', {
               videoCurrentTime: current,
+              clipStartTime,
               trimIn,
               timelineTime,
               selectedClipName: selectedClip?.name
             });
             
-            // ✅ REMOVED: Stop at trimOut logic
-            // For continuous timeline playback, the timeline manager will handle clip switching
-            // This allows playback to continue through all clips on the timeline
+            // ✅ For continuous playback: Timeline manager will handle clip switching
+            // No need to stop at trimOut - just send timeline time
             
             setCurrentTime(current);
-            updatePlaybackState({ currentTime: timelineTime }); // Send timeline time
+            updatePlaybackState({ currentTime: timelineTime });
             onTimeUpdate?.({
-              currentTime: timelineTime, // Send timeline time, not video time
+              currentTime: timelineTime, // Send absolute timeline time
               duration: duration
             });
           }
@@ -274,20 +295,22 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
             // Check if there's a next clip
             if (currentIndex !== -1 && currentIndex < trackClips.length - 1) {
               const nextClip = trackClips[currentIndex + 1];
-              console.log('🎬 [VideoPlayer] Continuing to next clip:', nextClip.name);
+              console.log('🎬 [VideoPlayer] Continuing to next clip:', nextClip.name, 'at', nextClip.startTime);
               
               // Notify parent to advance playhead to next clip's start time
               // This will trigger the timeline playback manager to switch clips
+              // The timeline manager will detect playhead moved and switch to next clip
               onClipEnd(nextClip.startTime);
-              return; // Don't stop playing!
+              return; // Don't stop playing - continuous playback will continue!
             }
           }
           
           // No next clip - stop playback
           console.log('🎬 [VideoPlayer] No next clip - stopping playback');
           setIsPlaying(false);
-          setCurrentTime(duration);
-          updatePlaybackState({ isPlaying: false, currentTime: duration });
+          const finalTime = selectedClip ? (selectedClip.startTime + selectedClip.duration) : duration;
+          setCurrentTime(finalTime);
+          updatePlaybackState({ isPlaying: false, currentTime: finalTime });
         }}
       />
       
