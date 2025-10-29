@@ -7,8 +7,12 @@ import { logger } from './logger';
  */
 const getDurationFromVideoElement = (filePath) => {
   return new Promise((resolve) => {
+    console.log('[VIDEO_ELEMENT_FALLBACK] Starting duration extraction', { filePath });
+    
     const video = document.createElement('video');
     video.preload = 'metadata';
+    video.muted = true; // Mute to allow autoplay policies
+    video.playsInline = true;
     
     // Convert file path to file:// URL for Electron
     // Electron requires file:/// (three slashes) for absolute paths
@@ -22,6 +26,8 @@ const getDurationFromVideoElement = (filePath) => {
       const normalizedPath = filePath.replace(/\\/g, '/'); // Normalize Windows paths
       videoSrc = `file://${normalizedPath}`;
     }
+    
+    console.log('[VIDEO_ELEMENT_FALLBACK] Setting video source', { filePath, videoSrc });
     video.src = videoSrc;
     
     logger.debug('Video element fallback: loading metadata', { filePath, videoSrc });
@@ -35,12 +41,28 @@ const getDurationFromVideoElement = (filePath) => {
     video.addEventListener('loadedmetadata', () => {
       clearTimeout(timeout);
       const duration = video.duration || 0;
+      
+      console.log('[VIDEO_ELEMENT_FALLBACK] loadedmetadata event fired', {
+        filePath,
+        rawDuration: video.duration,
+        duration,
+        isFinite: isFinite(duration),
+        isNaN: isNaN(duration),
+        isValid: duration > 0 && !isNaN(duration) && isFinite(duration)
+      });
+      
       video.remove();
       
       if (duration > 0 && !isNaN(duration) && isFinite(duration)) {
+        console.log('[VIDEO_ELEMENT_FALLBACK] ✅ SUCCESS: Got valid duration', { filePath, duration });
         logger.info('Got duration from video element', { filePath, duration });
         resolve(duration);
       } else {
+        console.error('[VIDEO_ELEMENT_FALLBACK] ❌ FAILED: Invalid duration from video element', { 
+          filePath, 
+          duration,
+          rawDuration: video.duration
+        });
         logger.warn('Invalid duration from video element', { filePath, duration });
         resolve(0);
       }
@@ -48,9 +70,39 @@ const getDurationFromVideoElement = (filePath) => {
     
     video.addEventListener('error', (e) => {
       clearTimeout(timeout);
+      
+      const errorDetails = {
+        code: video.error?.code,
+        message: video.error?.message,
+        networkState: video.networkState,
+        readyState: video.readyState,
+        src: video.src,
+        currentSrc: video.currentSrc
+      };
+      
+      console.error('[VIDEO_ELEMENT_FALLBACK] ❌ ERROR event fired', {
+        filePath,
+        error: e,
+        videoError: errorDetails
+      });
+      
       video.remove();
-      logger.warn('Video element error reading duration', { filePath, error: e });
+      logger.warn('Video element error reading duration', { filePath, error: e, errorDetails });
       resolve(0);
+    });
+    
+    // Also listen for loadstart to confirm loading began
+    video.addEventListener('loadstart', () => {
+      console.log('[VIDEO_ELEMENT_FALLBACK] loadstart event fired', { filePath, src: video.src });
+    });
+    
+    // Listen for stalled/abort events
+    video.addEventListener('stalled', () => {
+      console.warn('[VIDEO_ELEMENT_FALLBACK] stalled event', { filePath });
+    });
+    
+    video.addEventListener('abort', () => {
+      console.warn('[VIDEO_ELEMENT_FALLBACK] abort event', { filePath });
     });
     
     // Start loading metadata
@@ -85,25 +137,57 @@ export const extractVideoMetadata = async (filePath) => {
     // This fixes WebM files where FFprobe fails to read duration correctly
     // Also check for suspicious values (very small like 0.001 or very large)
     const isValidDuration = duration > 0 && isFinite(duration) && !isNaN(duration);
+    
+    console.log('[METADATA] Checking duration validity:', {
+      filePath,
+      ffprobeDuration: duration,
+      isValidDuration,
+      willTriggerFallback: !isValidDuration || duration === 0
+    });
+    
     if (!isValidDuration || duration === 0) {
+      console.warn('[METADATA] ⚠️ FFprobe returned invalid duration, trying HTML5 video element fallback', { 
+        filePath, 
+        ffprobeDuration: duration,
+        isValid: isValidDuration
+      });
       logger.warn('FFprobe returned invalid duration, trying HTML5 video element fallback', { 
         filePath, 
         ffprobeDuration: duration,
         isValid: isValidDuration
       });
-      const videoDuration = await getDurationFromVideoElement(filePath);
       
-      if (videoDuration > 0 && isFinite(videoDuration)) {
-        duration = videoDuration;
-        logger.info('✅ Using duration from video element fallback', { filePath, duration });
-      } else {
-        logger.warn('❌ Both FFprobe and video element failed to get duration', { 
+      try {
+        const videoDuration = await getDurationFromVideoElement(filePath);
+        console.log('[METADATA] Video element fallback result:', {
           filePath,
-          ffprobeDuration: duration,
-          videoElementDuration: videoDuration
+          videoDuration,
+          isFinite: isFinite(videoDuration),
+          isValid: videoDuration > 0 && isFinite(videoDuration)
         });
+        
+        if (videoDuration > 0 && isFinite(videoDuration)) {
+          duration = videoDuration;
+          console.log('[METADATA] ✅ SUCCESS: Using duration from video element fallback', { filePath, duration });
+          logger.info('✅ Using duration from video element fallback', { filePath, duration });
+        } else {
+          console.error('[METADATA] ❌ FAILED: Video element fallback returned invalid duration', { 
+            filePath,
+            ffprobeDuration: duration,
+            videoElementDuration: videoDuration
+          });
+          logger.warn('❌ Both FFprobe and video element failed to get duration', { 
+            filePath,
+            ffprobeDuration: duration,
+            videoElementDuration: videoDuration
+          });
+        }
+      } catch (fallbackError) {
+        console.error('[METADATA] ❌ ERROR in video element fallback:', fallbackError);
+        logger.error('Video element fallback threw error', fallbackError, { filePath });
       }
     } else {
+      console.log('[METADATA] ✅ FFprobe duration is valid, using it', { filePath, duration });
       logger.debug('FFprobe duration is valid, using it', { filePath, duration });
     }
 
