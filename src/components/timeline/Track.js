@@ -131,18 +131,18 @@ const Track = ({ track, clips, zoom }) => {
           const rect = trackRef.current?.getBoundingClientRect();
           if (rect) {
             const dropX = e.clientX - rect.left;
-            const dropTime = pixelsToTime(dropX, zoom);
+            const dropTimeCalc = pixelsToTime(dropX, zoom);
             
-            // Calculate snap targets
-            const allOtherClips = timelineClips.filter(c => c.id !== dragState.draggedClip.id);
+            // Calculate snap targets (pass dropTime first)
             const snapTargets = calculateSnapTargets(
-              dragState.draggedClip,
-              allOtherClips,
+              dropTimeCalc,  // Drop position time
+              dragState.draggedClip,  // Clip being dragged
+              timelineClips,  // All clips
               0.5
             );
             
-            // Find snap target
-            const snapTarget = findSnapTarget(dropTime, snapTargets, 0.5);
+            // Find snap target for the calculated drop time
+            const snapTarget = findSnapTarget(dropTimeCalc, snapTargets, 0.5);
             
             if (snapTarget) {
               // Calculate snap line position
@@ -288,10 +288,11 @@ const Track = ({ track, clips, zoom }) => {
         const sourceTrackId = dragData.trackId;
         
         // Calculate snap targets using time-based calculation
-        const allOtherClips = timelineClips.filter(c => c.id !== sourceClip.id);
+        // Pass dropTime first, then draggedClip, then all clips
         const snapTargets = calculateSnapTargets(
-          sourceClip,
-          allOtherClips,
+          dropTime,  // Drop position time
+          sourceClip,  // Clip being dragged (to filter it out)
+          timelineClips,  // All clips (including dragged one, will be filtered)
           0.5 // 0.5 second threshold
         );
         

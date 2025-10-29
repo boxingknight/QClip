@@ -9,45 +9,66 @@ import { pixelsToTime, timeToPixels } from './timelineCalculations';
 /**
  * Calculate snap targets based on TIME (not pixels) for zoom-independence
  * Uses 0.5 second threshold as professional video editor standard
- * @param {Object} draggedClip - The clip being dragged
+ * Includes origin (time 0) as a snap target
+ * @param {number} dropTime - The time position where the clip is being dropped
+ * @param {Object} draggedClip - The clip being dragged (for filtering out from snap targets)
  * @param {Array} allClips - All clips in the timeline
  * @param {number} snapThreshold - Threshold in seconds (default: 0.5)
+ * @param {boolean} includeOrigin - Whether to include origin (time 0) as snap target (default: true)
  * @returns {Array} Array of snap targets sorted by distance
  */
-export const calculateSnapTargets = (draggedClip, allClips, snapThreshold = 0.5) => {
-  if (!draggedClip || !allClips || allClips.length === 0) {
+export const calculateSnapTargets = (dropTime, draggedClip, allClips, snapThreshold = 0.5, includeOrigin = true) => {
+  if (dropTime === undefined || dropTime === null) {
     return [];
   }
 
   const targets = [];
 
-  allClips.forEach(clip => {
-    // Skip the clip being dragged
-    if (clip.id === draggedClip.id) return;
-
-    // Check start time (snap to clip start)
-    const startDistance = Math.abs(draggedClip.startTime - clip.startTime);
-    if (startDistance <= snapThreshold) {
+  // Always include origin (time 0) as a snap target
+  if (includeOrigin) {
+    const originDistance = Math.abs(dropTime - 0);
+    if (originDistance <= snapThreshold) {
       targets.push({
-        type: 'start',
-        time: clip.startTime,
-        clipId: clip.id,
-        distance: startDistance
+        type: 'origin',
+        time: 0,
+        clipId: null,
+        distance: originDistance
       });
     }
+  }
 
-    // Check end time (snap to clip end)
-    const endTime = clip.startTime + clip.duration;
-    const endDistance = Math.abs(draggedClip.startTime - endTime);
-    if (endDistance <= snapThreshold) {
-      targets.push({
-        type: 'end',
-        time: endTime,
-        clipId: clip.id,
-        distance: endDistance
-      });
-    }
-  });
+  // Add snap targets from other clips
+  if (allClips && allClips.length > 0) {
+    const draggedClipId = draggedClip?.id;
+    
+    allClips.forEach(clip => {
+      // Skip the clip being dragged
+      if (draggedClipId && clip.id === draggedClipId) return;
+
+      // Check start time (snap to clip start)
+      const startDistance = Math.abs(dropTime - clip.startTime);
+      if (startDistance <= snapThreshold) {
+        targets.push({
+          type: 'start',
+          time: clip.startTime,
+          clipId: clip.id,
+          distance: startDistance
+        });
+      }
+
+      // Check end time (snap to clip end)
+      const endTime = clip.startTime + clip.duration;
+      const endDistance = Math.abs(dropTime - endTime);
+      if (endDistance <= snapThreshold) {
+        targets.push({
+          type: 'end',
+          time: endTime,
+          clipId: clip.id,
+          distance: endDistance
+        });
+      }
+    });
+  }
 
   // Sort by distance (closest first)
   return targets.sort((a, b) => a.distance - b.distance);
