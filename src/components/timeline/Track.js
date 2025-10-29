@@ -7,16 +7,18 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useTimeline } from '../../hooks/useTimeline';
 import { timeToPixels, pixelsToTime } from '../../utils/timelineCalculations';
-import { calculateSnapTargets, findSnapTarget, isValidDropPosition } from '../../utils/dragDropCalculations';
+import { calculateSnapTargets, findSnapTarget, isValidDropPosition, calculateSnapLine } from '../../utils/dragDropCalculations';
 import Clip from './Clip';
+import SnapLine from './SnapLine';
 import './Track.css';
 
 const Track = ({ track, clips, zoom }) => {
-  const { updateTrackSettings, removeTrack, addClip, moveClip, clips: timelineClips } = useTimeline();
+  const { updateTrackSettings, removeTrack, addClip, moveClip, clips: timelineClips, dragState } = useTimeline();
   const [isResizing, setIsResizing] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(track.name);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [snapLine, setSnapLine] = useState(null);
   const resizeStartRef = useRef({ y: 0, height: 0 });
   const trackRef = useRef(null);
 
@@ -119,17 +121,47 @@ const Track = ({ track, clips, zoom }) => {
       if (e.dataTransfer.effectAllowed === 'copy') {
         // Media Library item - adding new clip
         e.dataTransfer.dropEffect = 'copy';
+        setSnapLine(null); // No snap line for Media Library items
       } else if (e.dataTransfer.effectAllowed === 'move') {
         // Timeline clip - repositioning
         e.dataTransfer.dropEffect = 'move';
+        
+        // Calculate snap line for Timeline clips if drag state is available
+        if (dragState?.isDragging && dragState?.draggedClip) {
+          const rect = trackRef.current?.getBoundingClientRect();
+          if (rect) {
+            const dropX = e.clientX - rect.left;
+            const dropTime = pixelsToTime(dropX, zoom);
+            
+            // Calculate snap targets
+            const allOtherClips = timelineClips.filter(c => c.id !== dragState.draggedClip.id);
+            const snapTargets = calculateSnapTargets(
+              dragState.draggedClip,
+              allOtherClips,
+              0.5
+            );
+            
+            // Find snap target
+            const snapTarget = findSnapTarget(dropTime, snapTargets, 0.5);
+            
+            if (snapTarget) {
+              // Calculate snap line position
+              const snapLineData = calculateSnapLine(snapTarget, zoom);
+              setSnapLine(snapLineData);
+            } else {
+              setSnapLine(null);
+            }
+          }
+        }
       }
     }
-  }, [track.locked]);
+  }, [track.locked, dragState, timelineClips, zoom]);
 
   const handleDragLeave = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
+    setSnapLine(null); // Clear snap line when leaving track
   }, []);
 
   const handleDrop = useCallback((e) => {
@@ -142,6 +174,7 @@ const Track = ({ track, clips, zoom }) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
+    setSnapLine(null); // Clear snap line on drop
 
     if (track.locked) {
       console.warn('🎬 [TRACK] Track is locked, ignoring drop');
@@ -380,7 +413,15 @@ const Track = ({ track, clips, zoom }) => {
         </div>
       </div>
       
-      <div className="track-content">
+      <div className="track-content" style={{ position: 'relative' }}>
+        {/* Snap line indicator (shows where clip will snap during drag) */}
+        {snapLine && (
+          <SnapLine 
+            snapLine={snapLine} 
+            trackHeight={track.height}
+          />
+        )}
+        
         {clips.map(clip => (
           <Clip
             key={clip.id}
