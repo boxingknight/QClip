@@ -2,8 +2,54 @@
 import { logger } from './logger';
 
 /**
+ * Get video duration using HTML5 video element as fallback
+ * This is used when FFprobe fails to read duration (common with WebM files)
+ */
+const getDurationFromVideoElement = (filePath) => {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    
+    // Convert file path to file:// URL for Electron
+    const videoSrc = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+    video.src = videoSrc;
+    
+    const timeout = setTimeout(() => {
+      video.remove();
+      logger.warn('Video element timeout reading duration', { filePath });
+      resolve(0);
+    }, 5000); // 5 second timeout
+    
+    video.addEventListener('loadedmetadata', () => {
+      clearTimeout(timeout);
+      const duration = video.duration || 0;
+      video.remove();
+      
+      if (duration > 0 && !isNaN(duration) && isFinite(duration)) {
+        logger.info('Got duration from video element', { filePath, duration });
+        resolve(duration);
+      } else {
+        logger.warn('Invalid duration from video element', { filePath, duration });
+        resolve(0);
+      }
+    });
+    
+    video.addEventListener('error', (e) => {
+      clearTimeout(timeout);
+      video.remove();
+      logger.warn('Video element error reading duration', { filePath, error: e });
+      resolve(0);
+    });
+    
+    // Start loading metadata
+    video.load();
+  });
+};
+
+/**
  * Extract video metadata using FFprobe
  * Provides robust error handling and fallback values
+ * Falls back to HTML5 video element if FFprobe returns duration: 0
  */
 export const extractVideoMetadata = async (filePath) => {
   if (!window.electronAPI) {
@@ -21,8 +67,24 @@ export const extractVideoMetadata = async (filePath) => {
       return getDefaultMetadata(filePath);
     }
 
+    let duration = metadata.duration || 0;
+    
+    // 🎯 CRITICAL FIX: If FFprobe returned duration: 0, try HTML5 video element as fallback
+    // This fixes WebM files where FFprobe fails to read duration correctly
+    if (!duration || duration === 0) {
+      logger.warn('FFprobe returned duration: 0, trying HTML5 video element fallback', { filePath });
+      const videoDuration = await getDurationFromVideoElement(filePath);
+      
+      if (videoDuration > 0) {
+        duration = videoDuration;
+        logger.info('Using duration from video element fallback', { filePath, duration });
+      } else {
+        logger.warn('Both FFprobe and video element failed to get duration', { filePath });
+      }
+    }
+
     const processedMetadata = {
-      duration: metadata.duration || 0,
+      duration: duration,
       width: metadata.width || 0,
       height: metadata.height || 0,
       fps: metadata.fps || 30,
@@ -37,6 +99,26 @@ export const extractVideoMetadata = async (filePath) => {
 
   } catch (error) {
     logger.error('Failed to extract video metadata', error, { filePath });
+    
+    // 🎯 CRITICAL FIX: Even if FFprobe fails completely, try video element
+    logger.info('Trying video element fallback after FFprobe error', { filePath });
+    const videoDuration = await getDurationFromVideoElement(filePath);
+    
+    if (videoDuration > 0) {
+      logger.info('Got duration from video element after FFprobe error', { filePath, duration: videoDuration });
+      return {
+        duration: videoDuration,
+        width: 0,
+        height: 0,
+        fps: 30,
+        codec: 'unknown',
+        hasAudio: true,
+        fileSize: 0,
+        thumbnailUrl: null,
+        error: 'FFprobe failed, used video element fallback'
+      };
+    }
+    
     return getDefaultMetadata(filePath);
   }
 };
