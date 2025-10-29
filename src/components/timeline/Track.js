@@ -306,9 +306,11 @@ const Track = ({ track, clips, zoom }) => {
         
         // Find closest snap target - always use the closest one if within threshold
         let finalTime = dropTime;
+        let snapTarget = null;
         if (snapTargets.length > 0) {
           // Always snap to the closest target if within threshold
           const closestSnap = snapTargets[0];
+          snapTarget = closestSnap; // Store for logging
           if (closestSnap.distance <= snapThreshold) {
             finalTime = closestSnap.time;
           } else {
