@@ -81,18 +81,30 @@ export const extractVideoMetadata = async (filePath) => {
 
     let duration = metadata.duration || 0;
     
-    // 🎯 CRITICAL FIX: If FFprobe returned duration: 0, try HTML5 video element as fallback
+    // 🎯 CRITICAL FIX: If FFprobe returned duration: 0 or invalid, try HTML5 video element as fallback
     // This fixes WebM files where FFprobe fails to read duration correctly
-    if (!duration || duration === 0) {
-      logger.warn('FFprobe returned duration: 0, trying HTML5 video element fallback', { filePath });
+    // Also check for suspicious values (very small like 0.001 or very large)
+    const isValidDuration = duration > 0 && isFinite(duration) && !isNaN(duration);
+    if (!isValidDuration || duration === 0) {
+      logger.warn('FFprobe returned invalid duration, trying HTML5 video element fallback', { 
+        filePath, 
+        ffprobeDuration: duration,
+        isValid: isValidDuration
+      });
       const videoDuration = await getDurationFromVideoElement(filePath);
       
-      if (videoDuration > 0) {
+      if (videoDuration > 0 && isFinite(videoDuration)) {
         duration = videoDuration;
-        logger.info('Using duration from video element fallback', { filePath, duration });
+        logger.info('✅ Using duration from video element fallback', { filePath, duration });
       } else {
-        logger.warn('Both FFprobe and video element failed to get duration', { filePath });
+        logger.warn('❌ Both FFprobe and video element failed to get duration', { 
+          filePath,
+          ffprobeDuration: duration,
+          videoElementDuration: videoDuration
+        });
       }
+    } else {
+      logger.debug('FFprobe duration is valid, using it', { filePath, duration });
     }
 
     const processedMetadata = {
