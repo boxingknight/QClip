@@ -316,19 +316,41 @@ function AppContent() {
         {/* Main Area - Video Player */}
         <div className="main-content">
           {(() => {
-            // Use MediaLibrary for preview, Timeline for editing
+            // 🎯 TIMELINE PLAYBACK MANAGER
+            // Calculate which clip should be playing based on playhead position
+            
             const selectedMedia = getSelectedMedia();
             const selectedClip = getSelectedClip();
             
-            // Priority: Timeline clip (if editing) > MediaLibrary (if previewing)
-            const activeClip = selectedClip || selectedMedia;
+            // Find the clip that the playhead is currently over
+            const currentTimelineClip = clips
+              .filter(clip => clip.trackId === 'video-1') // Only video track for now
+              .sort((a, b) => a.startTime - b.startTime) // Sort by start time
+              .find(clip => {
+                const clipEnd = clip.startTime + clip.duration;
+                return playhead >= clip.startTime && playhead < clipEnd;
+              });
+            
+            // Priority: 
+            // 1. Timeline clip at playhead position (for continuous playback)
+            // 2. Selected timeline clip (for editing/preview)
+            // 3. Media Library clip (for preview before adding to timeline)
+            const activeClip = currentTimelineClip || selectedClip || selectedMedia;
             const videoSrc = activeClip?.path ? `file://${activeClip.path}` : null;
             
+            // Calculate relative time within the active clip
+            // This ensures the video player shows the correct portion of the clip
+            const relativeClipTime = activeClip ? Math.max(0, playhead - activeClip.startTime) : 0;
+            
             console.log('🎬 [APP] VideoPlayer props:', { 
+              playhead,
               selectedMedia, 
-              selectedClip, 
-              activeClip, 
+              selectedClip,
+              currentTimelineClip: currentTimelineClip?.name,
+              activeClip: activeClip?.name,
               videoSrc, 
+              relativeClipTime,
+              clipStartTime: activeClip?.startTime,
               selectedMediaId,
               selectedClipId 
             });
@@ -339,6 +361,12 @@ function AppContent() {
                 onTimeUpdate={handleVideoTimeUpdate}
                 selectedClip={activeClip}
                 trimData={getCurrentTrimData()}
+                allClips={clips}
+                onClipEnd={(nextClipStartTime) => {
+                  // When a clip ends, advance playhead to next clip's start
+                  console.log('🎬 [APP] Advancing playhead to next clip at:', nextClipStartTime);
+                  setPlayhead(nextClipStartTime);
+                }}
               />
             );
           })()}

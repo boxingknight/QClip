@@ -86,6 +86,8 @@ const initialState = {
 };
 
 const timelineReducer = (state, action) => {
+  console.log('🎬 [REDUCER] Action received:', action.type, action);
+  
   switch (action.type) {
     case 'ADD_CLIPS':
       // Calculate the end time of all existing clips on video-1 track
@@ -328,12 +330,36 @@ const timelineReducer = (state, action) => {
 
     // Enhanced Clip Management Actions
     case 'ADD_CLIP':
-      console.log('🔍 [ADD_CLIP] Adding clip:', {
+      console.log('🎬 [ADD_CLIP REDUCER] Received action:', {
         trackId: action.trackId,
         clipId: action.id,
         clipName: action.name,
         startTime: action.startTime,
-        duration: action.duration
+        duration: action.duration,
+        fullAction: action
+      });
+      
+      // 🎯 CRITICAL: Calculate startTime based on existing clips on the same track
+      // Find all clips on the same track
+      const clipsOnTrack = state.clips.filter(c => c.trackId === action.trackId);
+      
+      // Calculate next available start time (snap to end of last clip)
+      let calculatedStartTime = 0;
+      if (clipsOnTrack.length > 0) {
+        // Find the clip with the latest end time
+        const latestClip = clipsOnTrack.reduce((latest, current) => {
+          const currentEnd = current.startTime + current.duration;
+          const latestEnd = latest.startTime + latest.duration;
+          return currentEnd > latestEnd ? current : latest;
+        });
+        calculatedStartTime = latestClip.startTime + latestClip.duration;
+      }
+      
+      console.log('🎬 [ADD_CLIP POSITIONING]', {
+        trackId: action.trackId,
+        clipsOnTrack: clipsOnTrack.length,
+        calculatedStartTime,
+        requestedStartTime: action.startTime
       });
       
       const newClip = {
@@ -341,7 +367,8 @@ const timelineReducer = (state, action) => {
         trackId: action.trackId,
         name: action.name,
         path: action.path,
-        startTime: action.startTime || 0,
+        // ✅ Use calculated start time (snap to end) instead of drop position
+        startTime: calculatedStartTime,
         duration: action.duration,
         originalDuration: action.duration, // Add missing originalDuration
         trimIn: 0,
@@ -365,12 +392,18 @@ const timelineReducer = (state, action) => {
         type: action.type || 'video'
       };
       
-      console.log('🔍 [ADD_CLIP] Created clip object:', newClip);
+      console.log('🎬 [ADD_CLIP REDUCER] Created clip object:', newClip);
+      console.log('🎬 [ADD_CLIP REDUCER] Current clips count:', state.clips.length);
+      console.log('🎬 [ADD_CLIP REDUCER] New clips count:', state.clips.length + 1);
       
-      return {
+      const newState = {
         ...state,
         clips: [...state.clips, newClip]
       };
+      
+      console.log('🎬 [ADD_CLIP REDUCER] ✅ Returning new state with clips:', newState.clips.length);
+      
+      return newState;
 
     case 'REMOVE_CLIP':
       return {
@@ -691,15 +724,27 @@ export const TimelineProvider = ({ children }) => {
   // Enhanced Clip Management Functions
   const addClip = (trackId, clip) => {
     if (!trackId) {
-      console.error('addClip: trackId is required');
+      console.error('❌ [addClip] trackId is required');
       return;
     }
     if (!clip || typeof clip !== 'object') {
-      console.error('addClip: clip must be an object');
+      console.error('❌ [addClip] clip must be an object, got:', typeof clip, clip);
       return;
     }
     
-    dispatch({ type: 'ADD_CLIP', trackId, ...clip });
+    console.log('🎬 [addClip] Dispatching ADD_CLIP:', {
+      trackId,
+      clipId: clip.id,
+      clipName: clip.name,
+      clipPath: clip.path,
+      clipType: clip.type, // Log the clip's type property
+      fullClip: clip
+    });
+    
+    // ✅ CRITICAL: Spread clip FIRST, then override type to prevent clip.type from overwriting action.type
+    dispatch({ ...clip, type: 'ADD_CLIP', trackId });
+    
+    console.log('🎬 [addClip] Dispatch complete!');
   };
 
   const removeClip = (clipId) => {

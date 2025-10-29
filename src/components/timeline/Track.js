@@ -111,7 +111,8 @@ const Track = ({ track, clips, zoom }) => {
     e.stopPropagation();
     if (!track.locked) {
       setIsDragOver(true);
-      e.dataTransfer.dropEffect = 'move';
+      // Accept both 'copy' (from MediaLibrary) and 'move' (from within Timeline)
+      e.dataTransfer.dropEffect = e.dataTransfer.effectAllowed === 'copy' ? 'copy' : 'move';
     }
   }, [track.locked]);
 
@@ -122,20 +123,58 @@ const Track = ({ track, clips, zoom }) => {
   }, []);
 
   const handleDrop = useCallback((e) => {
+    console.log('🎬 [TRACK] DROP EVENT TRIGGERED!', {
+      trackId: track.id,
+      trackType: track.type,
+      locked: track.locked
+    });
+    
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
 
     if (track.locked) {
+      console.warn('🎬 [TRACK] Track is locked, ignoring drop');
       return;
     }
 
     try {
-      const clipId = e.dataTransfer.getData('text/plain');
-      const sourceClip = timelineClips.find(clip => clip.id === clipId);
+      // First try to get JSON data (from MediaLibrary)
+      const jsonData = e.dataTransfer.getData('application/json');
+      console.log('🎬 [TRACK] JSON data from drag:', jsonData ? 'Present' : 'Missing');
+      
+      let sourceClip = null;
+      
+      if (jsonData) {
+        try {
+          const data = JSON.parse(jsonData);
+          console.log('🎬 [TRACK] Parsed drag data:', data);
+          
+          if (data.type === 'media-library-item') {
+            sourceClip = data.mediaItem;
+            console.log('🎬 [TRACK] ✅ Dropping MediaLibrary item:', {
+              name: sourceClip.name,
+              duration: sourceClip.duration,
+              path: sourceClip.path
+            });
+          }
+        } catch (error) {
+          console.error('🎬 [TRACK] ❌ Failed to parse JSON drag data:', error);
+        }
+      }
+      
+      // Fallback to text/plain (from Timeline)
+      if (!sourceClip) {
+        const clipId = e.dataTransfer.getData('text/plain');
+        console.log('🎬 [TRACK] text/plain data:', clipId);
+        sourceClip = timelineClips.find(clip => clip.id === clipId);
+        if (sourceClip) {
+          console.log('🎬 [TRACK] ✅ Dropping Timeline clip:', clipId);
+        }
+      }
       
       if (!sourceClip) {
-        console.warn('Source clip not found:', clipId);
+        console.error('🎬 [TRACK] ❌ Source clip not found in either MediaLibrary or Timeline');
         return;
       }
 
@@ -144,7 +183,13 @@ const Track = ({ track, clips, zoom }) => {
       const dropX = e.clientX - rect.left;
       const dropTime = pixelsToTime(dropX, zoom);
 
-      // Create timeline clip from project clip
+      console.log('🎬 [TRACK] Drop position calculated:', {
+        dropX,
+        dropTime,
+        zoom
+      });
+
+      // Create timeline clip from source clip
       const timelineClip = {
         id: `timeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: sourceClip.name,
@@ -154,13 +199,34 @@ const Track = ({ track, clips, zoom }) => {
         trackId: track.id,
         type: track.type,
         thumbnailUrl: sourceClip.thumbnailUrl,
-        fileSize: sourceClip.fileSize
+        fileSize: sourceClip.fileSize,
+        // Add all metadata properties
+        width: sourceClip.width,
+        height: sourceClip.height,
+        fps: sourceClip.fps,
+        codec: sourceClip.codec,
+        hasAudio: sourceClip.hasAudio,
+        originalDuration: sourceClip.duration,
+        trimIn: 0,
+        trimOut: sourceClip.duration,
+        trimmedPath: null,
+        isTrimmed: false,
+        trimStartOffset: 0,
+        selected: false,
+        locked: false,
+        effects: []
       };
 
+      console.log('🎬 [TRACK] Calling addClip with:', {
+        trackId: track.id,
+        clipId: timelineClip.id,
+        clipName: timelineClip.name
+      });
+
       addClip(track.id, timelineClip);
-      console.log('Clip added to timeline:', timelineClip);
+      console.log('🎬 [TRACK] ✅ Clip added to timeline successfully!', timelineClip);
     } catch (error) {
-      console.error('Error handling drop:', error);
+      console.error('🎬 [TRACK] ❌ Error handling drop:', error, error.stack);
     }
   }, [track.locked, track.id, track.type, timelineClips, zoom, addClip]);
 

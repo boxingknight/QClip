@@ -3,7 +3,7 @@ import { usePlayback } from '../context/PlaybackContext';
 import { logger } from '../utils/logger';
 import '../styles/VideoPlayer.css';
 
-const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
+const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onClipEnd }) => {
   const videoRef = useRef(null);
   const { registerVideo, updatePlaybackState, isPlaying: playbackIsPlaying } = usePlayback();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -102,6 +102,16 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
         currentTime: 0, // Always start timeline at 0, regardless of trimIn
         duration: video.duration
       });
+      
+      // 🎯 CRITICAL: Auto-play if playback was active (for continuous playback)
+      // This ensures clips automatically play when switching during timeline playback
+      if (playbackIsPlaying) {
+        console.log('[VideoPlayer] Auto-playing next clip (playback was active)');
+        video.play().catch((err) => {
+          logger.error('Auto-play error', err, { force: true });
+          setError('Failed to auto-play next clip');
+        });
+      }
     }
   };
 
@@ -228,26 +238,9 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
               selectedClipName: selectedClip?.name
             });
             
-            // 🎯 CRITICAL: Stop playback at trimOut point
-            // This ensures only the visible timeline portion plays
-            const trimOut = selectedClip?.trimOut || video.duration;
-            if (current >= trimOut - trimIn) {
-              console.log('[VideoPlayer] Reached trimOut, pausing:', { 
-                videoTime: current, 
-                trimOut, 
-                trimIn,
-                timelineTime 
-              });
-              video.pause();
-              video.currentTime = trimOut - trimIn; // Snap to exact end point
-              setIsPlaying(false);
-              updatePlaybackState({ isPlaying: false, currentTime: timelineTime });
-              onTimeUpdate?.({
-                currentTime: timelineTime, // Send timeline time, not video time
-                duration: duration
-              });
-              return;
-            }
+            // ✅ REMOVED: Stop at trimOut logic
+            // For continuous timeline playback, the timeline manager will handle clip switching
+            // This allows playback to continue through all clips on the timeline
             
             setCurrentTime(current);
             updatePlaybackState({ currentTime: timelineTime }); // Send timeline time
@@ -266,6 +259,32 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip }) => {
           updatePlaybackState({ isPlaying: false });
         }}
         onEnded={() => {
+          console.log('🎬 [VideoPlayer] Clip ended:', selectedClip?.name);
+          
+          // 🎯 CRITICAL: Check if there's a next clip to continue playback
+          if (selectedClip && allClips.length > 0 && onClipEnd) {
+            // Find all clips on the same track, sorted by start time
+            const trackClips = allClips
+              .filter(clip => clip.trackId === selectedClip.trackId)
+              .sort((a, b) => a.startTime - b.startTime);
+            
+            // Find the current clip's index
+            const currentIndex = trackClips.findIndex(clip => clip.id === selectedClip.id);
+            
+            // Check if there's a next clip
+            if (currentIndex !== -1 && currentIndex < trackClips.length - 1) {
+              const nextClip = trackClips[currentIndex + 1];
+              console.log('🎬 [VideoPlayer] Continuing to next clip:', nextClip.name);
+              
+              // Notify parent to advance playhead to next clip's start time
+              // This will trigger the timeline playback manager to switch clips
+              onClipEnd(nextClip.startTime);
+              return; // Don't stop playing!
+            }
+          }
+          
+          // No next clip - stop playback
+          console.log('🎬 [VideoPlayer] No next clip - stopping playback');
           setIsPlaying(false);
           setCurrentTime(duration);
           updatePlaybackState({ isPlaying: false, currentTime: duration });

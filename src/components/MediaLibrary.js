@@ -36,13 +36,13 @@ const MediaLibrary = () => {
     console.log('🎬 [MEDIA_LIBRARY] Media item selected for preview:', mediaItem.name);
   }, [selectMedia]);
 
-  // Handle drag start for reordering within MediaLibrary
+  // Handle drag start - for dragging TO timeline, not for reordering
   const handleDragStart = useCallback((e, mediaItem, index) => {
     setDraggedClip(mediaItem);
     setDraggedMedia(mediaItem.id);
-    setDragOverIndex(index);
     
-    e.dataTransfer.effectAllowed = 'move';
+    // Set drag data for Timeline to consume
+    e.dataTransfer.effectAllowed = 'copy'; // Use 'copy' to indicate adding to timeline
     e.dataTransfer.setData('text/plain', mediaItem.id);
     e.dataTransfer.setData('application/json', JSON.stringify({
       type: 'media-library-item',
@@ -50,44 +50,15 @@ const MediaLibrary = () => {
       sourceIndex: index
     }));
     
-    console.log('🎬 [MEDIA_LIBRARY] Drag started:', { mediaItem: mediaItem.name, index });
+    console.log('🎬 [MEDIA_LIBRARY] Drag started for Timeline:', { mediaItem: mediaItem.name, index });
   }, [setDraggedMedia]);
 
-  // Handle drag over for reordering
-  const handleDragOver = useCallback((e, index) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOverIndex(index);
-  }, []);
-
-  // Handle drop for reordering within MediaLibrary
-  const handleDrop = useCallback((e, targetIndex) => {
-    e.preventDefault();
-    
-    const data = e.dataTransfer.getData('application/json');
-    if (!data) return;
-    
-    try {
-      const { type, sourceIndex } = JSON.parse(data);
-      
-      if (type === 'media-library-item' && sourceIndex !== targetIndex) {
-        console.log('🎬 [MEDIA_LIBRARY] Reordering:', { from: sourceIndex, to: targetIndex });
-        reorderMedia(sourceIndex, targetIndex);
-      }
-    } catch (error) {
-      console.error('🎬 [MEDIA_LIBRARY] Error parsing drop data:', error);
-    }
-    
-    setDraggedClip(null);
-    clearDraggedMedia();
-    setDragOverIndex(null);
-  }, [reorderMedia, clearDraggedMedia]);
-
-  // Handle drag end
+  // Handle drag end - clean up drag state
   const handleDragEnd = useCallback(() => {
     setDraggedClip(null);
     clearDraggedMedia();
     setDragOverIndex(null);
+    console.log('🎬 [MEDIA_LIBRARY] Drag ended');
   }, [clearDraggedMedia]);
 
   // Check if mediaItems is undefined or empty
@@ -118,12 +89,10 @@ const MediaLibrary = () => {
           <div
             key={mediaItem.id}
             className={`media-item ${selectedMediaId === mediaItem.id ? 'selected' : ''} ${
-              dragOverIndex === index ? 'drag-over' : ''
+              draggedClip?.id === mediaItem.id ? 'dragging' : ''
             }`}
             draggable
             onDragStart={(e) => handleDragStart(e, mediaItem, index)}
-            onDragOver={(e) => handleDragOver(e, index)}
-            onDrop={(e) => handleDrop(e, index)}
             onDragEnd={handleDragEnd}
             onClick={(e) => handleMediaClick(e, mediaItem)}
           >
