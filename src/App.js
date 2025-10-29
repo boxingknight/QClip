@@ -4,6 +4,7 @@ import { ProjectProvider, useProject } from './context/ProjectContext';
 import { UIProvider, useUI } from './context/UIContext';
 import { PlaybackProvider } from './context/PlaybackContext';
 import { LayoutProvider, useLayout } from './context/LayoutContext';
+import { MediaLibraryProvider, useMediaLibrary } from './context/MediaLibraryContext';
 import ImportPanel from './components/ImportPanel';
 import VideoPlayer from './components/VideoPlayer';
 import ExportPanel from './components/ExportPanel';
@@ -42,6 +43,14 @@ function AppContent() {
     getSelectedClip,
     getCurrentTrimData
   } = useTimeline();
+  
+  const { 
+    mediaItems, 
+    selectedMediaId, 
+    addMediaItems, 
+    selectMedia, 
+    getSelectedMedia 
+  } = useMediaLibrary();
   
   const { setModified } = useProject();
   const { setImportStatus, importStatus, showModal, showToast } = useUI();
@@ -109,13 +118,13 @@ function AppContent() {
     console.log('Importing clips:', newClips);
     setImportStatus({ loading: true, error: null, lastImported: null });
     
-    // Add clips using context
-    addClips(newClips);
+    // Add clips to Media Library (not Timeline)
+    addMediaItems(newClips);
     
-    // Always select the first imported clip for immediate playback
+    // Select the first imported clip in Media Library for preview
     if (newClips.length > 0) {
-      console.log('Auto-selecting first clip:', newClips[0].name);
-      selectClip(newClips[0].id);
+      console.log('🎬 [APP] Auto-selecting first clip in Media Library:', newClips[0].name);
+      selectMedia(newClips[0].id);
     }
     
     // Mark project as modified
@@ -307,14 +316,28 @@ function AppContent() {
         {/* Main Area - Video Player */}
         <div className="main-content">
           {(() => {
+            // Use MediaLibrary for preview, Timeline for editing
+            const selectedMedia = getSelectedMedia();
             const selectedClip = getSelectedClip();
-            const videoSrc = selectedClip?.path ? `file://${selectedClip.path}` : null;
-            console.log('VideoPlayer props:', { selectedClip, videoSrc, selectedClipId });
+            
+            // Priority: Timeline clip (if editing) > MediaLibrary (if previewing)
+            const activeClip = selectedClip || selectedMedia;
+            const videoSrc = activeClip?.path ? `file://${activeClip.path}` : null;
+            
+            console.log('🎬 [APP] VideoPlayer props:', { 
+              selectedMedia, 
+              selectedClip, 
+              activeClip, 
+              videoSrc, 
+              selectedMediaId,
+              selectedClipId 
+            });
+            
             return (
               <VideoPlayer 
                 videoSrc={videoSrc}
                 onTimeUpdate={handleVideoTimeUpdate}
-                selectedClip={selectedClip}
+                selectedClip={activeClip}
                 trimData={getCurrentTrimData()}
               />
             );
@@ -393,7 +416,9 @@ function App() {
         <ProjectProvider>
           <UIProvider>
             <PlaybackProvider>
-              <AppContent />
+              <MediaLibraryProvider>
+                <AppContent />
+              </MediaLibraryProvider>
             </PlaybackProvider>
           </UIProvider>
         </ProjectProvider>
