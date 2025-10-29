@@ -105,17 +105,19 @@ git checkout -b feature/pr15-split-delete-clips
 
 ## Common Issues & Solutions
 
-### Issue 1: Split Time Calculation Error
+### Issue 1: Split Time Calculation Error ✅ FIXED
 **Symptoms:** Split creates clips with wrong durations  
-**Cause:** Using absolute time instead of relative time  
-**Solution:** Calculate `splitTime - clip.startTime` to get relative time within clip
+**Cause:** Using absolute time instead of relative time (or vice versa)  
+**Solution:** Always pass absolute timeline time to `splitClip`, reducer calculates relative internally
 ```javascript
-// ❌ Wrong: Using absolute time
-const splitTime = action.splitTime;
+// ✅ Correct: Pass absolute timeline time (playhead)
+splitClip(clip.id, playhead);
 
-// ✅ Correct: Calculate relative time
-const splitTime = action.splitTime - originalClip.startTime;
+// ❌ Wrong: Calculate relative time yourself
+const relativeTime = playhead - clip.startTime;
+splitClip(clip.id, relativeTime); // Reducer expects absolute!
 ```
+**Status:** Fixed by passing `playhead` (absolute) directly to `splitClip` function.
 
 ### Issue 2: Context Menu Not Appearing
 **Symptoms:** Right-click does nothing  
@@ -147,19 +149,32 @@ const canSplit = playhead > clip.startTime &&
 // Verify clip.startTime and clip.duration are correct
 ```
 
-### Issue 5: Multi-Select Delete Not Working
+### Issue 5: Multi-Select Delete Not Working ✅ FIXED
 **Symptoms:** Only one clip deleted when multiple selected  
 **Cause:** Loop through selection array not implemented  
 **Solution:**
 ```javascript
-// ❌ Wrong: Only deletes first clip
-removeClip(selection.clips[0]);
-
 // ✅ Correct: Delete all selected clips
-selection.clips.forEach(clipId => {
-  removeClip(clipId);
+selectedClips.forEach(clip => {
+  removeClip(clip.id);
 });
 ```
+**Status:** Fixed in toolbar button handlers - loops through `getSelectedClips()`.
+
+### Issue 6: Playhead Snapping Back / Playback Stopping ✅ FIXED
+**Symptoms:** Playhead jumps to beginning, first frames repeat, timeline won't play  
+**Cause:** Coordinate system mismatch and feedback loop  
+**Solution:**
+1. Use absolute timeline time consistently throughout
+2. Don't call `onTimeUpdate` during video load (only during playback)
+3. Don't include `playhead` in video reload dependency array
+**Status:** Fixed by standardizing coordinate system and removing feedback loops.
+
+### Issue 7: Toolbar Buttons Not Working ✅ FIXED
+**Symptoms:** Split/Delete buttons in toolbar don't do anything  
+**Cause:** Buttons not wired up to functions  
+**Solution:** Implement `handleSplitAction` and `handleDeleteAction` in `App.js`  
+**Status:** Fixed - all toolbar buttons now functional with validation.
 
 ---
 
@@ -204,13 +219,16 @@ npm start
 ## Success Metrics
 
 **You'll know it's working when:**
-- [ ] Right-click on clip shows context menu
-- [ ] Split at playhead creates two clips
-- [ ] Delete removes clip from timeline
-- [ ] Multi-select delete removes all selected clips
-- [ ] Keyboard shortcuts work (Cmd+B, Delete, Cmd+D)
-- [ ] Toolbar buttons work
-- [ ] Undo/redo works for all operations
+- [x] Right-click on clip shows context menu
+- [x] Split at playhead creates two clips
+- [x] Delete removes clip from timeline
+- [x] Multi-select delete removes all selected clips
+- [x] Keyboard shortcuts work (Cmd+B, Delete, Cmd+D)
+- [x] Toolbar buttons work (split, delete, undo, redo)
+- [x] Undo/redo works for all operations
+- [x] Timeline plays seamlessly through all clips
+- [x] Playhead moves smoothly without snapping back
+- [x] Continuous playback advances to next clip automatically
 
 **Performance Targets:**
 - Split operation: < 100ms (instant)
