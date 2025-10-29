@@ -65,6 +65,9 @@ export const RecordingProvider = ({ children }) => {
   // Start recording
   const startRecording = useCallback(async (sourceId, options = {}) => {
     let timer = null;
+    let recordingResolve = null;
+    let recordingReject = null;
+    
     try {
       setError(null);
       logger.info('Starting screen recording', { sourceId, options });
@@ -87,25 +90,54 @@ export const RecordingProvider = ({ children }) => {
         videoBitsPerSecond: options.quality === 'high' ? 8000000 : 4000000
       });
       
+      // Local chunks array - collects data directly, avoids state timing issues
       const chunks = [];
       
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           chunks.push(event.data);
-          setRecordedChunks(prev => [...prev, event.data]);
+          logger.debug('Chunk received', { size: event.data.size, totalChunks: chunks.length });
         }
       };
       
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: mimeType });
-        setRecordedChunks([blob]);
-        stream.getTracks().forEach(track => track.stop());
-        logger.info('Recording stopped, blob created', { size: blob.size });
-      };
+      // Create promise for stop event to properly wait for all chunks
+      const stopPromise = new Promise((resolve, reject) => {
+        recordingResolve = resolve;
+        recordingReject = reject;
+        
+        mediaRecorder.onstop = () => {
+          try {
+            // Create blob from all collected chunks
+            const blob = new Blob(chunks, { type: mimeType });
+            logger.info('Recording stopped, blob created', { 
+              size: blob.size, 
+              chunks: chunks.length,
+              totalSize: chunks.reduce((sum, chunk) => sum + chunk.size, 0)
+            });
+            
+            // Stop all tracks
+            stream.getTracks().forEach(track => track.stop());
+            
+            // Update state with final blob
+            setRecordedChunks([blob]);
+            resolve(blob);
+          } catch (error) {
+            logger.error('Error creating blob from chunks', error);
+            reject(error);
+          }
+        };
+      });
+      
+      // Store stop promise on mediaRecorder for access in stopRecording
+      mediaRecorder._stopPromise = stopPromise;
+      mediaRecorder._chunks = chunks;
       
       mediaRecorder.onerror = (event) => {
         logger.error('MediaRecorder error', event);
         setError('Recording error occurred');
+        if (recordingReject) {
+          recordingReject(new Error('MediaRecorder error occurred'));
+        }
       };
       
       // Start recording
@@ -142,60 +174,49 @@ export const RecordingProvider = ({ children }) => {
 
   // Stop recording
   const stopRecording = useCallback(async () => {
-    return new Promise((resolve, reject) => {
-      if (!mediaRecorder || !isRecording) {
-        reject(new Error('No active recording'));
-        return;
-      }
-      
-      logger.info('Stopping recording');
-      
-      // Clear duration timer
-      if (window.recordingTimer) {
-        clearInterval(window.recordingTimer);
-        window.recordingTimer = null;
-      }
-      
-      const chunks = [];
-      
-      // Collect all chunks before stopping
-      const collectChunks = () => {
-        if (recordedChunks.length > 0) {
-          chunks.push(...recordedChunks);
-        }
-      };
-      
-      const handleStop = () => {
-        const allChunks = chunks.length > 0 ? chunks : recordedChunks;
-        const blob = new Blob(allChunks, { type: 'video/webm' });
-        setIsRecording(false);
-        setMediaRecorder(null);
-        setMediaStream(null);
-        setRecordingDuration(0);
-        setStartTime(null);
-        setRecordedChunks([]);
-        logger.info('Recording stopped', { blobSize: blob.size });
-        resolve(blob);
-      };
-      
-      // Setup one-time stop handler
-      const oneTimeStopHandler = () => {
-        mediaRecorder.removeEventListener('stop', oneTimeStopHandler);
-        collectChunks();
-        handleStop();
-      };
-      
-      mediaRecorder.addEventListener('stop', oneTimeStopHandler);
-      
+    if (!mediaRecorder || !isRecording) {
+      throw new Error('No active recording');
+    }
+    
+    logger.info('Stopping recording');
+    
+    // Clear duration timer
+    if (window.recordingTimer) {
+      clearInterval(window.recordingTimer);
+      window.recordingTimer = null;
+    }
+    
+    try {
+      // Request final chunk before stopping
       if (mediaRecorder.state === 'recording' || mediaRecorder.state === 'paused') {
+        mediaRecorder.requestData(); // Request final chunk
         mediaRecorder.stop();
-      } else {
-        // Already stopped, just cleanup
-        collectChunks();
-        handleStop();
       }
-    });
-  }, [mediaRecorder, isRecording, recordedChunks]);
+      
+      // Wait for the stop promise (which waits for all chunks via onstop event)
+      const blob = await mediaRecorder._stopPromise;
+      
+      // Reset state
+      setIsRecording(false);
+      setMediaRecorder(null);
+      setMediaStream(null);
+      setRecordingDuration(0);
+      setStartTime(null);
+      setRecordedChunks([]);
+      
+      logger.info('Recording stopped successfully', { blobSize: blob.size });
+      return blob;
+    } catch (error) {
+      logger.error('Error stopping recording', error);
+      // Cleanup on error
+      setIsRecording(false);
+      setMediaRecorder(null);
+      setMediaStream(null);
+      setRecordingDuration(0);
+      setStartTime(null);
+      throw error;
+    }
+  }, [mediaRecorder, isRecording]);
 
   // Save recording
   const saveRecording = useCallback(async (blob, filename) => {
