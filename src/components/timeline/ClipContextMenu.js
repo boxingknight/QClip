@@ -44,10 +44,11 @@ const ClipContextMenu = ({ clip, position, onClose }) => {
 
   const handleSplit = () => {
     // Split clip at playhead position
-    const splitTime = playhead - clip.startTime;
+    // splitClip expects absolute timeline time (playhead), not relative time
+    const splitTime = playhead - clip.startTime; // Relative for validation
     
     if (splitTime > 0 && splitTime < clip.duration) {
-      splitClip(clip.id, splitTime);
+      splitClip(clip.id, playhead); // Pass absolute time (playhead)
       saveState();
     }
     onClose();

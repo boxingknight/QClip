@@ -406,9 +406,17 @@ const timelineReducer = (state, action) => {
       return newState;
 
     case 'REMOVE_CLIP':
+      // Remove clip from array and update selection if it was selected
       return {
         ...state,
-        clips: state.clips.filter(clip => clip.id !== action.clipId)
+        clips: state.clips.filter(clip => clip.id !== action.clipId),
+        selection: {
+          ...state.selection,
+          clips: state.selection.clips.filter(id => id !== action.clipId),
+          mode: state.selection.clips.length === 1 && state.selection.clips[0] === action.clipId 
+            ? 'single' 
+            : state.selection.mode
+        }
       };
 
     case 'MOVE_CLIP':

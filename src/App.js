@@ -41,7 +41,18 @@ function AppContent() {
     setRendering,
     updateClipDuration,
     getSelectedClip,
-    getCurrentTrimData
+    getCurrentTrimData,
+    // Split and delete functions
+    splitClip,
+    removeClip,
+    // Undo/redo functions
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    // Selection functions
+    selection,
+    getSelectedClips
   } = useTimeline();
   
   const { 
@@ -80,7 +91,7 @@ function AppContent() {
     root.style.setProperty('--timeline-height', `${timeline}%`);
   }, [sidebar, controls, timeline]);
 
-  // Test UI components
+  // Toolbar action handlers
   const handleToolbarAction = (action, data) => {
     console.log('Toolbar action:', action, data);
     
@@ -104,6 +115,18 @@ function AppContent() {
           duration: 3000
         });
         break;
+      case 'split':
+        handleSplitAction();
+        break;
+      case 'delete':
+        handleDeleteAction();
+        break;
+      case 'undo':
+        handleUndoAction();
+        break;
+      case 'redo':
+        handleRedoAction();
+        break;
       default:
         showToast({
           type: 'info',
@@ -111,6 +134,107 @@ function AppContent() {
           message: `${action} action triggered`,
           duration: 2000
         });
+    }
+  };
+
+  // Split clip at playhead - works on ANY clip under playhead, not just selected ones
+  const handleSplitAction = () => {
+    // Find all clips that intersect with the playhead position (regardless of selection)
+    const clipsUnderPlayhead = clips.filter(clip => {
+      const clipStart = clip.startTime;
+      const clipEnd = clip.startTime + clip.duration;
+      return playhead > clipStart && playhead < clipEnd;
+    });
+
+    if (clipsUnderPlayhead.length === 0) {
+      showToast({
+        type: 'warning',
+        title: 'Cannot Split',
+        message: 'Playhead must be positioned over a clip',
+        duration: 2000
+      });
+      return;
+    }
+
+    // Split all clips under the playhead
+    let splitCount = 0;
+    clipsUnderPlayhead.forEach(clip => {
+      splitClip(clip.id, playhead);
+      splitCount++;
+    });
+
+    showToast({
+      type: 'success',
+      title: 'Split Complete',
+      message: `Split ${splitCount} clip(s) at playhead`,
+      duration: 2000
+    });
+  };
+
+  // Delete selected clips
+  const handleDeleteAction = () => {
+    const selectedClips = getSelectedClips();
+    
+    if (selectedClips.length === 0) {
+      showToast({
+        type: 'warning',
+        title: 'No Selection',
+        message: 'Please select a clip to delete',
+        duration: 2000
+      });
+      return;
+    }
+
+    // Delete all selected clips
+    selectedClips.forEach(clip => {
+      removeClip(clip.id);
+    });
+
+    showToast({
+      type: 'success',
+      title: 'Deleted',
+      message: `Deleted ${selectedClips.length} clip(s)`,
+      duration: 2000
+    });
+  };
+
+  // Undo last action - works regardless of selection
+  const handleUndoAction = () => {
+    if (canUndo()) {
+      undo();
+      showToast({
+        type: 'info',
+        title: 'Undone',
+        message: 'Last action undone',
+        duration: 1500
+      });
+    } else {
+      showToast({
+        type: 'info',
+        title: 'Nothing to Undo',
+        message: 'No actions to undo',
+        duration: 1500
+      });
+    }
+  };
+
+  // Redo last action - works regardless of selection
+  const handleRedoAction = () => {
+    if (canRedo()) {
+      redo();
+      showToast({
+        type: 'info',
+        title: 'Redone',
+        message: 'Last action redone',
+        duration: 1500
+      });
+    } else {
+      showToast({
+        type: 'info',
+        title: 'Nothing to Redo',
+        message: 'No actions to redo',
+        duration: 1500
+      });
     }
   };
 
@@ -246,29 +370,24 @@ function AppContent() {
   };
 
   const handleVideoTimeUpdate = (data) => {
-    // Only update time if it's changed significantly (avoid excessive re-renders)
+    // VideoPlayer now sends absolute timeline time (correct)
+    // Just update playhead directly - no coordinate conversion needed
     const timelineTime = data?.currentTime || 0;
     
-    // 🎯 CRITICAL FIX: Convert timeline time back to relative timeline position
-    // VideoPlayer sends timeline time (includes trimIn offset), but timeline should show relative position
-    const selectedClip = getSelectedClip();
-    const trimIn = selectedClip?.trimIn || 0;
-    const relativeTime = Math.max(0, timelineTime - trimIn);
-    
-    console.log('[App] handleVideoTimeUpdate:', {
-      timelineTime,
-      trimIn,
-      relativeTime,
-      currentPlayhead: playhead,
-      selectedClipName: selectedClip?.name
-    });
-    
-    if (Math.abs(relativeTime - playhead) > 0.1) {
-      setPlayhead(relativeTime);
+    // Only update if changed significantly (avoid excessive re-renders)
+    // Use absolute timeline time directly - this is what the timeline uses
+    if (Math.abs(timelineTime - playhead) > 0.05) {
+      console.log('[App] handleVideoTimeUpdate - updating playhead:', {
+        timelineTime,
+        currentPlayhead: playhead,
+        delta: Math.abs(timelineTime - playhead)
+      });
+      setPlayhead(timelineTime);
     }
     
     // Update the selected clip's duration if we have it (only once)
     if (selectedClipId && data?.duration) {
+      const selectedClip = getSelectedClip();
       if (selectedClip && !selectedClip.duration) {
         updateClipDuration(selectedClipId, data.duration);
       }
@@ -286,7 +405,33 @@ function AppContent() {
             groups={[
               ToolbarGroups.file,
               ToolbarGroups.recording,
-              ToolbarGroups.timeline,
+              // Timeline group with dynamic disabled states
+              {
+                items: ToolbarGroups.timeline.items.map(item => {
+                  if (item.action === 'split') {
+                    // Disable split if playhead is not over ANY clip (works on all clips, not just selected)
+                    const canSplit = clips.some(clip => {
+                      const clipStart = clip.startTime;
+                      const clipEnd = clip.startTime + clip.duration;
+                      return playhead > clipStart && playhead < clipEnd;
+                    });
+                    return { ...item, disabled: !canSplit };
+                  }
+                  if (item.action === 'delete') {
+                    // Disable delete if no selection
+                    return { ...item, disabled: selection.clips.length === 0 };
+                  }
+                  if (item.action === 'undo') {
+                    // Disable undo if nothing to undo (works regardless of selection)
+                    return { ...item, disabled: !canUndo() };
+                  }
+                  if (item.action === 'redo') {
+                    // Disable redo if nothing to redo (works regardless of selection)
+                    return { ...item, disabled: !canRedo() };
+                  }
+                  return item;
+                })
+              },
               ToolbarGroups.playback
             ]}
             onAction={handleToolbarAction}
@@ -362,6 +507,7 @@ function AppContent() {
                 selectedClip={activeClip}
                 trimData={getCurrentTrimData()}
                 allClips={clips}
+                playhead={playhead}
                 onClipEnd={(nextClipStartTime) => {
                   // When a clip ends, advance playhead to next clip's start
                   console.log('🎬 [APP] Advancing playhead to next clip at:', nextClipStartTime);
