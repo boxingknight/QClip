@@ -17,10 +17,16 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
   useEffect(() => {
     if (videoRef.current && selectedClip) {
       // Merge current trim data into clip for PlaybackContext
+      // Validate video duration before using it
+      let videoDuration = videoRef.current.duration || 0;
+      if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+        videoDuration = selectedClip.originalDuration || selectedClip.duration || 0;
+      }
+      
       const clipWithTrim = {
         ...selectedClip,
         trimIn: trimData?.inPoint ?? selectedClip.trimIn ?? 0,
-        trimOut: trimData?.outPoint ?? selectedClip.trimOut ?? (videoRef.current.duration || selectedClip.duration || 0)
+        trimOut: trimData?.outPoint ?? selectedClip.trimOut ?? videoDuration
       };
       console.log('[VideoPlayer] Registering video element with current trim', { 
         videoSrc, 
@@ -81,11 +87,21 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
 
   const handleLoadedMetadata = () => {
     if (video && selectedClip) {
-      const videoFullDuration = video.duration || 0;
+      // 🎯 CRITICAL: Validate video duration - check for Infinity/NaN
+      let videoFullDuration = video.duration || 0;
+      if (!isFinite(videoFullDuration) || isNaN(videoFullDuration) || videoFullDuration <= 0) {
+        // Invalid duration - use clip's original duration or fallback
+        videoFullDuration = selectedClip.originalDuration || selectedClip.duration || 0;
+        console.warn('[VideoPlayer] Invalid video duration, using clip duration:', {
+          videoDuration: video.duration,
+          fallbackDuration: videoFullDuration
+        });
+      }
       
       // 🎯 CRITICAL FIX: If clip duration is wrong (0 or invalid), update it from video element
       // This fixes WebM files where FFprobe returns duration: 0 but video element has correct duration
-      if (videoFullDuration > 0 && (!selectedClip.duration || selectedClip.duration === 0 || Math.abs(selectedClip.duration - videoFullDuration) > 1)) {
+      // BUT: Only update if video duration is valid and finite
+      if (videoFullDuration > 0 && isFinite(videoFullDuration) && (!selectedClip.duration || selectedClip.duration === 0 || Math.abs(selectedClip.duration - videoFullDuration) > 1)) {
         console.log('[VideoPlayer] Updating clip duration from video element:', {
           clipId: selectedClip.id,
           oldDuration: selectedClip.duration,
@@ -106,7 +122,15 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
       
       // 🎯 CRITICAL: If trimOut is 0 or invalid, use video duration
       // This fixes cases where FFprobe returned 0 duration and trimOut was set to 0
-      if (!trimOut || trimOut === 0 || trimOut > videoFullDuration) {
+      // BUT: Only use video duration if it's valid and finite
+      if (!trimOut || trimOut === 0) {
+        if (videoFullDuration > 0 && isFinite(videoFullDuration)) {
+          trimOut = videoFullDuration;
+        } else {
+          // Invalid video duration - use clip's original duration
+          trimOut = selectedClip.originalDuration || selectedClip.duration || 0;
+        }
+      } else if (isFinite(videoFullDuration) && trimOut > videoFullDuration) {
         trimOut = videoFullDuration;
       }
       
@@ -172,12 +196,17 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
       }
     } else if (video) {
       // No clip selected - just load metadata
-      setDuration(video.duration);
+      // Validate duration first
+      let videoDuration = video.duration || 0;
+      if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+        videoDuration = 0;
+      }
+      setDuration(videoDuration);
       setIsLoading(false);
       setError(null);
       video.currentTime = 0;
       setCurrentTime(0);
-      updatePlaybackState({ duration: video.duration });
+      updatePlaybackState({ duration: videoDuration });
     }
   };
 
@@ -210,9 +239,15 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
     const video = videoRef.current;
     if (!video || !selectedClip || playhead === undefined) return;
     
+    // Validate video duration first
+    let videoDuration = video.duration || 0;
+    if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+      videoDuration = selectedClip.originalDuration || selectedClip.duration || 0;
+    }
+    
     // Get trim data from prop (current trim) or clip (default)
     const trimIn = trimData?.inPoint ?? selectedClip.trimIn ?? 0;
-    const trimOut = trimData?.outPoint ?? selectedClip.trimOut ?? video.duration;
+    const trimOut = trimData?.outPoint ?? selectedClip.trimOut ?? videoDuration;
     const clipStartTime = selectedClip.startTime || 0;
     
     // Calculate relative time within clip
@@ -251,8 +286,14 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
     }
     
     // Get trim data from prop (current trim) or clip (default)
+    // Validate video duration first
+    let videoDuration = video.duration || 0;
+    if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+      videoDuration = selectedClip?.originalDuration || selectedClip?.duration || 0;
+    }
+    
     const trimIn = trimData?.inPoint ?? selectedClip?.trimIn ?? 0;
-    const trimOut = trimData?.outPoint ?? selectedClip?.trimOut ?? video.duration;
+    const trimOut = trimData?.outPoint ?? selectedClip?.trimOut ?? videoDuration;
     const trimmedDuration = trimOut - trimIn;
     
     console.log('[VideoPlayer] handlePlayPause:', {
@@ -328,8 +369,14 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
             const current = video.currentTime;
             
             // Get trim data from prop (current trim) or clip (default)
+            // Validate video duration first
+            let videoDuration = video.duration || 0;
+            if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+              videoDuration = selectedClip.originalDuration || selectedClip.duration || 0;
+            }
+            
             const trimIn = trimData?.inPoint ?? selectedClip.trimIn ?? 0;
-            const trimOut = trimData?.outPoint ?? selectedClip.trimOut ?? video.duration;
+            const trimOut = trimData?.outPoint ?? selectedClip.trimOut ?? videoDuration;
             
             // 🎯 CRITICAL: Stop playback if we've reached or passed trimOut
             if (current >= trimOut) {
@@ -399,9 +446,15 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
           const video = videoRef.current;
           console.log('🎬 [VideoPlayer] Clip ended:', selectedClip?.name);
           
+          // Validate video duration first
+          let videoDuration = video?.duration || 0;
+          if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+            videoDuration = selectedClip?.originalDuration || selectedClip?.duration || duration || 0;
+          }
+          
           // Get trim data to calculate correct end time
           const trimIn = trimData?.inPoint ?? selectedClip?.trimIn ?? 0;
-          const trimOut = trimData?.outPoint ?? selectedClip?.trimOut ?? (video?.duration || duration || 0);
+          const trimOut = trimData?.outPoint ?? selectedClip?.trimOut ?? videoDuration;
           const trimmedDuration = trimOut - trimIn;
           
           // 🎯 CRITICAL: Check if there's a next clip to continue playback
