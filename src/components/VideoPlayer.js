@@ -81,9 +81,34 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
 
   const handleLoadedMetadata = () => {
     if (video && selectedClip) {
+      const videoFullDuration = video.duration || 0;
+      
+      // 🎯 CRITICAL FIX: If clip duration is wrong (0 or invalid), update it from video element
+      // This fixes WebM files where FFprobe returns duration: 0 but video element has correct duration
+      if (videoFullDuration > 0 && (!selectedClip.duration || selectedClip.duration === 0 || Math.abs(selectedClip.duration - videoFullDuration) > 1)) {
+        console.log('[VideoPlayer] Updating clip duration from video element:', {
+          clipId: selectedClip.id,
+          oldDuration: selectedClip.duration,
+          newDuration: videoFullDuration
+        });
+        // Notify parent to update clip duration
+        onTimeUpdate?.({
+          currentTime: selectedClip.startTime || 0,
+          duration: videoFullDuration,
+          updateClipDuration: true // Flag to indicate this is a duration update
+        });
+      }
+      
       // Get trim data from prop (current trim) or clip (default)
+      // If trimOut is 0 or invalid, use video duration as fallback
       const trimIn = trimData?.inPoint ?? selectedClip.trimIn ?? 0;
-      const trimOut = trimData?.outPoint ?? selectedClip.trimOut ?? video.duration;
+      let trimOut = trimData?.outPoint ?? selectedClip.trimOut;
+      
+      // 🎯 CRITICAL: If trimOut is 0 or invalid, use video duration
+      // This fixes cases where FFprobe returned 0 duration and trimOut was set to 0
+      if (!trimOut || trimOut === 0 || trimOut > videoFullDuration) {
+        trimOut = videoFullDuration;
+      }
       
       // Calculate trimmed duration (visible portion)
       const trimmedDuration = Math.max(0, trimOut - trimIn);
@@ -94,7 +119,8 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
       setError(null);
       logger.debug('Video metadata loaded', { 
         videoPath: effectiveSrc,
-        fullDuration: video.duration,
+        fullDuration: videoFullDuration,
+        clipDuration: selectedClip.duration,
         trimIn,
         trimOut,
         trimmedDuration
@@ -370,11 +396,12 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
           updatePlaybackState({ isPlaying: false });
         }}
         onEnded={() => {
+          const video = videoRef.current;
           console.log('🎬 [VideoPlayer] Clip ended:', selectedClip?.name);
           
           // Get trim data to calculate correct end time
           const trimIn = trimData?.inPoint ?? selectedClip?.trimIn ?? 0;
-          const trimOut = trimData?.outPoint ?? selectedClip?.trimOut ?? video.duration;
+          const trimOut = trimData?.outPoint ?? selectedClip?.trimOut ?? (video?.duration || duration || 0);
           const trimmedDuration = trimOut - trimIn;
           
           // 🎯 CRITICAL: Check if there's a next clip to continue playback

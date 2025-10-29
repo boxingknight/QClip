@@ -387,8 +387,22 @@ function AppContent() {
       setPlayhead(timelineTime);
     }
     
-    // Update the selected clip's duration if we have it (only once)
-    if (selectedClipId && data?.duration) {
+    // 🎯 CRITICAL FIX: Update clip duration when video metadata loads (especially for WebM)
+    // This fixes cases where FFprobe returned 0 duration but video element has correct duration
+    if (selectedClipId && data?.duration && data?.updateClipDuration) {
+      const selectedClip = getSelectedClip();
+      if (selectedClip && (selectedClip.duration === 0 || Math.abs(selectedClip.duration - data.duration) > 1)) {
+        console.log('[App] Updating clip duration from video element:', {
+          clipId: selectedClipId,
+          oldDuration: selectedClip.duration,
+          newDuration: data.duration
+        });
+        updateClipDuration(selectedClipId, data.duration);
+        // Also update trimOut to match new duration
+        setOutPoint(data.duration);
+      }
+    } else if (selectedClipId && data?.duration) {
+      // Also update if clip has no duration (original check)
       const selectedClip = getSelectedClip();
       if (selectedClip && !selectedClip.duration) {
         updateClipDuration(selectedClipId, data.duration);
