@@ -203,28 +203,29 @@ export const RecordingProvider = ({ children }) => {
       logger.info('Saving recording', { blobSize: blob.size, filename });
       
       // Get save location
-      const savePath = await window.electronAPI.showSaveDialog({
-        defaultPath: filename || `recording-${Date.now()}.webm`,
-        filters: [
-          { name: 'WebM Video', extensions: ['webm'] },
-          { name: 'MP4 Video', extensions: ['mp4'] }
-        ]
-      });
+      const savePath = await window.electronAPI.showSaveDialog();
       
       if (!savePath.canceled && savePath.filePath) {
-        // Write file via IPC
-        await window.electronAPI.saveRecordingFile(blob, savePath.filePath);
+        // Ensure .webm extension for recordings
+        const filePath = savePath.filePath.endsWith('.webm') || savePath.filePath.endsWith('.mp4')
+          ? savePath.filePath
+          : `${savePath.filePath}.webm`;
+        // Convert Blob to ArrayBuffer for IPC (Blobs can't be serialized)
+        const arrayBuffer = await blob.arrayBuffer();
+        
+        // Write file via IPC (passing ArrayBuffer instead of Blob)
+        await window.electronAPI.saveRecordingFile(arrayBuffer, filePath);
         
         // Get metadata
-        const metadata = await window.electronAPI.getVideoMetadata(savePath.filePath);
+        const metadata = await window.electronAPI.getVideoMetadata(filePath);
         
         const recordingFile = {
           id: `recording-${Date.now()}`,
           name: filename || `recording-${Date.now()}.webm`,
-          path: savePath.filePath,
+          path: filePath,
           duration: metadata.duration,
           size: blob.size,
-          format: savePath.filePath.endsWith('.mp4') ? 'mp4' : 'webm',
+          format: filePath.endsWith('.mp4') ? 'mp4' : 'webm',
           timestamp: Date.now(),
           source: recordingSource,
           thumbnail: metadata.thumbnailUrl

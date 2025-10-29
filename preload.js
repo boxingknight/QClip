@@ -43,6 +43,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Screen recording APIs
   getScreenSources: () => ipcRenderer.invoke('get-screen-sources'),
   requestScreenPermission: () => ipcRenderer.invoke('request-screen-permission'),
-  saveRecordingFile: (blob, filePath) => ipcRenderer.invoke('save-recording-file', blob, filePath)
+  saveRecordingFile: (arrayBuffer, filePath) => ipcRenderer.invoke('save-recording-file', arrayBuffer, filePath)
 });
 

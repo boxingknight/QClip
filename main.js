@@ -199,10 +199,12 @@ ipcMain.handle('request-screen-permission', async () => {
   return true;
 });
 
-ipcMain.handle('save-recording-file', async (event, blob, filePath) => {
+ipcMain.handle('save-recording-file', async (event, arrayBuffer, filePath) => {
   try {
     const fs = require('fs').promises;
-    const buffer = Buffer.from(await blob.arrayBuffer());
+    // ArrayBuffer is passed directly from renderer process
+    // Convert to Node.js Buffer for file writing
+    const buffer = Buffer.from(arrayBuffer);
     await fs.writeFile(filePath, buffer);
     console.log('Recording saved to:', filePath);
     return filePath;
