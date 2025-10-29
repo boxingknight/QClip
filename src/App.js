@@ -41,7 +41,18 @@ function AppContent() {
     setRendering,
     updateClipDuration,
     getSelectedClip,
-    getCurrentTrimData
+    getCurrentTrimData,
+    // Split and delete functions
+    splitClip,
+    removeClip,
+    // Undo/redo functions
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    // Selection functions
+    selection,
+    getSelectedClips
   } = useTimeline();
   
   const { 
@@ -80,7 +91,7 @@ function AppContent() {
     root.style.setProperty('--timeline-height', `${timeline}%`);
   }, [sidebar, controls, timeline]);
 
-  // Test UI components
+  // Toolbar action handlers
   const handleToolbarAction = (action, data) => {
     console.log('Toolbar action:', action, data);
     
@@ -104,6 +115,18 @@ function AppContent() {
           duration: 3000
         });
         break;
+      case 'split':
+        handleSplitAction();
+        break;
+      case 'delete':
+        handleDeleteAction();
+        break;
+      case 'undo':
+        handleUndoAction();
+        break;
+      case 'redo':
+        handleRedoAction();
+        break;
       default:
         showToast({
           type: 'info',
@@ -111,6 +134,114 @@ function AppContent() {
           message: `${action} action triggered`,
           duration: 2000
         });
+    }
+  };
+
+  // Split clip at playhead
+  const handleSplitAction = () => {
+    const selectedClips = getSelectedClips();
+    
+    if (selectedClips.length === 0) {
+      showToast({
+        type: 'warning',
+        title: 'No Selection',
+        message: 'Please select a clip to split',
+        duration: 2000
+      });
+      return;
+    }
+
+    let splitCount = 0;
+    selectedClips.forEach(clip => {
+      // Check if playhead is on this clip
+      const splitTime = playhead - clip.startTime;
+      if (splitTime > 0 && splitTime < clip.duration) {
+        splitClip(clip.id, playhead);
+        splitCount++;
+      }
+    });
+
+    if (splitCount === 0) {
+      showToast({
+        type: 'warning',
+        title: 'Cannot Split',
+        message: 'Playhead must be positioned on the selected clip',
+        duration: 2000
+      });
+    } else {
+      showToast({
+        type: 'success',
+        title: 'Split Complete',
+        message: `Split ${splitCount} clip(s) at playhead`,
+        duration: 2000
+      });
+    }
+  };
+
+  // Delete selected clips
+  const handleDeleteAction = () => {
+    const selectedClips = getSelectedClips();
+    
+    if (selectedClips.length === 0) {
+      showToast({
+        type: 'warning',
+        title: 'No Selection',
+        message: 'Please select a clip to delete',
+        duration: 2000
+      });
+      return;
+    }
+
+    // Delete all selected clips
+    selectedClips.forEach(clip => {
+      removeClip(clip.id);
+    });
+
+    showToast({
+      type: 'success',
+      title: 'Deleted',
+      message: `Deleted ${selectedClips.length} clip(s)`,
+      duration: 2000
+    });
+  };
+
+  // Undo last action
+  const handleUndoAction = () => {
+    if (canUndo()) {
+      undo();
+      showToast({
+        type: 'info',
+        title: 'Undone',
+        message: 'Last action undone',
+        duration: 1500
+      });
+    } else {
+      showToast({
+        type: 'info',
+        title: 'Nothing to Undo',
+        message: 'No actions to undo',
+        duration: 1500
+      });
+    }
+  };
+
+  // Redo last action
+  const handleRedoAction = () => {
+    if (canRedo()) {
+      redo();
+      showToast({
+        type: 'info',
+        title: 'Redone',
+        message: 'Last action redone',
+        duration: 1500
+      });
+    } else {
+      showToast({
+        type: 'info',
+        title: 'Nothing to Redo',
+        message: 'No actions to redo',
+        duration: 1500
+      });
     }
   };
 
@@ -286,7 +417,33 @@ function AppContent() {
             groups={[
               ToolbarGroups.file,
               ToolbarGroups.recording,
-              ToolbarGroups.timeline,
+              // Timeline group with dynamic disabled states
+              {
+                items: ToolbarGroups.timeline.items.map(item => {
+                  if (item.action === 'split') {
+                    // Disable split if no selection or playhead not on clip
+                    const selectedClips = getSelectedClips();
+                    const canSplit = selectedClips.some(clip => {
+                      const splitTime = playhead - clip.startTime;
+                      return splitTime > 0 && splitTime < clip.duration;
+                    });
+                    return { ...item, disabled: !canSplit };
+                  }
+                  if (item.action === 'delete') {
+                    // Disable delete if no selection
+                    return { ...item, disabled: selection.clips.length === 0 };
+                  }
+                  if (item.action === 'undo') {
+                    // Disable undo if nothing to undo
+                    return { ...item, disabled: !canUndo() };
+                  }
+                  if (item.action === 'redo') {
+                    // Disable redo if nothing to redo
+                    return { ...item, disabled: !canRedo() };
+                  }
+                  return item;
+                })
+              },
               ToolbarGroups.playback
             ]}
             onAction={handleToolbarAction}
