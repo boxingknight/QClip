@@ -52,7 +52,7 @@ ipcMain.handle('open-file-dialog', async () => {
   const result = await dialog.showOpenDialog({
     properties: ['openFile', 'multiSelections'],
     filters: [
-      { name: 'Video Files', extensions: ['mp4', 'mov'] },
+      { name: 'Video Files', extensions: ['mp4', 'mov', 'webm'] },
       { name: 'All Files', extensions: ['*'] }
     ]
   });

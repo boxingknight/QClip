@@ -88,9 +88,9 @@ const ImportPanel = ({ onImport, isImporting }) => {
       try {
         // Validate file extension
         const ext = file.name.split('.').pop().toLowerCase();
-        if (ext !== 'mp4' && ext !== 'mov') {
+        if (ext !== 'mp4' && ext !== 'mov' && ext !== 'webm') {
           logger.warn('Unsupported file extension', { fileName: file.name, extension: ext });
-          setError(`${file.name} is not a supported format (MP4 or MOV only)`);
+          setError(`${file.name} is not a supported format (MP4, MOV, or WebM only)`);
           continue;
         }
         
@@ -174,7 +174,7 @@ const ImportPanel = ({ onImport, isImporting }) => {
             type="file"
             ref={fileInputRef}
             multiple
-            accept="video/*,.mp4,.mov"
+            accept="video/*,.mp4,.mov,.webm"
             onChange={() => {}} // Ignore standard file input
             style={{ display: 'none' }}
           />
