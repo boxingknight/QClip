@@ -261,17 +261,45 @@ const timelineReducer = (state, action) => {
         renderProgress: action.renderProgress || 0
       };
 
-    case 'UPDATE_CLIP_DURATION':
+    case 'UPDATE_CLIP_DURATION': {
       const { clipId: durationClipId, duration } = action;
+      const clipToUpdate = state.clips.find(c => c.id === durationClipId);
+      if (!clipToUpdate) return state;
+      
+      // 🎯 CRITICAL: When updating duration, also update trimOut and clipTrims
+      // This fixes WebM files where FFprobe returned 0 but video element has correct duration
+      const newDuration = duration;
+      const updatedClipTrims = { ...state.clipTrims };
+      
+      // If trimOut is 0 or less than duration, update it to match new duration
+      const currentTrim = updatedClipTrims[durationClipId];
+      if (!currentTrim || currentTrim.outPoint === 0 || currentTrim.outPoint < newDuration) {
+        updatedClipTrims[durationClipId] = {
+          inPoint: currentTrim?.inPoint ?? 0,
+          outPoint: newDuration
+        };
+        console.log('[UPDATE_CLIP_DURATION] Updating trimOut to match new duration:', {
+          clipId: durationClipId,
+          oldTrimOut: currentTrim?.outPoint,
+          newTrimOut: newDuration
+        });
+      }
       
       return {
         ...state,
         clips: state.clips.map(clip =>
           clip.id === durationClipId
-            ? { ...clip, duration }
+            ? { 
+                ...clip, 
+                duration: newDuration,
+                originalDuration: clip.originalDuration || newDuration, // Set if missing
+                trimOut: newDuration // Also update clip's trimOut
+              }
             : clip
-        )
+        ),
+        clipTrims: updatedClipTrims
       };
+    }
 
     // Track Management Actions
     case 'ADD_TRACK':

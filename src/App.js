@@ -5,6 +5,7 @@ import { UIProvider, useUI } from './context/UIContext';
 import { PlaybackProvider } from './context/PlaybackContext';
 import { LayoutProvider, useLayout } from './context/LayoutContext';
 import { MediaLibraryProvider, useMediaLibrary } from './context/MediaLibraryContext';
+import { RecordingProvider } from './context/RecordingContext';
 import ImportPanel from './components/ImportPanel';
 import VideoPlayer from './components/VideoPlayer';
 import ExportPanel from './components/ExportPanel';
@@ -16,6 +17,7 @@ import { ToastContainer } from './components/ui/Toast';
 import Toolbar, { ToolbarGroups } from './components/ui/Toolbar';
 import LayoutToolbar from './components/ui/LayoutToolbar';
 import ResizeHandle from './components/ui/ResizeHandle';
+import { RecordingControls, SourcePicker } from './components/recording';
 // Removed StatusBar import - now integrated into Timeline
 import { logger } from './utils/logger';
 import { validateInPoint, validateOutPoint } from './utils/trimValidation';
@@ -64,7 +66,7 @@ function AppContent() {
   } = useMediaLibrary();
   
   const { setModified } = useProject();
-  const { setImportStatus, importStatus, showModal, showToast } = useUI();
+  const { setImportStatus, importStatus, showModal, showToast, modals, hideModal } = useUI();
   const { 
     sidebar, 
     main, 
@@ -109,9 +111,9 @@ function AppContent() {
         break;
       case 'record':
         showToast({
-          type: 'success',
+          type: 'info',
           title: 'Recording',
-          message: 'Recording feature coming in V2!',
+          message: 'Use the Recording Controls in the right sidebar',
           duration: 3000
         });
         break;
@@ -385,8 +387,22 @@ function AppContent() {
       setPlayhead(timelineTime);
     }
     
-    // Update the selected clip's duration if we have it (only once)
-    if (selectedClipId && data?.duration) {
+    // 🎯 CRITICAL FIX: Update clip duration when video metadata loads (especially for WebM)
+    // This fixes cases where FFprobe returned 0 duration but video element has correct duration
+    if (selectedClipId && data?.duration && data?.updateClipDuration) {
+      const selectedClip = getSelectedClip();
+      if (selectedClip && (selectedClip.duration === 0 || Math.abs(selectedClip.duration - data.duration) > 1)) {
+        console.log('[App] Updating clip duration from video element:', {
+          clipId: selectedClipId,
+          oldDuration: selectedClip.duration,
+          newDuration: data.duration
+        });
+        updateClipDuration(selectedClipId, data.duration);
+        // Also update trimOut to match new duration
+        setOutPoint(data.duration);
+      }
+    } else if (selectedClipId && data?.duration) {
+      // Also update if clip has no duration (original check)
       const selectedClip = getSelectedClip();
       if (selectedClip && !selectedClip.duration) {
         updateClipDuration(selectedClipId, data.duration);
@@ -527,8 +543,9 @@ function AppContent() {
           className="resize-handle--main-controls"
         />
         
-        {/* Right Sidebar - Export Only */}
+        {/* Right Sidebar - Export and Recording */}
         <div className="controls-sidebar">
+          <RecordingControls />
           <ExportPanel 
             currentClip={getSelectedClip()}
             allClips={clips}
@@ -551,7 +568,7 @@ function AppContent() {
         {/* UI Components */}
         <ToastContainer />
         
-        {/* Test Modal */}
+        {/* Export Settings Modal */}
         <Modal
           modalName="exportSettings"
           title="Export Settings"
@@ -577,6 +594,36 @@ function AppContent() {
             </div>
           </div>
         </Modal>
+        
+        {/* Source Picker Modal */}
+        <Modal
+          modalName="source-picker"
+          title="Select Recording Source"
+          size="large"
+        >
+          {(() => {
+            const modalData = modals['source-picker']?.data;
+            if (!modalData) return null;
+            
+            return (
+              <SourcePicker
+                sources={modalData.sources || []}
+                onSelect={(source) => {
+                  if (modalData.onSelect) {
+                    modalData.onSelect(source);
+                  }
+                  hideModal('source-picker');
+                }}
+                onCancel={() => {
+                  if (modalData.onCancel) {
+                    modalData.onCancel();
+                  }
+                  hideModal('source-picker');
+                }}
+              />
+            );
+          })()}
+        </Modal>
       </div>
     </ErrorBoundary>
   );
@@ -591,7 +638,9 @@ function App() {
           <UIProvider>
             <PlaybackProvider>
               <MediaLibraryProvider>
-                <AppContent />
+                <RecordingProvider>
+                  <AppContent />
+                </RecordingProvider>
               </MediaLibraryProvider>
             </PlaybackProvider>
           </UIProvider>

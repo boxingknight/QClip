@@ -3,7 +3,7 @@ import { usePlayback } from '../context/PlaybackContext';
 import { logger } from '../utils/logger';
 import '../styles/VideoPlayer.css';
 
-const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onClipEnd, playhead }) => {
+const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onClipEnd, playhead, trimData }) => {
   const videoRef = useRef(null);
   const { registerVideo, updatePlaybackState, isPlaying: playbackIsPlaying } = usePlayback();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -13,13 +13,29 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
   const [error, setError] = useState(null);
 
   // Register video element with playback context
-  // Re-register whenever the video source changes to ensure proper connection
+  // Re-register whenever the video source or trim data changes to ensure proper connection
   useEffect(() => {
-    if (videoRef.current) {
-      console.log('[VideoPlayer] Registering video element', { videoSrc, hasElement: !!videoRef.current });
-      registerVideo(videoRef.current, selectedClip); // Pass selectedClip for coordinate conversion
+    if (videoRef.current && selectedClip) {
+      // Merge current trim data into clip for PlaybackContext
+      // Validate video duration before using it
+      let videoDuration = videoRef.current.duration || 0;
+      if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+        videoDuration = selectedClip.originalDuration || selectedClip.duration || 0;
+      }
+      
+      const clipWithTrim = {
+        ...selectedClip,
+        trimIn: trimData?.inPoint ?? selectedClip.trimIn ?? 0,
+        trimOut: trimData?.outPoint ?? selectedClip.trimOut ?? videoDuration
+      };
+      console.log('[VideoPlayer] Registering video element with current trim', { 
+        videoSrc, 
+        trimIn: clipWithTrim.trimIn,
+        trimOut: clipWithTrim.trimOut
+      });
+      registerVideo(videoRef.current, clipWithTrim); // Pass clip with current trim data
     }
-  }, [registerVideo, videoSrc, selectedClip]);
+  }, [registerVideo, videoSrc, selectedClip?.id, trimData]);
 
   // Handle video source changes and setup event listeners
   useEffect(() => {
@@ -71,12 +87,67 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
 
   const handleLoadedMetadata = () => {
     if (video && selectedClip) {
-      setDuration(video.duration);
+      // 🎯 CRITICAL: Validate video duration - check for Infinity/NaN
+      let videoFullDuration = video.duration || 0;
+      if (!isFinite(videoFullDuration) || isNaN(videoFullDuration) || videoFullDuration <= 0) {
+        // Invalid duration - use clip's original duration or fallback
+        videoFullDuration = selectedClip.originalDuration || selectedClip.duration || 0;
+        console.warn('[VideoPlayer] Invalid video duration, using clip duration:', {
+          videoDuration: video.duration,
+          fallbackDuration: videoFullDuration
+        });
+      }
+      
+      // 🎯 CRITICAL FIX: If clip duration is wrong (0 or invalid), update it from video element
+      // This fixes WebM files where FFprobe returns duration: 0 but video element has correct duration
+      // BUT: Only update if video duration is valid and finite
+      if (videoFullDuration > 0 && isFinite(videoFullDuration) && (!selectedClip.duration || selectedClip.duration === 0 || Math.abs(selectedClip.duration - videoFullDuration) > 1)) {
+        console.log('[VideoPlayer] Updating clip duration from video element:', {
+          clipId: selectedClip.id,
+          oldDuration: selectedClip.duration,
+          newDuration: videoFullDuration
+        });
+        // Notify parent to update clip duration
+        onTimeUpdate?.({
+          currentTime: selectedClip.startTime || 0,
+          duration: videoFullDuration,
+          updateClipDuration: true // Flag to indicate this is a duration update
+        });
+      }
+      
+      // Get trim data from prop (current trim) or clip (default)
+      // If trimOut is 0 or invalid, use video duration as fallback
+      const trimIn = trimData?.inPoint ?? selectedClip.trimIn ?? 0;
+      let trimOut = trimData?.outPoint ?? selectedClip.trimOut;
+      
+      // 🎯 CRITICAL: If trimOut is 0 or invalid, use video duration
+      // This fixes cases where FFprobe returned 0 duration and trimOut was set to 0
+      // BUT: Only use video duration if it's valid and finite
+      if (!trimOut || trimOut === 0) {
+        if (videoFullDuration > 0 && isFinite(videoFullDuration)) {
+          trimOut = videoFullDuration;
+        } else {
+          // Invalid video duration - use clip's original duration
+          trimOut = selectedClip.originalDuration || selectedClip.duration || 0;
+        }
+      } else if (isFinite(videoFullDuration) && trimOut > videoFullDuration) {
+        trimOut = videoFullDuration;
+      }
+      
+      // Calculate trimmed duration (visible portion)
+      const trimmedDuration = Math.max(0, trimOut - trimIn);
+      
+      // Set duration to trimmed duration, not full video duration
+      setDuration(trimmedDuration);
       setIsLoading(false);
       setError(null);
       logger.debug('Video metadata loaded', { 
         videoPath: effectiveSrc,
-        duration: video.duration 
+        fullDuration: videoFullDuration,
+        clipDuration: selectedClip.duration,
+        trimIn,
+        trimOut,
+        trimmedDuration
       });
       
       // 🎯 CRITICAL FIX: Calculate video time from absolute timeline playhead position
@@ -84,34 +155,36 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
       // Video time = (playhead - clip.startTime) + trimIn
       // This ensures we seek to the correct position even after splits
       const clipStartTime = selectedClip.startTime || 0;
-      const trimIn = selectedClip.trimIn || 0;
       const relativeTimeInClip = playhead !== undefined ? Math.max(0, playhead - clipStartTime) : 0;
-      const videoTime = trimIn + relativeTimeInClip;
       
-      // Clamp to video duration
-      const clampedVideoTime = Math.min(videoTime, video.duration);
+      // Calculate video time, clamped to trim bounds
+      const videoTime = trimIn + relativeTimeInClip;
+      const clampedVideoTime = Math.max(trimIn, Math.min(videoTime, trimOut));
       
       console.log('[VideoPlayer] Seeking to video position:', {
         playhead,
         clipStartTime,
         relativeTimeInClip,
         trimIn,
+        trimOut,
         videoTime,
         clampedVideoTime,
-        videoDuration: video.duration
+        videoFullDuration: video.duration,
+        trimmedDuration
       });
       
       video.currentTime = clampedVideoTime;
-      setCurrentTime(clampedVideoTime);
+      setCurrentTime(clampedVideoTime - trimIn); // Display relative to trim start
       
-      // Update playback context with duration
-      updatePlaybackState({ duration: video.duration });
+      // Update playback context with TRIMMED duration
+      updatePlaybackState({ duration: trimmedDuration });
       
-      // Send absolute timeline time to parent (not relative)
-      onTimeUpdate?.({
-        currentTime: playhead !== undefined ? playhead : clipStartTime,
-        duration: video.duration
-      });
+      // Don't send time update on load - this causes feedback loop
+      // The video will naturally send time updates as it plays
+      // onTimeUpdate?.({
+      //   currentTime: playhead !== undefined ? playhead : clipStartTime,
+      //   duration: video.duration
+      // });
       
       // 🎯 CRITICAL: Auto-play if playback was active (for continuous playback)
       if (playbackIsPlaying) {
@@ -123,12 +196,17 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
       }
     } else if (video) {
       // No clip selected - just load metadata
-      setDuration(video.duration);
+      // Validate duration first
+      let videoDuration = video.duration || 0;
+      if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+        videoDuration = 0;
+      }
+      setDuration(videoDuration);
       setIsLoading(false);
       setError(null);
       video.currentTime = 0;
       setCurrentTime(0);
-      updatePlaybackState({ duration: video.duration });
+      updatePlaybackState({ duration: videoDuration });
     }
   };
 
@@ -154,7 +232,46 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
       setIsLoading(false);
       setError(null);
     };
-  }, [videoSrc, selectedClip?.trimmedPath, selectedClip?.id, playhead]);
+  }, [videoSrc, selectedClip?.trimmedPath, selectedClip?.id]);
+
+  // 🎯 CRITICAL: Respond to playhead changes and seek video (respecting trim bounds)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !selectedClip || playhead === undefined) return;
+    
+    // Validate video duration first
+    let videoDuration = video.duration || 0;
+    if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+      videoDuration = selectedClip.originalDuration || selectedClip.duration || 0;
+    }
+    
+    // Get trim data from prop (current trim) or clip (default)
+    const trimIn = trimData?.inPoint ?? selectedClip.trimIn ?? 0;
+    const trimOut = trimData?.outPoint ?? selectedClip.trimOut ?? videoDuration;
+    const clipStartTime = selectedClip.startTime || 0;
+    
+    // Calculate relative time within clip
+    const relativeTimeInClip = Math.max(0, playhead - clipStartTime);
+    
+    // Calculate video time, clamped to trim bounds
+    const videoTime = trimIn + relativeTimeInClip;
+    const clampedVideoTime = Math.max(trimIn, Math.min(videoTime, trimOut));
+    
+    // Only seek if we're not already at the correct position (avoid infinite loops)
+    if (Math.abs(video.currentTime - clampedVideoTime) > 0.1) {
+      console.log('[VideoPlayer] Playhead changed, seeking to:', {
+        playhead,
+        clipStartTime,
+        relativeTimeInClip,
+        trimIn,
+        trimOut,
+        clampedVideoTime
+      });
+      
+      video.currentTime = clampedVideoTime;
+      setCurrentTime(clampedVideoTime - trimIn); // Display relative to trim start
+    }
+  }, [playhead, selectedClip, trimData]);
 
   // Note: Event handlers are now in useEffect with proper cleanup
   // Keep inline handlers for video element compatibility
@@ -168,15 +285,24 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
       return;
     }
     
-    const trimIn = selectedClip?.trimIn || 0;
-    const trimOut = selectedClip?.trimOut || video.duration;
+    // Get trim data from prop (current trim) or clip (default)
+    // Validate video duration first
+    let videoDuration = video.duration || 0;
+    if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+      videoDuration = selectedClip?.originalDuration || selectedClip?.duration || 0;
+    }
+    
+    const trimIn = trimData?.inPoint ?? selectedClip?.trimIn ?? 0;
+    const trimOut = trimData?.outPoint ?? selectedClip?.trimOut ?? videoDuration;
+    const trimmedDuration = trimOut - trimIn;
     
     console.log('[VideoPlayer] handlePlayPause:', {
       isPlaying,
       videoCurrentTime: video.currentTime,
       trimIn,
       trimOut,
-      videoDuration: video.duration,
+      trimmedDuration,
+      videoFullDuration: video.duration,
       selectedClipName: selectedClip?.name
     });
     
@@ -184,13 +310,12 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
       video.pause();
       logger.debug('Video paused');
     } else {
-      // 🎯 CRITICAL: If at trimOut, seek back to trimIn before playing
-      // This allows replay of the trimmed section
-      
-      if (video.currentTime >= trimOut - trimIn - 0.1) { // Within 0.1s of end
-        console.log('[VideoPlayer] At end, seeking back to trimIn:', trimIn);
-        video.currentTime = 0; // Seek to start of trimmed clip (relative time)
-        setCurrentTime(0);
+      // 🎯 CRITICAL: Ensure we're within trim bounds before playing
+      // If at or past trimOut, seek back to trimIn
+      if (video.currentTime >= trimOut || video.currentTime < trimIn) {
+        console.log('[VideoPlayer] Out of bounds, seeking to trimIn:', trimIn);
+        video.currentTime = trimIn;
+        setCurrentTime(0); // Relative to trim start
       }
       
       video.play().catch((err) => {
@@ -243,31 +368,69 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
           if (video && selectedClip) {
             const current = video.currentTime;
             
+            // Get trim data from prop (current trim) or clip (default)
+            // Validate video duration first
+            let videoDuration = video.duration || 0;
+            if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+              videoDuration = selectedClip.originalDuration || selectedClip.duration || 0;
+            }
+            
+            const trimIn = trimData?.inPoint ?? selectedClip.trimIn ?? 0;
+            const trimOut = trimData?.outPoint ?? selectedClip.trimOut ?? videoDuration;
+            
+            // 🎯 CRITICAL: Stop playback if we've reached or passed trimOut
+            if (current >= trimOut) {
+              video.pause();
+              video.currentTime = trimOut; // Clamp to trim end
+              setIsPlaying(false);
+              updatePlaybackState({ isPlaying: false });
+              logger.debug('Stopped at trimOut', { trimOut, current });
+              
+              // Trigger clip end if we're at the trim boundary
+              const clipEndTime = selectedClip.startTime + (trimOut - trimIn);
+              onTimeUpdate?.({
+                currentTime: clipEndTime,
+                duration: trimOut - trimIn
+              });
+              updatePlaybackState({ currentTime: clipEndTime });
+              setCurrentTime(trimOut - trimIn); // Relative to trim start
+              return;
+            }
+            
+            // 🎯 CRITICAL: Clamp video time to trim bounds during playback
+            // Prevent video from playing outside trimmed region
+            if (current < trimIn) {
+              video.currentTime = trimIn;
+              logger.debug('Clamped to trimIn', { trimIn, current });
+            } else if (current > trimOut) {
+              video.currentTime = trimOut;
+              logger.debug('Clamped to trimOut', { trimOut, current });
+            }
+            
             // 🎯 CRITICAL: Convert video time to absolute timeline time
-            // Video currentTime is relative to trimIn (e.g., if trimIn=3, video plays from 3s)
-            // Timeline time = clip.startTime + (video.currentTime - trimIn)
-            // But since we seeked to (trimIn + relativeTimeInClip), we need to reverse:
-            // Timeline time = clip.startTime + (current - trimIn)
+            // Video currentTime is in full video space (0 to full duration)
+            // Timeline time = clipStartTime + (currentVideoTime - trimIn)
             const clipStartTime = selectedClip.startTime || 0;
-            const trimIn = selectedClip.trimIn || 0;
             const timelineTime = clipStartTime + (current - trimIn);
+            
+            // Display time relative to trim start (0 to trimmed duration)
+            const relativeTime = current - trimIn;
             
             console.log('[VideoPlayer] onTimeUpdate:', {
               videoCurrentTime: current,
-              clipStartTime,
               trimIn,
+              trimOut,
+              relativeTime,
+              clipStartTime,
               timelineTime,
               selectedClipName: selectedClip?.name
             });
             
-            // ✅ For continuous playback: Timeline manager will handle clip switching
-            // No need to stop at trimOut - just send timeline time
-            
-            setCurrentTime(current);
+            setCurrentTime(relativeTime); // Display relative to trim start
             updatePlaybackState({ currentTime: timelineTime });
             onTimeUpdate?.({
               currentTime: timelineTime, // Send absolute timeline time
-              duration: duration
+              duration: trimOut - trimIn // Trimmed duration
             });
           }
         }}
@@ -280,7 +443,19 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
           updatePlaybackState({ isPlaying: false });
         }}
         onEnded={() => {
+          const video = videoRef.current;
           console.log('🎬 [VideoPlayer] Clip ended:', selectedClip?.name);
+          
+          // Validate video duration first
+          let videoDuration = video?.duration || 0;
+          if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+            videoDuration = selectedClip?.originalDuration || selectedClip?.duration || duration || 0;
+          }
+          
+          // Get trim data to calculate correct end time
+          const trimIn = trimData?.inPoint ?? selectedClip?.trimIn ?? 0;
+          const trimOut = trimData?.outPoint ?? selectedClip?.trimOut ?? videoDuration;
+          const trimmedDuration = trimOut - trimIn;
           
           // 🎯 CRITICAL: Check if there's a next clip to continue playback
           if (selectedClip && allClips.length > 0 && onClipEnd) {
@@ -305,12 +480,12 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
             }
           }
           
-          // No next clip - stop playback
-          console.log('🎬 [VideoPlayer] No next clip - stopping playback');
+          // No next clip - stop playback at trimmed end
+          console.log('🎬 [VideoPlayer] No next clip - stopping playback at trimmed end');
           setIsPlaying(false);
-          const finalTime = selectedClip ? (selectedClip.startTime + selectedClip.duration) : duration;
-          setCurrentTime(finalTime);
-          updatePlaybackState({ isPlaying: false, currentTime: finalTime });
+          const clipEndTime = selectedClip ? (selectedClip.startTime + trimmedDuration) : trimmedDuration;
+          setCurrentTime(trimmedDuration); // Relative to trim start
+          updatePlaybackState({ isPlaying: false, currentTime: clipEndTime });
         }}
       />
       
@@ -327,7 +502,7 @@ const VideoPlayer = ({ videoSrc, onTimeUpdate, selectedClip, allClips = [], onCl
       <div className="time-display">
         <span>{formatTime(currentTime)}</span>
         <span className="separator">/</span>
-        <span>{formatTime((selectedClip?.trimOut || duration) - (selectedClip?.trimIn || 0))}</span>
+        <span>{formatTime(duration)}</span>
       </div>
       </div>
       

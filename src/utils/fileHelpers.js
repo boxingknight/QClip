@@ -8,7 +8,7 @@
  * @returns {boolean} true if valid video format
  */
 export function isValidVideoFile(file) {
-  const validExtensions = ['.mp4', '.mov'];
+  const validExtensions = ['.mp4', '.mov', '.webm'];
   const fileName = file.name || '';
   const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
   return validExtensions.includes(extension);
@@ -34,7 +34,7 @@ export function validateFile(file) {
   if (!isValidVideoFile(file)) {
     return { 
       valid: false, 
-      error: 'Unsupported format. Please use MP4 or MOV files.' 
+      error: 'Unsupported format. Please use MP4, MOV, or WebM files.' 
     };
   }
   

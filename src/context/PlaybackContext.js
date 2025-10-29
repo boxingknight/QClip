@@ -84,29 +84,36 @@ export const PlaybackProvider = ({ children }) => {
 
   // Seek to specific time
   const seek = useCallback((timelineTime) => {
-    if (videoRef.current) {
+    if (videoRef.current && selectedClipRef.current) {
       const selectedClip = selectedClipRef.current;
-      const trimIn = selectedClip?.trimIn || 0;
+      const clipStartTime = selectedClip.startTime || 0;
+      const trimIn = selectedClip.trimIn || 0;
+      const trimOut = selectedClip.trimOut || (videoRef.current.duration || duration);
       
       // Convert timeline time to video time
-      // Timeline time is absolute, video time is relative to trimIn
-      const videoTime = Math.max(0, timelineTime - trimIn);
+      // Timeline time is absolute, relative to timeline start
+      // Video time = trimIn + (timelineTime - clipStartTime)
+      const relativeTimeInClip = Math.max(0, timelineTime - clipStartTime);
+      const videoTime = trimIn + relativeTimeInClip;
       
-      // Clamp to video duration
-      const clampedVideoTime = Math.min(videoTime, videoRef.current.duration || duration);
+      // 🎯 CRITICAL: Clamp to trim bounds (not full video duration)
+      const clampedVideoTime = Math.max(trimIn, Math.min(videoTime, trimOut));
       
       console.log('[PlaybackContext] seek:', {
         timelineTime,
+        clipStartTime,
+        relativeTimeInClip,
         trimIn,
+        trimOut,
         videoTime,
         clampedVideoTime,
-        videoDuration: videoRef.current.duration,
+        videoFullDuration: videoRef.current.duration,
         selectedClipName: selectedClip?.name
       });
       
       videoRef.current.currentTime = clampedVideoTime;
       setCurrentTime(timelineTime); // Store timeline time
-      console.log('[PlaybackContext] Seeked to timeline time', timelineTime, 'video time', clampedVideoTime, 'trimIn', trimIn);
+      console.log('[PlaybackContext] Seeked to timeline time', timelineTime, 'video time', clampedVideoTime);
     }
   }, [duration]);
 

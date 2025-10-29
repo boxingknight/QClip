@@ -1,0 +1,42 @@
+.recording-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-secondary);
+}
+
+.recording-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--color-error);
+  font-size: 14px;
+}
+
+.error-icon {
+  font-size: 16px;
+}
+
+.error-message {
+  flex: 1;
+}
+
+.recording-active {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 768px) {
+  .recording-active {
+    flex-direction: row;
+    align-items: center;
+  }
+}
