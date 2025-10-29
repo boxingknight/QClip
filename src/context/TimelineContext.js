@@ -328,6 +328,14 @@ const timelineReducer = (state, action) => {
 
     // Enhanced Clip Management Actions
     case 'ADD_CLIP':
+      console.log('🔍 [ADD_CLIP] Adding clip:', {
+        trackId: action.trackId,
+        clipId: action.id,
+        clipName: action.name,
+        startTime: action.startTime,
+        duration: action.duration
+      });
+      
       const newClip = {
         id: action.id || `clip-${Date.now()}`,
         trackId: action.trackId,
@@ -335,14 +343,30 @@ const timelineReducer = (state, action) => {
         path: action.path,
         startTime: action.startTime || 0,
         duration: action.duration,
+        originalDuration: action.duration, // Add missing originalDuration
         trimIn: 0,
         trimOut: action.duration,
         thumbnail: action.thumbnail,
         waveform: action.waveform,
         selected: false,
         locked: false,
-        effects: []
+        effects: [],
+        trimmedPath: null, // Add missing trimmedPath
+        isTrimmed: false,
+        trimStartOffset: 0,
+        // Add metadata properties
+        fileSize: action.fileSize || 0,
+        width: action.width || 0,
+        height: action.height || 0,
+        fps: action.fps || 0,
+        codec: action.codec || '',
+        hasAudio: action.hasAudio || false,
+        thumbnailUrl: action.thumbnailUrl || null,
+        type: action.type || 'video'
       };
+      
+      console.log('🔍 [ADD_CLIP] Created clip object:', newClip);
+      
       return {
         ...state,
         clips: [...state.clips, newClip]

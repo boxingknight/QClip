@@ -56,6 +56,12 @@ const TimelineTracks = () => {
           }))
         });
         
+        // 🔍 DEBUG: Check if clips are being filtered out incorrectly
+        if (clips.length > 0 && trackClips.length === 0) {
+          console.warn(`⚠️ [TIMELINE_TRACKS] Track ${track.id} has no clips but ${clips.length} total clips exist`);
+          console.log('Available trackIds in clips:', [...new Set(clips.map(c => c.trackId))]);
+        }
+        
         // Get the appropriate track component
         const TrackComponent = getTrackComponent(track);
         

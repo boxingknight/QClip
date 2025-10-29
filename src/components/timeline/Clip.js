@@ -38,6 +38,18 @@ const Clip = ({ clip, trackHeight, zoom, trackId }) => {
     height: `${trackHeight - 32}px`
   };
   
+  // 🔍 DEBUG: Log clip positioning calculations
+  console.log(`[CLIP POSITIONING] ${clip.name}:`, {
+    startTime: clip.startTime,
+    duration: clip.duration,
+    zoom: zoom,
+    leftPx: timeToPixels(clip.startTime, zoom),
+    widthPx: timeToPixels(clip.duration, zoom),
+    trackHeight: trackHeight,
+    finalHeight: trackHeight - 32,
+    clipStyle: clipStyle
+  });
+  
   // Debug: Log when clip duration changes or trackId changes
   useEffect(() => {
     console.log('[CLIP RENDER]', {
