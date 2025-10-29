@@ -16,13 +16,24 @@ A professional desktop video editor for quick clip trimming and export. Built wi
 - ✅ **State Management Refactor** - Context API foundation for V2 features
 - ✅ **UI Component Library** - Reusable components for advanced features
 - ✅ **Professional Timeline** - Multi-track video editor with CapCut-style interface
-- 📋 **Drag & Drop Clips** - Drag clips between tracks with magnetic snapping
-- 📋 **Split & Delete Clips** - Professional editing operations
+- ✅ **Drag & Drop Clips** - Drag clips between tracks with magnetic snapping
+- ✅ **Split & Delete Clips** - Professional editing operations with context menu & keyboard shortcuts
 - 📋 **Screen Recording** - Built-in recording functionality
 - 📋 **Advanced Effects** - Text overlays, transitions, filters
 - 📋 **Project Management** - Save/load projects with auto-save
 
 ## Recent Updates 🔧
+
+### PR#15: Split & Delete Clips (October 28, 2024)
+- ✅ **Split at Playhead** - Split clips at any position with Cmd+B or toolbar button
+- ✅ **Delete Clips** - Remove single or multiple clips with Delete key or toolbar
+- ✅ **Context Menu** - Right-click on clips for split, duplicate, and delete operations
+- ✅ **Keyboard Shortcuts** - Professional shortcuts (Cmd+B split, Delete, Cmd+D duplicate)
+- ✅ **Toolbar Integration** - All buttons functional with smart disabled states
+- ✅ **Seamless Playback** - Fixed critical playback issues for continuous timeline playback
+- ✅ **5 Critical Bugs Fixed** - Coordinate system fixes, feedback loop elimination, toolbar wiring
+
+**Achievement:** Professional editing operations with seamless continuous playback through all clips!
 
 ### PR#13: Professional Timeline (October 28, 2024)
 - ✅ **Multi-Track Timeline** - Professional video editor with CapCut-style interface
