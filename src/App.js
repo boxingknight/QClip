@@ -137,45 +137,38 @@ function AppContent() {
     }
   };
 
-  // Split clip at playhead
+  // Split clip at playhead - works on ANY clip under playhead, not just selected ones
   const handleSplitAction = () => {
-    const selectedClips = getSelectedClips();
-    
-    if (selectedClips.length === 0) {
+    // Find all clips that intersect with the playhead position (regardless of selection)
+    const clipsUnderPlayhead = clips.filter(clip => {
+      const clipStart = clip.startTime;
+      const clipEnd = clip.startTime + clip.duration;
+      return playhead > clipStart && playhead < clipEnd;
+    });
+
+    if (clipsUnderPlayhead.length === 0) {
       showToast({
         type: 'warning',
-        title: 'No Selection',
-        message: 'Please select a clip to split',
+        title: 'Cannot Split',
+        message: 'Playhead must be positioned over a clip',
         duration: 2000
       });
       return;
     }
 
+    // Split all clips under the playhead
     let splitCount = 0;
-    selectedClips.forEach(clip => {
-      // Check if playhead is on this clip
-      const splitTime = playhead - clip.startTime;
-      if (splitTime > 0 && splitTime < clip.duration) {
-        splitClip(clip.id, playhead);
-        splitCount++;
-      }
+    clipsUnderPlayhead.forEach(clip => {
+      splitClip(clip.id, playhead);
+      splitCount++;
     });
 
-    if (splitCount === 0) {
-      showToast({
-        type: 'warning',
-        title: 'Cannot Split',
-        message: 'Playhead must be positioned on the selected clip',
-        duration: 2000
-      });
-    } else {
-      showToast({
-        type: 'success',
-        title: 'Split Complete',
-        message: `Split ${splitCount} clip(s) at playhead`,
-        duration: 2000
-      });
-    }
+    showToast({
+      type: 'success',
+      title: 'Split Complete',
+      message: `Split ${splitCount} clip(s) at playhead`,
+      duration: 2000
+    });
   };
 
   // Delete selected clips
@@ -205,7 +198,7 @@ function AppContent() {
     });
   };
 
-  // Undo last action
+  // Undo last action - works regardless of selection
   const handleUndoAction = () => {
     if (canUndo()) {
       undo();
@@ -225,7 +218,7 @@ function AppContent() {
     }
   };
 
-  // Redo last action
+  // Redo last action - works regardless of selection
   const handleRedoAction = () => {
     if (canRedo()) {
       redo();
@@ -421,11 +414,11 @@ function AppContent() {
               {
                 items: ToolbarGroups.timeline.items.map(item => {
                   if (item.action === 'split') {
-                    // Disable split if no selection or playhead not on clip
-                    const selectedClips = getSelectedClips();
-                    const canSplit = selectedClips.some(clip => {
-                      const splitTime = playhead - clip.startTime;
-                      return splitTime > 0 && splitTime < clip.duration;
+                    // Disable split if playhead is not over ANY clip (works on all clips, not just selected)
+                    const canSplit = clips.some(clip => {
+                      const clipStart = clip.startTime;
+                      const clipEnd = clip.startTime + clip.duration;
+                      return playhead > clipStart && playhead < clipEnd;
                     });
                     return { ...item, disabled: !canSplit };
                   }
@@ -434,11 +427,11 @@ function AppContent() {
                     return { ...item, disabled: selection.clips.length === 0 };
                   }
                   if (item.action === 'undo') {
-                    // Disable undo if nothing to undo
+                    // Disable undo if nothing to undo (works regardless of selection)
                     return { ...item, disabled: !canUndo() };
                   }
                   if (item.action === 'redo') {
-                    // Disable redo if nothing to redo
+                    // Disable redo if nothing to redo (works regardless of selection)
                     return { ...item, disabled: !canRedo() };
                   }
                   return item;
