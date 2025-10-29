@@ -76,8 +76,9 @@ export const useKeyboardShortcuts = () => {
           const clip = clips.find(c => c.id === clipId);
           if (clip) {
             const splitTime = playhead - clip.startTime;
+            // splitClip expects absolute timeline time (playhead), not relative time
             if (splitTime > 0 && splitTime < clip.duration) {
-              splitClip(clipId, splitTime);
+              splitClip(clipId, playhead); // Pass absolute time (playhead)
             }
           }
         });
