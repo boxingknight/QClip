@@ -5,6 +5,7 @@ import { UIProvider, useUI } from './context/UIContext';
 import { PlaybackProvider } from './context/PlaybackContext';
 import { LayoutProvider, useLayout } from './context/LayoutContext';
 import { MediaLibraryProvider, useMediaLibrary } from './context/MediaLibraryContext';
+import { RecordingProvider } from './context/RecordingContext';
 import ImportPanel from './components/ImportPanel';
 import VideoPlayer from './components/VideoPlayer';
 import ExportPanel from './components/ExportPanel';
@@ -16,6 +17,7 @@ import { ToastContainer } from './components/ui/Toast';
 import Toolbar, { ToolbarGroups } from './components/ui/Toolbar';
 import LayoutToolbar from './components/ui/LayoutToolbar';
 import ResizeHandle from './components/ui/ResizeHandle';
+import { RecordingControls } from './components/recording';
 // Removed StatusBar import - now integrated into Timeline
 import { logger } from './utils/logger';
 import { validateInPoint, validateOutPoint } from './utils/trimValidation';
@@ -109,9 +111,9 @@ function AppContent() {
         break;
       case 'record':
         showToast({
-          type: 'success',
+          type: 'info',
           title: 'Recording',
-          message: 'Recording feature coming in V2!',
+          message: 'Use the Recording Controls in the right sidebar',
           duration: 3000
         });
         break;
@@ -527,8 +529,9 @@ function AppContent() {
           className="resize-handle--main-controls"
         />
         
-        {/* Right Sidebar - Export Only */}
+        {/* Right Sidebar - Export and Recording */}
         <div className="controls-sidebar">
+          <RecordingControls />
           <ExportPanel 
             currentClip={getSelectedClip()}
             allClips={clips}
@@ -591,7 +594,9 @@ function App() {
           <UIProvider>
             <PlaybackProvider>
               <MediaLibraryProvider>
-                <AppContent />
+                <RecordingProvider>
+                  <AppContent />
+                </RecordingProvider>
               </MediaLibraryProvider>
             </PlaybackProvider>
           </UIProvider>
