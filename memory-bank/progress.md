@@ -1,7 +1,7 @@
 # ClipForge - Progress Tracking
 
 **Status:** 🎉 MVP COMPLETE - V2 DEVELOPMENT IN PROGRESS!  
-**Progress:** 100% MVP (20/20 core hours, PRs 1-10 complete) + V2 Foundation (4/5 PRs complete)    
+**Progress:** 100% MVP (20/20 core hours, PRs 1-10 complete) + V2 Foundation (5/5 PRs planned, 4/5 complete)    
 **Last Updated:** October 28, 2024
 
 ---
@@ -28,7 +28,7 @@
 - ✅ **PR #11 - State Management Refactor:** Context API for centralized state
 - ✅ **PR #12 - UI Component Library:** Modal, Toast, ContextMenu, Toolbar, StatusBar
 - ✅ **PR #13 - Professional Timeline:** Multi-track timeline with CapCut-style interface
-- ✅ **PR #14 - Drag & Drop Clips:** PLANNING COMPLETE - HTML5 drag & drop with snap-to-clip
+- ✅ **PR #14 - Drag & Drop Clips:** COMPLETE - HTML5 drag & drop with snap-to-clip, origin snapping, gap-closing
 - 📋 **PR #15 - Split & Delete Clips:** Split and delete clip operations
 
 ### Current Capabilities:

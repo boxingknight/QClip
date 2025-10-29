@@ -218,24 +218,51 @@ Successfully refactored ClipForge's state management from local useState to Cont
 
 ---
 
-### PR#14: Drag & Drop Clips 📋 PLANNING COMPLETE
-**Status:** ✅ PLANNING COMPLETE  
-**Timeline:** 4-6 hours estimated  
+### PR#14: Drag & Drop Clips ✅ COMPLETE
+**Status:** ✅ COMPLETE & DEPLOYED  
+**Timeline:** 4-6 hours estimated, actual time as estimated  
 **Priority:** Critical - Core editing interaction  
-**Complexity:** MEDIUM-HIGH  
+**Complexity:** HIGH  
 **Dependencies:** PR #11 (State Management Refactor), PR #12 (UI Component Library), PR #13 (Multi-Track Timeline UI)
 
-**What We're Building:**
-Implement drag-and-drop functionality for clips on the multi-track timeline, enabling users to reorder clips within tracks and move clips between tracks. This transforms ClipForge from a static timeline editor into an interactive, professional video editing experience with snap-to-clip functionality.
+**What We Built:**
+Professional drag-and-drop functionality for clips on the multi-track timeline, enabling users to reorder clips within tracks, move clips between tracks, and organize clips with intelligent snapping. Transforms ClipForge from a static timeline editor into an interactive, professional video editing experience.
 
 **Key Deliverables:**
-- ✅ HTML5 Drag & Drop API integration
-- ✅ Snap-to-clip with 0.5 second threshold
+- ✅ HTML5 Drag & Drop API integration (replaced mouse events)
+- ✅ Time-based snap-to-clip with adjustable thresholds (2.0s primary, 5.0s relaxed)
+- ✅ Origin (time 0) snapping for timeline organization
+- ✅ Gap-closing logic for automatic clip organization
 - ✅ Overlap prevention with visual feedback
-- ✅ Cross-track clip movement
-- ✅ Smooth animations and visual feedback
-- ✅ Accessibility support (ARIA labels, keyboard navigation)
-- ✅ Edge case handling (invalid drops, same position)
+- ✅ Cross-track clip movement (video ↔ audio ↔ text tracks)
+- ✅ Visual snap indicators (animated snap lines)
+- ✅ Enhanced drag feedback with smooth animations
+- ✅ Media Library drag & drop preserved (fully functional)
+- ✅ Clip trimming functionality preserved (mouse events for precision)
+
+**Bugs Fixed During Implementation:**
+- 🔧 ReferenceError: snapTarget undefined in console.log (fixed)
+- 🔧 Origin snapping not working (added origin as snap target)
+- 🔧 Snap calculation using wrong parameter order (fixed dropTime vs draggedClip.startTime)
+- 🔧 Gaps between clips after reorganization (increased snap thresholds, added gap-closing)
+
+**Technical Achievements:**
+- Converted Clip component from mouse events to HTML5 drag & drop
+- Enhanced Track drop handler to support both Media Library and Timeline clips
+- Time-based snap calculations (zoom-independent, professional editor standard)
+- Smart gap-closing with relaxed thresholds for organization
+- Preserved existing functionality (Media Library drag, clip trimming)
+
+**Files Created/Modified:**
+- ✅ `src/utils/dragDropCalculations.js` (new) - Snap & validation utilities
+- ✅ `src/components/timeline/SnapLine.js` (new) - Visual snap indicator
+- ✅ `src/components/timeline/SnapLine.css` (new) - Snap line styling
+- ✅ `src/context/TimelineContext.js` (+drag state management)
+- ✅ `src/hooks/useTimeline.js` (+drag state exposure)
+- ✅ `src/components/timeline/Clip.js` (converted to HTML5 drag & drop)
+- ✅ `src/components/timeline/Track.js` (enhanced drop handler)
+- ✅ `src/components/timeline/Clip.css` (enhanced drag feedback)
+- ✅ `src/components/timeline/Track.css` (enhanced drop zone feedback)
 
 **Documents Created:**
 - ✅ `PR14_DRAG_DROP_CLIPS.md` (~8,000 words) - Technical specification
@@ -243,16 +270,19 @@ Implement drag-and-drop functionality for clips on the multi-track timeline, ena
 - ✅ `PR14_README.md` (~3,000 words) - Quick start guide
 - ✅ `PR14_PLANNING_SUMMARY.md` (~2,000 words) - Executive overview
 - ✅ `PR14_TESTING_GUIDE.md` (~2,000 words) - Testing strategy
+- ✅ `PR14_EXISTING_IMPLEMENTATION_ANALYSIS.md` (~3,000 words) - Preservation analysis
 
-**Total Documentation:** ~21,000 words
+**Total Documentation:** ~24,000 words
 
-**Summary:** Drag & drop is the fundamental interaction pattern for professional video editors. This PR implements intuitive clip rearrangement with snap-to-clip functionality, cross-track movement, and professional visual feedback. Critical foundation that enables advanced editing workflows and makes ClipForge feel like a real video editor.
+**Summary:** Professional drag & drop implementation complete! ClipForge now supports intuitive clip rearrangement with intelligent snapping (origin + clip edges), cross-track movement, gap-closing organization, and professional visual feedback. All existing functionality preserved. Foundation for advanced editing workflows established.
 
 **Key Decisions:**
-- HTML5 Drag & Drop API over custom implementation (accessibility, standard behavior)
-- Time-based snap threshold (0.5 seconds) over pixel-based (zoom-independent)
-- Prevent overlaps entirely over allowing with visual indication (clean timeline)
-- Context API integration for drag state management (consistent architecture)
+- HTML5 Drag & Drop API over custom implementation (accessibility, standard behavior) ✅
+- Time-based snap threshold (2.0s primary, 5.0s gap-closing) over pixel-based (zoom-independent) ✅
+- Origin snapping included (professional editor standard) ✅
+- Prevent overlaps entirely over allowing with visual indication (clean timeline) ✅
+- Context API integration for drag state management (consistent architecture) ✅
+- Gap-closing logic for organization (relaxed thresholds when organizing) ✅
 
 ---
 
@@ -785,7 +815,7 @@ A visual timeline component that displays imported video clips horizontally with
 - ✅ PR#11: State Management Refactor (4 hours) - **COMPLETE**
 - ✅ PR#12: UI Component Library (6 hours) - **COMPLETE**
 - ✅ PR#13: Professional Timeline Implementation (25 hours) - **COMPLETE**
-- ✅ PR#14: Drag & Drop Clips (4-6 hours) - **PLANNING COMPLETE**
+- ✅ PR#14: Drag & Drop Clips (4-6 hours) - **✅ COMPLETE & DEPLOYED**
 - 📋 PR#15: Split & Delete Clips (4-6 hours) - **PLANNED**
 
 ### V2 Advanced Features (Planned)
