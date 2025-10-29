@@ -3,15 +3,15 @@
 **Date:** October 28, 2024  
 **Status:** ✅ RESOLVED  
 **Session Duration:** 3 hours  
-**Bugs Found:** 8  
-**Bugs Fixed:** 8
+**Bugs Found:** 9  
+**Bugs Fixed:** 9
 
 ---
 
 ## Quick Summary
 
-**Critical Issues:** 3  
-**Time Lost to Bugs:** 3 hours  
+**Critical Issues:** 4  
+**Time Lost to Bugs:** 3.5 hours  
 **Main Lesson:** Context management and state synchronization are critical for complex React applications
 
 ---
@@ -994,6 +994,108 @@ describe('Trim Integration', () => {
 - ✅ TypeScript (function signature validation)
 - ✅ **Unit testing for conversion functions** (pixel-to-time validation)
 - ✅ **Detailed logging during development** (would have caught unit mismatch immediately)
+
+## Bug #9: Scrubber Positioned Incorrectly After Left Trim
+
+**Severity:** 🔴 CRITICAL  
+**Time to Debug:** 1 hour  
+**Time to Fix:** 30 minutes  
+**Impact:** Scrubber appeared in empty space instead of timeline start, breaking professional video editor UX
+
+### The Issue
+
+**What Went Wrong:**
+After trimming a clip from the left handle, the scrubber (red playhead line) would appear in empty space to the right of the video clip instead of at the beginning of the timeline (0s mark).
+
+**User Impact:**
+- Scrubber positioned incorrectly in empty timeline space
+- Professional video editor workflow broken
+- User confusion about current playback position
+- Inconsistent with industry standards (CapCut, iMovie)
+
+### Root Cause Analysis
+
+**Surface Issue:**
+Scrubber appeared in wrong position after left trimming.
+
+**Actual Cause:**
+**COORDINATE SYSTEM MISMATCH** between timeline and video player:
+
+1. **Timeline Playhead**: Expected relative time (0 = start of visible clip)
+2. **Video Player**: Sent absolute timeline time (includes `trimIn` offset)
+3. **App.js**: Directly set playhead to absolute time without conversion
+
+**The Problem Sequence:**
+1. Video loads → VideoPlayer seeks to `trimIn` (e.g., 3.6s)
+2. Video plays → `onTimeUpdate` sends `timelineTime = trimIn + current` (3.6s)
+3. App.js receives → `handleVideoTimeUpdate` gets `currentTime: 3.6`
+4. Timeline updates → `setPlayhead(3.6)` sets playhead to 3.6s
+5. Scrubber renders → `playheadPosition = timeToPixels(3.6) = 360px`
+6. **Result**: Scrubber appears in empty space instead of timeline start
+
+### The Fix
+
+**Solution Implemented:**
+Dual approach for maximum robustness:
+
+1. **VideoPlayer Reset**: Always send `currentTime: 0` to timeline on video load
+2. **App.js Conversion**: Convert timeline time back to relative time
+
+**Technical Changes:**
+
+**VideoPlayer.js:**
+```javascript
+// 🎯 CRITICAL FIX: Reset timeline playhead to 0 when video loads
+// This prevents scrubber from appearing in empty space
+// The video will play from trimIn, but timeline shows 0 as starting point
+onTimeUpdate?.({
+  currentTime: 0, // Always start timeline at 0, regardless of trimIn
+  duration: video.duration
+});
+```
+
+**App.js:**
+```javascript
+// 🎯 CRITICAL FIX: Convert timeline time back to relative timeline position
+// VideoPlayer sends timeline time (includes trimIn offset), but timeline should show relative position
+const selectedClip = getSelectedClip();
+const trimIn = selectedClip?.trimIn || 0;
+const relativeTime = Math.max(0, timelineTime - trimIn);
+
+if (Math.abs(relativeTime - playhead) > 0.1) {
+  setPlayhead(relativeTime);
+}
+```
+
+**Files Changed:**
+- `src/components/VideoPlayer.js` (+5/-2 lines)
+- `src/App.js` (+15/-5 lines)
+
+**Commit:**
+`fix(CRITICAL): correct scrubber positioning after left trim`
+
+### Prevention Strategy
+
+**How to Avoid This in Future:**
+1. **Coordinate System Documentation**: Document which components use absolute vs relative time
+2. **Unit Testing for Coordinate Conversion**: Test timeline-to-video and video-to-timeline conversions
+3. **Visual Testing**: Always verify scrubber position after trimming operations
+4. **Industry Standard Compliance**: Ensure behavior matches CapCut/iMovie standards
+
+**Test to Add:**
+```javascript
+describe('Scrubber Positioning', () => {
+  it('should position scrubber at timeline start after left trim', () => {
+    // Import video
+    // Trim from left handle
+    // Verify scrubber is at 0s position
+    // Verify video plays from trimmed position
+  });
+});
+```
+
+**Linting Rule:**
+Consider adding ESLint rules to flag potential coordinate system mismatches in time-related functions.
 
 ---
 

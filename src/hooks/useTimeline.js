@@ -44,6 +44,7 @@ export const useTimeline = (options = {}) => {
     magneticSnap,
     snapThreshold: contextSnapThreshold,
     addClips,
+    addClip,
     selectClip,
     setPlayhead,
     setZoom,
@@ -247,6 +248,7 @@ export const useTimeline = (options = {}) => {
     
     // Core functions
     addClips,
+    addClip,
     selectClip,
     setPlayhead: setPlayheadWithSnap,
     setZoom,

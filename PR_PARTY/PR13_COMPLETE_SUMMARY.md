@@ -118,9 +118,9 @@ ClipForge now rivals professional video editing software with intuitive timeline
 - **Total:** 25 hours
 
 ### Quality Metrics
-- **Bugs Fixed:** 9 major bugs (7.5 hours debugging)
+- **Bugs Fixed:** 10 major bugs (8.5 hours debugging)
 - **Tests Written:** Manual testing comprehensive
-- **Documentation:** ~15,000 words
+- **Documentation:** ~15,500 words
 - **Performance:** All targets met/exceeded
 
 ---
@@ -181,7 +181,13 @@ ClipForge now rivals professional video editing software with intuitive timeline
 **Solution:** Added pixelsToTime() conversion after magnetic snap  
 **Prevention:** Unit validation in conversion functions, detailed logging during development
 
-**Total Debug Time:** 7.5 hours (30% of implementation time)
+### Bug #10: Scrubber Positioned Incorrectly After Left Trim
+**Time:** 1 hour debugging + 30 minutes fix  
+**Root Cause:** Coordinate system mismatch - timeline expected relative time (0 = start of visible clip) but video player sent absolute timeline time (includes trimIn offset)  
+**Solution:** Dual approach - VideoPlayer resets timeline playhead to 0 on load, App.js converts timeline time back to relative time  
+**Prevention:** Coordinate system documentation, visual testing after trimming operations
+
+**Total Debug Time:** 8.5 hours (35% of implementation time)
 
 ---
 

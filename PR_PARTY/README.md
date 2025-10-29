@@ -289,6 +289,7 @@ Complete transformation from basic single-track timeline to professional multi-t
 - 🔧 Video element registration timing issues
 - 🔧 Playhead scrubbing not synchronized with video
 - 🔧 **CRITICAL: Magnetic snap pixel-to-time conversion error** (100x multiplication bug!)
+- 🔧 **CRITICAL: Scrubber positioned incorrectly** - Appeared in empty space instead of timeline start after left trim
 
 **Technical Achievements:**
 - Professional video editor architecture with React Context API
