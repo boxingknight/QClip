@@ -5,6 +5,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { logger } from '../utils/logger';
 import { getWebcamDevices } from '../utils/webcamUtils';
+import { extractVideoMetadata } from '../utils/videoMetadata';
 
 const RecordingContext = createContext();
 
@@ -521,19 +522,31 @@ export const RecordingProvider = ({ children }) => {
         // Write file via IPC (passing ArrayBuffer instead of Blob)
         await window.electronAPI.saveRecordingFile(arrayBuffer, filePath);
         
-        // Get metadata
-        const metadata = await window.electronAPI.getVideoMetadata(filePath);
+        // 🎯 CRITICAL FIX: Wait for file to be fully written to disk before extracting metadata
+        // WebM files need time for container structure to be finalized
+        // This fixes the duration: 0 bug from PR#17
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Get metadata using extractVideoMetadata which has HTML5 video element fallback
+        // This fixes WebM files where FFprobe returns duration: 0
+        const metadata = await extractVideoMetadata(filePath);
         
         const recordingFile = {
           id: `recording-${Date.now()}`,
           name: filename || `recording-${Date.now()}.webm`,
           path: filePath,
-          duration: metadata.duration,
+          duration: metadata.duration || 0,
           size: blob.size,
           format: filePath.endsWith('.mp4') ? 'mp4' : 'webm',
           timestamp: Date.now(),
           source: recordingSource,
-          thumbnail: metadata.thumbnailUrl
+          thumbnail: metadata.thumbnailUrl,
+          // Include full metadata for Media Library
+          width: metadata.width,
+          height: metadata.height,
+          fps: metadata.fps,
+          codec: metadata.codec,
+          hasAudio: metadata.hasAudio
         };
         
         // Add to saved recordings

@@ -77,7 +77,7 @@ const RecordingControls = () => {
   
   // Handle recording saved callback for webcam
   const handleWebcamRecordingSaved = (recordingFile) => {
-    // Add to Media Library
+    // Add to Media Library with full metadata from extractVideoMetadata
     const mediaItem = {
       id: recordingFile.id || `media-${Date.now()}`,
       name: recordingFile.name,
@@ -89,7 +89,7 @@ const RecordingControls = () => {
       height: recordingFile.height || 720,
       fps: recordingFile.fps || 30,
       codec: recordingFile.codec || 'vp9',
-      hasAudio: true, // Webcam recordings include audio
+      hasAudio: recordingFile.hasAudio !== false, // Use metadata value
       type: 'video'
     };
     
