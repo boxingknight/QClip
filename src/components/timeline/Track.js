@@ -329,14 +329,32 @@ const Track = ({ track, clips, zoom }) => {
         });
 
         // Validate drop position (overlap prevention)
+        const isReordering = sourceTrackId === track.id;
         const trackClips = timelineClips.filter(c => c.trackId === track.id);
-        const isValid = isValidDropPosition(
-          track.id,
-          finalTime,
-          sourceClip,
-          timelineClips,
-          trackClips
-        );
+        
+        // For reordering on same track, be more lenient - only check if it would create overlap
+        // For cross-track moves, strict overlap checking
+        let isValid;
+        if (isReordering) {
+          // Reordering: Allow move as long as it doesn't overlap with OTHER clips
+          // (the dragged clip is already filtered out by isValidDropPosition)
+          isValid = isValidDropPosition(
+            track.id,
+            finalTime,
+            sourceClip,
+            timelineClips,
+            trackClips
+          );
+        } else {
+          // Cross-track: Strict overlap checking
+          isValid = isValidDropPosition(
+            track.id,
+            finalTime,
+            sourceClip,
+            timelineClips,
+            trackClips
+          );
+        }
 
         if (isValid) {
           // Move clip using existing moveClip function
@@ -345,15 +363,20 @@ const Track = ({ track, clips, zoom }) => {
             clipId: sourceClip.id,
             fromTrack: sourceTrackId,
             toTrack: track.id,
-            newTime: finalTime
+            newTime: finalTime,
+            isReordering
           });
         } else {
           console.warn('🎬 [TRACK] ⚠️ Invalid drop position (overlap prevented):', {
             clipId: sourceClip.id,
             dropTime: finalTime,
-            trackId: track.id
+            trackId: track.id,
+            isReordering,
+            trackClips: trackClips.map(c => ({ id: c.id, startTime: c.startTime, duration: c.duration })),
+            draggedClip: { id: sourceClip.id, startTime: sourceClip.startTime, duration: sourceClip.duration },
+            finalTimeRange: [finalTime, finalTime + sourceClip.duration]
           });
-          // Could show toast notification here for user feedback
+          // For debugging: log why it failed
         }
         return; // Exit after handling Timeline clip
       }
