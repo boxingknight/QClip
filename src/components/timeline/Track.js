@@ -134,15 +134,20 @@ const Track = ({ track, clips, zoom }) => {
             const dropTimeCalc = pixelsToTime(dropX, zoom);
             
             // Calculate snap targets (pass dropTime first)
+            // Use same threshold as drop handler (1.0 seconds)
+            const snapThreshold = 1.0;
             const snapTargets = calculateSnapTargets(
               dropTimeCalc,  // Drop position time
               dragState.draggedClip,  // Clip being dragged
               timelineClips,  // All clips
-              0.5
+              snapThreshold,
+              true // Always include origin
             );
             
             // Find snap target for the calculated drop time
-            const snapTarget = findSnapTarget(dropTimeCalc, snapTargets, 0.5);
+            const snapTarget = snapTargets.length > 0 && snapTargets[0].distance <= snapThreshold
+              ? snapTargets[0]
+              : null;
             
             if (snapTarget) {
               // Calculate snap line position
@@ -289,16 +294,32 @@ const Track = ({ track, clips, zoom }) => {
         
         // Calculate snap targets using time-based calculation
         // Pass dropTime first, then draggedClip, then all clips
+        // Use larger threshold (2.0 seconds) for better snapping during organization
+        const snapThreshold = 2.0;
         const snapTargets = calculateSnapTargets(
           dropTime,  // Drop position time
           sourceClip,  // Clip being dragged (to filter it out)
           timelineClips,  // All clips (including dragged one, will be filtered)
-          0.5 // 0.5 second threshold
+          snapThreshold,
+          true // Always include origin
         );
         
-        // Find closest snap target
-        const snapTarget = findSnapTarget(dropTime, snapTargets, 0.5);
-        const finalTime = snapTarget ? snapTarget.time : dropTime;
+        // Find closest snap target - always use the closest one if within threshold
+        let finalTime = dropTime;
+        if (snapTargets.length > 0) {
+          // Always snap to the closest target if within threshold
+          const closestSnap = snapTargets[0];
+          if (closestSnap.distance <= snapThreshold) {
+            finalTime = closestSnap.time;
+          } else {
+            // If no snap within threshold, still try to close gaps by checking
+            // if we're close to origin or another clip's edge (within 5 seconds)
+            const relaxedThreshold = 5.0;
+            if (closestSnap.distance <= relaxedThreshold) {
+              finalTime = closestSnap.time;
+            }
+          }
+        }
         
         console.log('🎬 [TRACK] Snap calculation:', {
           dropTime,
