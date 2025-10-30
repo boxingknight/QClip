@@ -6,6 +6,7 @@ import { PlaybackProvider } from './context/PlaybackContext';
 import { LayoutProvider, useLayout } from './context/LayoutContext';
 import { MediaLibraryProvider, useMediaLibrary } from './context/MediaLibraryContext';
 import { RecordingProvider } from './context/RecordingContext';
+import { ExportProvider } from './context/ExportContext';
 import ImportPanel from './components/ImportPanel';
 import VideoPlayer from './components/VideoPlayer';
 import ExportPanel from './components/ExportPanel';
@@ -636,13 +637,15 @@ function App() {
       <TimelineProvider>
         <ProjectProvider>
           <UIProvider>
-            <PlaybackProvider>
-              <MediaLibraryProvider>
-                <RecordingProvider>
-                  <AppContent />
-                </RecordingProvider>
-              </MediaLibraryProvider>
-            </PlaybackProvider>
+            <ExportProvider>
+              <PlaybackProvider>
+                <MediaLibraryProvider>
+                  <RecordingProvider>
+                    <AppContent />
+                  </RecordingProvider>
+                </MediaLibraryProvider>
+              </PlaybackProvider>
+            </ExportProvider>
           </UIProvider>
         </ProjectProvider>
       </TimelineProvider>
