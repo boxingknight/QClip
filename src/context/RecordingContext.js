@@ -2,10 +2,11 @@
 // V2 Feature: Context API for recording state
 // Status: Implemented for PR #17
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { logger } from '../utils/logger';
 import { getWebcamDevices } from '../utils/webcamUtils';
 import { extractVideoMetadata } from '../utils/videoMetadata';
+import { useCanvasCompositing } from '../hooks/useCanvasCompositing';
 
 const RecordingContext = createContext();
 
@@ -42,6 +43,19 @@ export const RecordingProvider = ({ children }) => {
   const [selectedWebcamId, setSelectedWebcamId] = useState(null);
   const [availableWebcams, setAvailableWebcams] = useState([]);
   const [previewStream, setPreviewStream] = useState(null);
+  
+  // PIP-specific state
+  const [recordingMode, setRecordingMode] = useState('screen'); // 'screen' | 'webcam' | 'pip'
+  const [pipSettings, setPipSettings] = useState({
+    position: 'top-right', // 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+    size: 25, // Percentage of screen width (15-50)
+    audioSource: 'webcam' // 'screen' | 'webcam' | 'both' | 'none'
+  });
+  const [screenStream, setScreenStream] = useState(null);
+  const [webcamStream, setWebcamStream] = useState(null);
+  const [compositeCanvas, setCompositeCanvas] = useState(null);
+  const [canvasStream, setCanvasStream] = useState(null);
+  const renderingLoopRef = useRef(null);
 
   // Get available screen sources
   const getAvailableSources = useCallback(async () => {
@@ -425,6 +439,293 @@ export const RecordingProvider = ({ children }) => {
     }
   }, []);
 
+  // Start PIP recording
+  const startPIPRecording = useCallback(async (screenSourceId, webcamDeviceId, settings, options = {}) => {
+    let timer = null;
+    let recordingResolve = null;
+    let recordingReject = null;
+    let canvas = null;
+    let screenVideo = null;
+    let webcamVideo = null;
+    let animationFrameId = null;
+    
+    try {
+      setError(null);
+      logger.info('Starting PIP recording', { screenSourceId, webcamDeviceId, settings });
+      
+      // Get screen stream
+      const screenStream = await navigator.mediaDevices.getUserMedia({
+        audio: false, // Screen audio handled separately
+        video: {
+          mandatory: {
+            chromeMediaSource: 'desktop',
+            chromeMediaSourceId: screenSourceId
+          }
+        }
+      });
+      
+      // Get webcam stream
+      const webcamStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          deviceId: { exact: webcamDeviceId },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30 }
+        },
+        audio: true // Webcam microphone
+      });
+      
+      setScreenStream(screenStream);
+      setWebcamStream(webcamStream);
+      
+      // Create hidden canvas for compositing
+      canvas = document.createElement('canvas');
+      canvas.style.display = 'none';
+      document.body.appendChild(canvas);
+      const ctx = canvas.getContext('2d', { willReadFrequently: false });
+      
+      // Create video elements
+      screenVideo = document.createElement('video');
+      webcamVideo = document.createElement('video');
+      screenVideo.srcObject = screenStream;
+      webcamVideo.srcObject = webcamStream;
+      screenVideo.autoplay = true;
+      webcamVideo.autoplay = true;
+      screenVideo.muted = true;
+      webcamVideo.muted = true;
+      
+      // Wait for both video metadata
+      await new Promise((resolve) => {
+        screenVideo.onloadedmetadata = () => {
+          screenVideo.play();
+          resolve();
+        };
+      });
+      
+      await new Promise((resolve) => {
+        webcamVideo.onloadedmetadata = () => {
+          webcamVideo.play();
+          resolve();
+        };
+      });
+      
+      // Set canvas size to screen resolution
+      canvas.width = screenVideo.videoWidth;
+      canvas.height = screenVideo.videoHeight;
+      
+      // Calculate PIP dimensions and position
+      const webcamAspectRatio = webcamVideo.videoHeight / webcamVideo.videoWidth;
+      const pipDimensions = calculatePIPDimensions(
+        settings.size,
+        canvas.width,
+        webcamAspectRatio
+      );
+      
+      const pipPosition = calculatePIPPosition(
+        settings.position,
+        canvas.width,
+        canvas.height,
+        pipDimensions.width,
+        pipDimensions.height
+      );
+      
+      setCompositeCanvas(canvas);
+      
+      // Rendering loop (30fps)
+      let lastFrameTime = 0;
+      const targetFPS = 30;
+      const frameInterval = 1000 / targetFPS;
+      
+      const render = (currentTime) => {
+        if (currentTime - lastFrameTime >= frameInterval) {
+          // Draw screen (full size)
+          ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height);
+          
+          // Draw webcam (PIP overlay)
+          ctx.drawImage(webcamVideo, pipPosition.x, pipPosition.y, pipDimensions.width, pipDimensions.height);
+          
+          lastFrameTime = currentTime;
+        }
+        
+        animationFrameId = requestAnimationFrame(render);
+      };
+      
+      renderingLoopRef.current = animationFrameId;
+      render(performance.now());
+      
+      // Get canvas stream
+      const canvasStream = canvas.captureStream(30);
+      setCanvasStream(canvasStream);
+      
+      // Add audio track (basic - will enhance in Phase 3)
+      // For now, just use webcam audio
+      const webcamAudioTracks = webcamStream.getAudioTracks();
+      if (webcamAudioTracks.length > 0 && settings.audioSource !== 'none') {
+        canvasStream.addTrack(webcamAudioTracks[0]);
+      }
+      
+      // Setup MediaRecorder with canvas stream
+      const mimeType = 'video/webm;codecs=vp9,opus';
+      const mediaRecorder = new MediaRecorder(canvasStream, {
+        mimeType,
+        videoBitsPerSecond: options.quality === 'high' ? 8000000 : 4000000
+      });
+      
+      // Chunk collection (same pattern as existing recording)
+      const chunks = [];
+      let chunksComplete = false;
+      let pendingDataPromise = null;
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          chunks.push(event.data);
+          logger.debug('PIP chunk received', { 
+            size: event.data.size, 
+            totalChunks: chunks.length
+          });
+          
+          if (pendingDataPromise && event.data.size > 0) {
+            pendingDataPromise.resolve();
+            pendingDataPromise = null;
+          }
+        } else if (event.data.size === 0 && chunks.length > 0) {
+          chunksComplete = true;
+          if (pendingDataPromise) {
+            pendingDataPromise.resolve();
+            pendingDataPromise = null;
+          }
+        }
+      };
+      
+      // Stop promise
+      const stopPromise = new Promise((resolve, reject) => {
+        recordingResolve = resolve;
+        recordingReject = reject;
+        
+        mediaRecorder.onstop = async () => {
+          try {
+            // Wait for final chunk
+            const waitForFinalChunk = () => {
+              return new Promise((resolveWait) => {
+                if (chunksComplete || chunks.length === 0) {
+                  resolveWait();
+                  return;
+                }
+                
+                pendingDataPromise = { resolve: resolveWait };
+                
+                setTimeout(() => {
+                  if (pendingDataPromise) {
+                    pendingDataPromise = null;
+                  }
+                  resolveWait();
+                }, 500);
+              });
+            };
+            
+            await waitForFinalChunk();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            const blob = new Blob(chunks, { type: mimeType });
+            
+            if (blob.size === 0) {
+              throw new Error('Blob is empty - no recording data collected');
+            }
+            
+            // Stop all tracks
+            screenStream.getTracks().forEach(track => track.stop());
+            webcamStream.getTracks().forEach(track => track.stop());
+            
+            // Cleanup canvas and video elements
+            if (animationFrameId) {
+              cancelAnimationFrame(animationFrameId);
+            }
+            if (canvas && canvas.parentNode) {
+              document.body.removeChild(canvas);
+            }
+            if (screenVideo) {
+              screenVideo.srcObject = null;
+            }
+            if (webcamVideo) {
+              webcamVideo.srcObject = null;
+            }
+            
+            setRecordedChunks([blob]);
+            resolve(blob);
+          } catch (error) {
+            logger.error('Error creating PIP blob from chunks', error);
+            reject(error);
+          }
+        };
+      });
+      
+      mediaRecorder._stopPromise = stopPromise;
+      mediaRecorder._chunks = chunks;
+      
+      mediaRecorder.onerror = (event) => {
+        logger.error('PIP MediaRecorder error', event);
+        setError('PIP recording error occurred');
+        if (recordingReject) {
+          recordingReject(new Error('MediaRecorder error occurred'));
+        }
+      };
+      
+      // Start recording
+      mediaRecorder.start(1000);
+      setMediaRecorder(mediaRecorder);
+      setMediaStream(canvasStream); // Point mediaStream to canvas stream for compatibility
+      setIsRecording(true);
+      setRecordingMode('pip');
+      setRecordingType('pip');
+      setStartTime(Date.now());
+      setRecordedChunks([]);
+      
+      // Start duration timer
+      timer = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+      
+      window.recordingTimer = timer;
+      
+      logger.info('PIP recording started successfully');
+      return true;
+    } catch (error) {
+      // Cleanup on error
+      if (timer) {
+        clearInterval(timer);
+      }
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      if (canvas && canvas.parentNode) {
+        document.body.removeChild(canvas);
+      }
+      if (screenVideo) {
+        screenVideo.srcObject = null;
+      }
+      if (webcamVideo) {
+        webcamVideo.srcObject = null;
+      }
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+      }
+      if (webcamStream) {
+        webcamStream.getTracks().forEach(track => track.stop());
+      }
+      
+      logger.error('Failed to start PIP recording', error);
+      setError(`Failed to start PIP recording: ${error.message}`);
+      setIsRecording(false);
+      setMediaRecorder(null);
+      setMediaStream(null);
+      setScreenStream(null);
+      setWebcamStream(null);
+      setCanvasStream(null);
+      setCompositeCanvas(null);
+      return false;
+    }
+  }, []);
+
   // Stop recording
   const stopRecording = useCallback(async () => {
     if (!mediaRecorder || !isRecording) {
@@ -467,6 +768,33 @@ export const RecordingProvider = ({ children }) => {
       // Wait for the stop promise (which waits for all chunks via onstop event)
       const blob = await mediaRecorder._stopPromise;
       
+      // PIP-specific cleanup
+      if (recordingMode === 'pip' || recordingType === 'pip') {
+        // Stop rendering loop
+        if (renderingLoopRef.current) {
+          cancelAnimationFrame(renderingLoopRef.current);
+          renderingLoopRef.current = null;
+        }
+        
+        // Remove canvas from DOM
+        if (compositeCanvas && compositeCanvas.parentNode) {
+          document.body.removeChild(compositeCanvas);
+        }
+        
+        // Stop both streams (if not already stopped)
+        if (screenStream) {
+          screenStream.getTracks().forEach(track => track.stop());
+          setScreenStream(null);
+        }
+        if (webcamStream) {
+          webcamStream.getTracks().forEach(track => track.stop());
+          setWebcamStream(null);
+        }
+        
+        setCanvasStream(null);
+        setCompositeCanvas(null);
+      }
+      
       // Reset state
       setIsRecording(false);
       setMediaRecorder(null);
@@ -488,7 +816,7 @@ export const RecordingProvider = ({ children }) => {
       setStartTime(null);
       throw error;
     }
-  }, [mediaRecorder, isRecording]);
+  }, [mediaRecorder, isRecording, recordingMode, recordingType, screenStream, webcamStream, compositeCanvas]);
 
   // Save recording
   const saveRecording = useCallback(async (blob, filename) => {
@@ -614,11 +942,21 @@ export const RecordingProvider = ({ children }) => {
     previewStream,
     setPreviewStream,
     
+    // PIP-specific state
+    recordingMode,
+    setRecordingMode,
+    pipSettings,
+    setPipSettings,
+    screenStream,
+    webcamStream,
+    canvasStream,
+    
     // Actions
     getAvailableSources,
     getWebcamDevices: getWebcamDevicesList,
     startRecording,
     startWebcamRecording,
+    startPIPRecording,
     stopRecording,
     saveRecording,
     cancelRecording,
