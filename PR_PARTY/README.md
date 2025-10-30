@@ -205,6 +205,59 @@ Complete undo/redo system that enables users to reverse and replay timeline edit
 
 ---
 
+### PR#23: Advanced Export Settings 📋 PLANNING COMPLETE
+**Status:** 📋 PLANNING COMPLETE  
+**Timeline:** 4-6 hours estimated  
+**Priority:** HIGH - Professional export capabilities  
+**Complexity:** MEDIUM  
+**Dependencies:** PR #11 (State Management Refactor), PR #12 (UI Component Library), PR #13 (Professional Timeline), PR #14 (Drag & Drop), PR #15 (Split & Delete), PR #16 (Undo/Redo)
+
+**What We're Building:**
+Professional export settings that give users full control over video output quality, resolution, format, and encoding options. This transforms ClipForge from a basic "export MP4" tool into a professional video editor with customizable export capabilities.
+
+**Key Deliverables:**
+- ✅ ExportSettingsModal with comprehensive settings UI
+- ✅ Basic settings (format, resolution, quality)
+- ✅ Advanced settings (codec, bitrate, framerate, pixel format)
+- ✅ Preset system (Web, Broadcast, Archival)
+- ✅ File size estimation with real-time updates
+- ✅ Settings persistence (localStorage)
+- ✅ Settings validation
+- ✅ Enhanced FFmpeg integration with custom settings
+
+**Technical Approach:**
+- Modal dialog UI with expandable advanced settings
+- Hybrid preset + custom settings system
+- localStorage persistence with project-level override capability
+- ExportContext separate from ProjectContext
+- Preset-based FFmpeg command building with validation
+
+**Documents Created:**
+- ✅ `PR23_ADVANCED_EXPORT_SETTINGS.md` (~12,000 words) - Technical specification
+- ✅ `PR23_IMPLEMENTATION_CHECKLIST.md` (~10,000 words) - Step-by-step tasks
+- ✅ `PR23_README.md` (~4,000 words) - Quick start guide
+- ✅ `PR23_PLANNING_SUMMARY.md` (~2,000 words) - Executive overview
+- ✅ `PR23_TESTING_GUIDE.md` (~5,000 words) - Testing strategy
+
+**Total Documentation:** ~33,000 words
+
+**Summary:** Comprehensive planning complete for advanced export settings infrastructure. Foundation for PR#24 (Export Presets) and PR#25 (Cloud Upload Integration). Key decisions favor professional UX (modal dialog), flexibility (presets + custom), and maintainability (validated preset system).
+
+**Key Decisions:**
+- Modal dialog with expandable sections (professional UX) ✅
+- Hybrid preset + custom system (flexibility, maintainability) ✅
+- localStorage persistence (user convenience) ✅
+- ExportContext separate from ProjectContext (clean architecture) ✅
+
+**Risks Identified:**
+- FFmpeg command complexity - Mitigation: Preset system with tested configurations
+- File size estimation accuracy - Mitigation: Conservative estimates, ±10% acceptable
+- Settings state management - Mitigation: Proven Context API pattern
+
+**Next:** Begin implementation following checklist, or continue with other PRs
+
+---
+
 ### PR#11: State Management Refactor ✅ COMPLETE
 **Status:** ✅ COMPLETE  
 **Timeline:** 4-6 hours estimated / ~4 hours actual  
@@ -439,6 +492,49 @@ Screen recording functionality using Electron's desktopCapturer API and Web Medi
 - Frame rate: ~30fps maintained ✅
 
 **Next:** PR #18 - Webcam Recording (can reuse recording infrastructure)
+
+---
+
+### PR#32: Picture-in-Picture Recording 📋 PLANNED
+**Status:** 📋 PLANNED  
+**Timeline:** 8-10 hours estimated  
+**Priority:** HIGH - Completes recording suite  
+**Complexity:** HIGH  
+**Dependencies:** PR #17 (Screen Recording Setup), PR #18 (Webcam Recording) ✅
+
+**What We're Building:**
+Picture-in-picture recording functionality that simultaneously captures both screen content and webcam video, compositing them into a single video file. The webcam appears as a smaller overlay window positioned in one of four corners. This enables users to create tutorial videos, presentations, or content where they appear while demonstrating screen content.
+
+**Key Deliverables:**
+- Canvas-based compositing with dual stream support
+- PIP position configuration (4 corners: top-left, top-right, bottom-left, bottom-right)
+- PIP size configuration (15%-50% with presets: Small/Medium/Large)
+- Audio source selection (webcam, screen, both, none)
+- Real-time preview of composited view
+- PIPRecordingControls component
+- PIPPreview component showing live composite
+- PIPSettings component for configuration
+- Integration with existing RecordingControls
+
+**Technical Approach:**
+- Canvas compositing hook for real-time rendering
+- Single hidden canvas with video elements drawing loop
+- Canvas CaptureStream API for recording composite
+- AudioContext for audio mixing when "both" selected
+- RequestAnimationFrame for smooth 30fps rendering
+
+**Documents Created:**
+- ✅ `PR32_PICTURE_IN_PICTURE_RECORDING.md` (~10,000 words) - Technical specification
+- ✅ `PR32_IMPLEMENTATION_CHECKLIST.md` (~12,000 words) - Step-by-step tasks
+- ✅ `PR32_README.md` (~4,000 words) - Quick start guide
+- ✅ `PR32_PLANNING_SUMMARY.md` (~3,000 words) - Executive overview
+- ✅ `PR32_TESTING_GUIDE.md` (~5,000 words) - Testing strategy
+
+**Total Documentation:** ~34,000 words
+
+**Summary:** Picture-in-picture recording planning complete. Canvas-based compositing approach with four corner positioning, configurable size (15%-50%), and user-selectable audio sources. Comprehensive implementation checklist with phase-by-phase breakdown. Ready for implementation.
+
+**Next:** Ready for implementation after PR#17 and PR#18 verification
 
 ---
 
@@ -1072,11 +1168,12 @@ A visual timeline component that displays imported video clips horizontally with
 - ✅ PR#16: Undo/Redo System (3 hours actual) - **✅ COMPLETE & DEPLOYED**
 - ✅ PR#17: Screen Recording Setup (~26 hours actual) - **✅ COMPLETE**
 - ✅ PR#18: Webcam Recording (9 hours actual) - **✅ COMPLETE & DEPLOYED**
+- 📋 PR#32: Picture-in-Picture Recording (8-10 hours) - **📋 PLANNED**
 - 📋 PR#19: Audio Mixing & Controls (4 hours)
 - 📋 PR#20: Text Overlays (6 hours)
 - 📋 PR#21: Transitions Between Clips (6 hours)
 - 📋 PR#22: Video Filters (4 hours)
-- 📋 PR#23: Advanced Export Settings (4 hours)
+- ✅ PR#23: Advanced Export Settings (4-6 hours) - **📋 PLANNING COMPLETE**
 - 📋 PR#24: Export Presets (4 hours)
 - 📋 PR#25: Cloud Upload Integration (6 hours)
 - 📋 PR#26: Project Save/Load (4 hours)
