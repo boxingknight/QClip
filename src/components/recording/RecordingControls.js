@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useRecording } from '../../context/RecordingContext';
 import { useUI } from '../../context/UIContext';
-import { useMediaLibrary } from '../../context/MediaLibraryContext';
 import RecordingButton from './RecordingButton';
 import RecordingIndicator from './RecordingIndicator';
 import SourcePicker from './SourcePicker';
@@ -24,7 +23,6 @@ const RecordingControls = () => {
   } = useRecording();
   
   const { showModal, hideModal, showToast } = useUI();
-  const { addMediaItems } = useMediaLibrary();
   const [isLoading, setIsLoading] = useState(false);
   
   const handleStartRecording = async () => {
@@ -78,23 +76,8 @@ const RecordingControls = () => {
   
   // Handle recording saved callback for webcam
   const handleWebcamRecordingSaved = (recordingFile) => {
-    // Add to Media Library with full metadata from extractVideoMetadata
-    const mediaItem = {
-      id: recordingFile.id || `media-${Date.now()}`,
-      name: recordingFile.name,
-      path: recordingFile.path,
-      duration: recordingFile.duration || 0,
-      fileSize: recordingFile.size || 0,
-      thumbnailUrl: recordingFile.thumbnail || null,
-      width: recordingFile.width || 1280,
-      height: recordingFile.height || 720,
-      fps: recordingFile.fps || 30,
-      codec: recordingFile.codec || 'vp9',
-      hasAudio: recordingFile.hasAudio !== false, // Use metadata value
-      type: 'video'
-    };
-    
-    addMediaItems([mediaItem]);
+    // Note: saveRecording() already adds to Media Library via RecordingContext
+    // No need to call addMediaItems() here to avoid duplicates
     
     showToast({
       type: 'success',
