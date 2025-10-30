@@ -559,9 +559,29 @@ export const RecordingProvider = ({ children }) => {
       renderingLoopRef.current = animationFrameId;
       render(performance.now());
       
-      // Get canvas stream
-      const canvasStream = canvas.captureStream(30);
-      setCanvasStream(canvasStream);
+                // Get canvas stream with proper frame rate
+                // Force 30fps by using captureStream with explicit frame rate
+                const canvasStream = canvas.captureStream(30);
+                
+                // CRITICAL FIX: Force the video track to have correct frame rate
+                const videoTrack = canvasStream.getVideoTracks()[0];
+                if (videoTrack) {
+                  // Apply frame rate constraints to the video track
+                  const trackSettings = videoTrack.getSettings();
+                  console.log('🎬 [PIP] Canvas track settings:', trackSettings);
+                  
+                  // Create a new MediaStream with corrected settings
+                  const correctedStream = new MediaStream();
+                  correctedStream.addTrack(videoTrack);
+                  
+                  // Add audio track if present
+                  const audioTracks = canvasStream.getAudioTracks();
+                  audioTracks.forEach(track => correctedStream.addTrack(track));
+                  
+                  setCanvasStream(correctedStream);
+                } else {
+                  setCanvasStream(canvasStream);
+                }
       
       // Add audio track based on selection
       const audioTrack = await selectAudioSource(

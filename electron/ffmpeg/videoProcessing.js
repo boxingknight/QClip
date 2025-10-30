@@ -181,6 +181,18 @@ function getVideoOptions(settings) {
     console.log('[FFmpeg] Using source frame rate');
   }
   
+  // CRITICAL FIX: Always force 30fps for PIP recordings to prevent slow motion
+  // This fixes the 1000fps issue that causes slow motion and wrong duration
+  if (inputPath.includes('pictureinpic') || inputPath.includes('webm')) {
+    options.push('-r 30');
+    console.log('[FFmpeg] FORCING 30fps for PIP/WebM recording to fix slow motion');
+    
+    // Also force better quality settings for PIP recordings
+    options.push('-preset medium'); // Better quality than fast
+    options.push('-crf 18'); // High quality (lower = better quality)
+    console.log('[FFmpeg] FORCING high quality settings for PIP recording');
+  }
+  
   // Bitrate or CRF
   if (advanced.crf && advanced.crfValue !== undefined) {
     options.push(`-crf ${advanced.crfValue}`);

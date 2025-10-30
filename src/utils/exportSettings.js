@@ -19,9 +19,9 @@ export const getDefaultSettings = () => ({
   videoBitrate: '5000k',
   audioBitrate: '128k',
   
-  // Frame Rate Settings
-  framerate: 'source', // 'source' | 'custom'
-  customFramerate: 30,
+    // Frame Rate Settings
+    framerate: 'custom', // 'source' | 'custom'
+    customFramerate: 30,
   
   // Advanced Settings
   advanced: {
