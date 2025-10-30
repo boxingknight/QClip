@@ -9,6 +9,7 @@ import { extractVideoMetadata } from '../utils/videoMetadata';
 import { useCanvasCompositing } from '../hooks/useCanvasCompositing';
 import { calculatePIPDimensions, calculatePIPPosition } from '../utils/pipUtils';
 import { selectAudioSource } from '../utils/audioUtils';
+import { useMediaLibrary } from './MediaLibraryContext';
 
 const RecordingContext = createContext();
 
@@ -21,6 +22,9 @@ export const useRecording = () => {
 };
 
 export const RecordingProvider = ({ children }) => {
+  // Get Media Library context
+  const { addMediaItems } = useMediaLibrary();
+  
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -889,7 +893,25 @@ export const RecordingProvider = ({ children }) => {
         // Add to saved recordings
         setSavedRecordings(prev => [...prev, recordingFile]);
         
-        logger.info('Recording saved successfully', recordingFile);
+        // Add to Media Library
+        const mediaItem = {
+          id: recordingFile.id,
+          name: recordingFile.name,
+          path: recordingFile.path,
+          duration: recordingFile.duration || 0,
+          fileSize: recordingFile.size || 0,
+          thumbnailUrl: recordingFile.thumbnail || null,
+          width: recordingFile.width || 1920,
+          height: recordingFile.height || 1080,
+          fps: recordingFile.fps || 30,
+          codec: recordingFile.codec || 'vp9',
+          hasAudio: recordingFile.hasAudio !== false,
+          type: 'video'
+        };
+        
+        addMediaItems([mediaItem]);
+        
+        logger.info('Recording saved successfully and added to Media Library', recordingFile);
         return recordingFile;
       } else {
         throw new Error('Save cancelled by user');
