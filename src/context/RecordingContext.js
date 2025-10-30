@@ -7,6 +7,8 @@ import { logger } from '../utils/logger';
 import { getWebcamDevices } from '../utils/webcamUtils';
 import { extractVideoMetadata } from '../utils/videoMetadata';
 import { useCanvasCompositing } from '../hooks/useCanvasCompositing';
+import { calculatePIPDimensions, calculatePIPPosition } from '../utils/pipUtils';
+import { selectAudioSource } from '../utils/audioUtils';
 
 const RecordingContext = createContext();
 
