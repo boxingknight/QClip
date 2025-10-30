@@ -907,6 +907,28 @@ export const RecordingProvider = ({ children }) => {
     if (mediaStream) {
       mediaStream.getTracks().forEach(track => track.stop());
     }
+    
+    // PIP-specific cleanup
+    if (recordingMode === 'pip' || recordingType === 'pip') {
+      if (renderingLoopRef.current) {
+        cancelAnimationFrame(renderingLoopRef.current);
+        renderingLoopRef.current = null;
+      }
+      if (compositeCanvas && compositeCanvas.parentNode) {
+        document.body.removeChild(compositeCanvas);
+      }
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+        setScreenStream(null);
+      }
+      if (webcamStream) {
+        webcamStream.getTracks().forEach(track => track.stop());
+        setWebcamStream(null);
+      }
+      setCanvasStream(null);
+      setCompositeCanvas(null);
+    }
+    
     setIsRecording(false);
     setMediaRecorder(null);
     setMediaStream(null);
@@ -916,7 +938,7 @@ export const RecordingProvider = ({ children }) => {
     setRecordingType(null);
     setError(null);
     logger.info('Recording cancelled');
-  }, [mediaRecorder, isRecording, mediaStream]);
+  }, [mediaRecorder, isRecording, mediaStream, recordingMode, recordingType, compositeCanvas, screenStream, webcamStream]);
 
   // Utility functions
   const formatDuration = useCallback((seconds) => {
