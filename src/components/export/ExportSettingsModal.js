@@ -4,6 +4,7 @@ import { useExportSettings } from '../../context/ExportContext';
 import { useUI } from '../../context/UIContext';
 import { validateExportSettings, exportPresets } from '../../utils/exportSettings';
 import BasicSettings from './BasicSettings';
+import AdvancedSettings from './AdvancedSettings';
 import PresetSelector from './PresetSelector';
 import FileSizeEstimator from './FileSizeEstimator';
 import Modal from '../ui/Modal';
@@ -77,9 +78,11 @@ const ExportSettingsModal = () => {
         </div>
         
         {showAdvanced && (
-          <div className="advanced-settings-placeholder">
-            <p>Advanced settings coming in Phase 3</p>
-          </div>
+          <AdvancedSettings 
+            settings={localSettings}
+            onChange={setLocalSettings}
+            isVisible={showAdvanced}
+          />
         )}
         
         <FileSizeEstimator settings={localSettings} />

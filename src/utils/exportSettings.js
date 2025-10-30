@@ -19,15 +19,16 @@ export const getDefaultSettings = () => ({
   videoBitrate: '5000k',
   audioBitrate: '128k',
   
-  // Encoding Settings
-  videoCodec: 'libx264',
-  audioCodec: 'aac',
-  preset: 'medium',
-  
   // Advanced Settings
-  framerate: 'source',
-  customFramerate: 30,
-  pixelFormat: 'yuv420p',
+  advanced: {
+    codec: 'h264',
+    bitrate: '5000k',
+    preset: 'medium',
+    profile: 'main',
+    twoPass: false,
+    crf: false,
+    crfValue: 23
+  },
   
   // File Settings
   filename: 'exported_video',
@@ -49,11 +50,15 @@ export const exportPresets = {
     quality: 'fast',
     videoBitrate: '2000k',
     audioBitrate: '128k',
-    videoCodec: 'libx264',
-    audioCodec: 'aac',
-    preset: 'fast',
-    framerate: 'source',
-    pixelFormat: 'yuv420p'
+    advanced: {
+      codec: 'h264',
+      bitrate: '2000k',
+      preset: 'fast',
+      profile: 'main',
+      twoPass: false,
+      crf: false,
+      crfValue: 23
+    }
   },
   broadcast: {
     name: 'Broadcast (High Quality)',
@@ -62,11 +67,15 @@ export const exportPresets = {
     quality: 'high',
     videoBitrate: '50000k',
     audioBitrate: '320k',
-    videoCodec: 'libx264',
-    audioCodec: 'aac',
-    preset: 'slow',
-    framerate: 'source',
-    pixelFormat: 'yuv420p'
+    advanced: {
+      codec: 'h264',
+      bitrate: '50000k',
+      preset: 'slow',
+      profile: 'high',
+      twoPass: true,
+      crf: false,
+      crfValue: 18
+    }
   },
   archival: {
     name: 'Archival (Maximum Quality)',
@@ -75,11 +84,15 @@ export const exportPresets = {
     quality: 'high',
     videoBitrate: '100000k',
     audioBitrate: '320k',
-    videoCodec: 'libx265',
-    audioCodec: 'aac',
-    preset: 'veryslow',
-    framerate: 'source',
-    pixelFormat: 'yuv420p'
+    advanced: {
+      codec: 'h265',
+      bitrate: '100000k',
+      preset: 'veryslow',
+      profile: 'main',
+      twoPass: true,
+      crf: false,
+      crfValue: 15
+    }
   }
 };
 

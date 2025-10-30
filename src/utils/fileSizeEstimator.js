@@ -59,9 +59,13 @@ export function estimateFileSize(duration, settings) {
     return { size: 0, unit: 'MB' };
   }
   
+  // Get bitrates from settings (support both old and new structure)
+  const videoBitrate = settings.advanced?.bitrate || settings.videoBitrate || '5000k';
+  const audioBitrate = settings.audioBitrate || '128k';
+  
   // Parse bitrates (convert to bps)
-  const videoBitrateBps = parseBitrate(settings.videoBitrate) * 1000; // Convert kbps to bps
-  const audioBitrateBps = parseBitrate(settings.audioBitrate) * 1000; // Convert kbps to bps
+  const videoBitrateBps = parseBitrate(videoBitrate) * 1000; // Convert kbps to bps
+  const audioBitrateBps = parseBitrate(audioBitrate) * 1000; // Convert kbps to bps
   const totalBitrateBps = videoBitrateBps + audioBitrateBps;
   
   // Calculate total bytes: bitrate (bits/sec) * duration (sec) / 8 (bits to bytes)
