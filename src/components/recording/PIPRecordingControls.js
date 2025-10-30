@@ -4,7 +4,6 @@
 import React, { useState } from 'react';
 import { useRecording } from '../../context/RecordingContext';
 import { useUI } from '../../context/UIContext';
-import { useMediaLibrary } from '../../context/MediaLibraryContext';
 import SourcePicker from './SourcePicker';
 import DeviceSelector from './DeviceSelector';
 import PIPSettings from './PIPSettings';
@@ -33,7 +32,6 @@ const PIPRecordingControls = ({ onRecordingSaved }) => {
   } = useRecording();
   
   const { showModal, showToast } = useUI();
-  const { addMediaItems } = useMediaLibrary();
   
   const [selectedScreenSource, setSelectedScreenSource] = useState(null);
   const [selectedWebcamId, setSelectedWebcamId] = useState(null);
@@ -174,23 +172,8 @@ const PIPRecordingControls = ({ onRecordingSaved }) => {
         const filename = `pip-recording-${Date.now()}.webm`;
         const recordingFile = await saveRecording(blob, filename);
         
-        // Add to Media Library
-        const mediaItem = {
-          id: recordingFile.id || `media-${Date.now()}`,
-          name: recordingFile.name,
-          path: recordingFile.path,
-          duration: recordingFile.duration || 0,
-          fileSize: recordingFile.size || 0,
-          thumbnailUrl: recordingFile.thumbnail || null,
-          width: recordingFile.width || 1920,
-          height: recordingFile.height || 1080,
-          fps: recordingFile.fps || 30,
-          codec: recordingFile.codec || 'vp9',
-          hasAudio: recordingFile.hasAudio !== false,
-          type: 'video'
-        };
-        
-        addMediaItems([mediaItem]);
+        // Note: saveRecording() already adds to Media Library via RecordingContext
+        // No need to call addMediaItems() here to avoid duplicates
         
         showToast({
           type: 'success',
