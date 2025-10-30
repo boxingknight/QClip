@@ -77,19 +77,21 @@ ipcMain.handle('get-video-metadata', async (event, videoPath) => {
 });
 
 // Export video handler
-ipcMain.handle('export-video', async (event, inputPath, outputPath, trimData) => {
+ipcMain.handle('export-video', async (event, inputPath, outputPath, trimData, settings = {}) => {
   try {
-    console.log('Export request received:', { inputPath, outputPath, trimData });
+    console.log('Export request received:', { inputPath, outputPath, trimData, settings });
     
     // Convert trim data (inPoint/outPoint) to FFmpeg format (startTime/duration)
     const startTime = trimData?.inPoint || 0;
     const duration = trimData?.outPoint ? (trimData.outPoint - trimData.inPoint) : undefined;
     
     console.log('Trim settings:', { startTime, duration });
+    console.log('Export settings:', settings);
     
     await exportVideo(inputPath, outputPath, {
       startTime: startTime,
       duration: duration,
+      settings: settings,
       onProgress: (progress) => {
         // Send progress to renderer
         event.sender.send('export-progress-update', progress);
@@ -104,14 +106,14 @@ ipcMain.handle('export-video', async (event, inputPath, outputPath, trimData) =>
 });
 
 // Export entire timeline
-ipcMain.handle('export-timeline', async (event, clips, clipTrims, outputPath) => {
+ipcMain.handle('export-timeline', async (event, clips, clipTrims, outputPath, settings = {}) => {
   try {
-    console.log('Export timeline request:', { clips: clips.length, outputPath });
+    console.log('Export timeline request:', { clips: clips.length, outputPath, settings });
     
     const result = await exportTimeline(clips, clipTrims, outputPath, (progress) => {
       // Send progress to renderer
       event.sender.send('export-progress-update', progress);
-    });
+    }, settings);
     
     return { success: true, outputPath: result };
   } catch (error) {

@@ -12,11 +12,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getVideoMetadata: (videoPath) => ipcRenderer.invoke('get-video-metadata', videoPath),
   
   // Export APIs
-  exportVideo: (inputPath, outputPath, trimData) => 
-    ipcRenderer.invoke('export-video', inputPath, outputPath, trimData),
+  exportVideo: (inputPath, outputPath, trimData, settings) => 
+    ipcRenderer.invoke('export-video', inputPath, outputPath, trimData, settings),
   
-  exportTimeline: (clips, clipTrims, outputPath) =>
-    ipcRenderer.invoke('export-timeline', clips, clipTrims, outputPath),
+  exportTimeline: (clips, clipTrims, outputPath, settings) =>
+    ipcRenderer.invoke('export-timeline', clips, clipTrims, outputPath, settings),
   
   renderTrimmedClip: (inputPath, outputPath, trimData) =>
     ipcRenderer.invoke('render-trimmed-clip', inputPath, outputPath, trimData),

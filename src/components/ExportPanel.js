@@ -80,7 +80,8 @@ const ExportPanel = () => {
       const result = await window.electronAPI.exportTimeline(
         allClips,
         clipTrimsForExport,
-        dialogResult.filePath
+        dialogResult.filePath,
+        settings
       );
 
       if (result.success) {

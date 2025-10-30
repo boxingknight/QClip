@@ -125,10 +125,92 @@ function updateFFmpegPaths() {
 updateFFmpegPaths();
 
 /**
+ * Get video codec from settings
+ * @param {Object} settings - Export settings
+ * @returns {string} FFmpeg video codec
+ */
+function getVideoCodec(settings) {
+  const codec = settings.advanced?.codec || 'h264';
+  
+  switch (codec) {
+    case 'h264':
+      return 'libx264';
+    case 'h265':
+      return 'libx265';
+    case 'vp9':
+      return 'libvpx-vp9';
+    default:
+      return 'libx264';
+  }
+}
+
+/**
+ * Get audio codec from settings
+ * @param {Object} settings - Export settings
+ * @returns {string} FFmpeg audio codec
+ */
+function getAudioCodec(settings) {
+  return 'aac'; // Always use AAC for compatibility
+}
+
+/**
+ * Get video encoding options from settings
+ * @param {Object} settings - Export settings
+ * @returns {Array} FFmpeg output options
+ */
+function getVideoOptions(settings) {
+  const options = [];
+  const advanced = settings.advanced || {};
+  
+  // Preset
+  if (advanced.preset) {
+    options.push(`-preset ${advanced.preset}`);
+  }
+  
+  // Profile
+  if (advanced.profile) {
+    options.push(`-profile:v ${advanced.profile}`);
+  }
+  
+  // Bitrate or CRF
+  if (advanced.crf && advanced.crfValue !== undefined) {
+    options.push(`-crf ${advanced.crfValue}`);
+  } else if (advanced.bitrate) {
+    options.push(`-b:v ${advanced.bitrate}`);
+  }
+  
+  // Two-pass encoding
+  if (advanced.twoPass) {
+    options.push('-pass 1', '-passlogfile', path.join(process.cwd(), 'ffmpeg2pass'));
+  }
+  
+  // Pixel format for compatibility
+  options.push('-pix_fmt yuv420p');
+  
+  return options;
+}
+
+/**
+ * Get audio encoding options from settings
+ * @param {Object} settings - Export settings
+ * @returns {Array} FFmpeg output options
+ */
+function getAudioOptions(settings) {
+  const options = [];
+  
+  // Audio bitrate
+  if (settings.audioBitrate) {
+    options.push(`-b:a ${settings.audioBitrate}`);
+  }
+  
+  return options;
+}
+
+/**
  * Export video to MP4
  * @param {string} inputPath - Source video file
  * @param {string} outputPath - Destination file
- * @param {Object} options - Export options {startTime, duration, onProgress}
+ * @param {Object} options - Export options {startTime, duration, onProgress, settings}
  * @returns {Promise<string>} Output file path
  */
 async function exportVideo(inputPath, outputPath, options = {}) {
@@ -136,15 +218,29 @@ async function exportVideo(inputPath, outputPath, options = {}) {
     // Update paths each time to ensure correct in production
     updateFFmpegPaths();
     
-    const { startTime, duration, onProgress } = options;
+    const { startTime, duration, onProgress, settings = {} } = options;
     
     console.log('Starting export:', inputPath, '->', outputPath);
-    console.log('Options:', { startTime, duration });
+    console.log('Options:', { startTime, duration, settings });
     
-    let command = ffmpeg(inputPath)
-      .videoCodec('libx264')
-      .audioCodec('aac')
-      .outputOptions(['-preset fast', '-crf 23']);
+    // Build FFmpeg command with settings
+    let command = ffmpeg(inputPath);
+    
+    // Apply video codec and settings
+    const videoCodec = getVideoCodec(settings);
+    const videoOptions = getVideoOptions(settings);
+    command = command.videoCodec(videoCodec);
+    if (videoOptions.length > 0) {
+      command = command.outputOptions(videoOptions);
+    }
+    
+    // Apply audio codec and settings
+    const audioCodec = getAudioCodec(settings);
+    const audioOptions = getAudioOptions(settings);
+    command = command.audioCodec(audioCodec);
+    if (audioOptions.length > 0) {
+      command = command.outputOptions(audioOptions);
+    }
 
     // Apply trim if specified
     if (startTime && startTime > 0) {
@@ -184,7 +280,7 @@ async function exportVideo(inputPath, outputPath, options = {}) {
  * Export entire timeline with all clips concatenated
  * Uses FFmpeg concat demuxer for proper multi-clip export
  */
-async function exportTimeline(clips, clipTrims, outputPath, onProgress) {
+async function exportTimeline(clips, clipTrims, outputPath, onProgress, settings = {}) {
   return new Promise(async (resolve, reject) => {
     try {
       // Update paths each time to ensure correct in production
@@ -205,7 +301,8 @@ async function exportTimeline(clips, clipTrims, outputPath, onProgress) {
         await exportVideo(clip.isTrimmed ? clip.trimmedPath : clip.path, outputPath, {
           startTime: clip.isTrimmed ? 0 : trimData.inPoint,
           duration: clip.isTrimmed ? clip.duration : (trimData.outPoint - trimData.inPoint),
-          onProgress
+          onProgress,
+          settings
         });
         
         return resolve(outputPath);
@@ -231,7 +328,7 @@ async function exportTimeline(clips, clipTrims, outputPath, onProgress) {
           if (onProgress) {
             onProgress({ percent: ((i / clips.length) * 100) + (progress.percent / clips.length) });
           }
-        });
+        }, settings);
         tempFiles.push({ path: tempPath, duration: trimData.outPoint - trimData.inPoint });
       }
       
@@ -245,11 +342,23 @@ async function exportTimeline(clips, clipTrims, outputPath, onProgress) {
       
       // Concatenate all clips
       await new Promise((concatResolve, concatReject) => {
-        ffmpeg(concatFile)
+        const videoCodec = getVideoCodec(settings);
+        const audioCodec = getAudioCodec(settings);
+        const videoOptions = getVideoOptions(settings);
+        const audioOptions = getAudioOptions(settings);
+        
+        let command = ffmpeg(concatFile)
           .inputOptions(['-f', 'concat', '-safe', '0'])
-          .videoCodec('libx264')
-          .audioCodec('aac')
-          .outputOptions(['-preset fast', '-crf 23'])
+          .videoCodec(videoCodec)
+          .audioCodec(audioCodec);
+        
+        // Apply all options
+        const allOptions = [...videoOptions, ...audioOptions];
+        if (allOptions.length > 0) {
+          command = command.outputOptions(allOptions);
+        }
+        
+        command
           .on('progress', (progress) => {
             if (onProgress) {
               onProgress({ percent: 90 + (progress.percent * 0.1) });
@@ -289,7 +398,7 @@ async function exportTimeline(clips, clipTrims, outputPath, onProgress) {
  * @param {Function} onProgress - Progress callback
  * @returns {Promise<string>} Output file path
  */
-async function renderTrimmedClip(inputPath, outputPath, trimData, onProgress) {
+async function renderTrimmedClip(inputPath, outputPath, trimData, onProgress, settings = {}) {
   return new Promise(async (resolve, reject) => {
     try {
       // Update paths each time to ensure correct in production
@@ -310,16 +419,30 @@ async function renderTrimmedClip(inputPath, outputPath, trimData, onProgress) {
         console.log(`Created temp directory: ${outputDir}`);
       }
       
-      ffmpeg(inputPath)
+      // Use settings for rendering (but use ultrafast preset for temp files)
+      const videoCodec = getVideoCodec(settings);
+      const audioCodec = getAudioCodec(settings);
+      const videoOptions = getVideoOptions(settings);
+      const audioOptions = getAudioOptions(settings);
+      
+      // Override preset to ultrafast for temp files
+      const tempVideoOptions = videoOptions.map(opt => 
+        opt.startsWith('-preset') ? '-preset ultrafast' : opt
+      );
+      
+      let command = ffmpeg(inputPath)
         .setStartTime(startTime)
         .setDuration(duration)
-        .videoCodec('libx264')
-        .audioCodec('aac')
-        .outputOptions([
-          '-preset ultrafast',  // Fast rendering for MVP
-          '-crf 23',
-          '-avoid_negative_ts make_zero'
-        ])
+        .videoCodec(videoCodec)
+        .audioCodec(audioCodec);
+      
+      // Apply all options
+      const allOptions = [...tempVideoOptions, ...audioOptions, '-avoid_negative_ts make_zero'];
+      if (allOptions.length > 0) {
+        command = command.outputOptions(allOptions);
+      }
+      
+      command
         .on('progress', (progress) => {
           console.log('Render progress:', progress.percent + '%', progress.timemark);
           if (onProgress) {
