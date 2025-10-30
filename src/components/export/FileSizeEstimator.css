@@ -1,0 +1,39 @@
+/* src/components/export/FileSizeEstimator.css */
+.file-size-estimator {
+  margin-top: var(--space-lg, 24px);
+  padding: var(--space-md, 16px);
+  background: var(--color-surface-hover, #334155);
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--color-border, #334155);
+}
+
+.file-size-estimator h4 {
+  margin-bottom: var(--space-sm, 8px);
+  color: var(--color-text-primary, #f1f5f9);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.file-size-display {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs, 4px);
+  margin-bottom: var(--space-xs, 4px);
+}
+
+.file-size-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-primary, #3b82f6);
+}
+
+.file-size-unit {
+  font-size: 14px;
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+.file-size-note {
+  font-size: 12px;
+  color: var(--color-text-secondary, #94a3b8);
+  font-style: italic;
+}

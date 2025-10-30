@@ -19,6 +19,7 @@ import Toolbar, { ToolbarGroups } from './components/ui/Toolbar';
 import LayoutToolbar from './components/ui/LayoutToolbar';
 import ResizeHandle from './components/ui/ResizeHandle';
 import { RecordingControls, SourcePicker } from './components/recording';
+import ExportSettingsModal from './components/export/ExportSettingsModal';
 // Removed StatusBar import - now integrated into Timeline
 import { logger } from './utils/logger';
 import { validateInPoint, validateOutPoint } from './utils/trimValidation';
@@ -547,11 +548,7 @@ function AppContent() {
         {/* Right Sidebar - Export and Recording */}
         <div className="controls-sidebar">
           <RecordingControls />
-          <ExportPanel 
-            currentClip={getSelectedClip()}
-            allClips={clips}
-            clipTrims={clipTrims}
-          />
+          <ExportPanel />
         </div>
         
         {/* Resize Handle - Timeline */}
@@ -570,31 +567,7 @@ function AppContent() {
         <ToastContainer />
         
         {/* Export Settings Modal */}
-        <Modal
-          modalName="exportSettings"
-          title="Export Settings"
-          size="medium"
-        >
-          <div style={{ padding: '20px' }}>
-            <h3>Export Configuration</h3>
-            <p>This is a test modal for the UI component library.</p>
-            <p>Clips in project: {clips.length}</p>
-            <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-              <button 
-                onClick={() => showToast({ type: 'success', message: 'Export started!' })}
-                style={{ padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px' }}
-              >
-                Start Export
-              </button>
-              <button 
-                onClick={() => showToast({ type: 'error', message: 'Export cancelled' })}
-                style={{ padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px' }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </Modal>
+        <ExportSettingsModal />
         
         {/* Source Picker Modal */}
         <Modal

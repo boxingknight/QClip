@@ -3,11 +3,63 @@
   border-radius: 8px;
 }
 
+.export-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
 .export-panel h3 {
-  margin: 0 0 15px 0;
+  margin: 0;
   color: var(--color-text-primary);
   font-size: 18px;
   font-weight: 600;
+}
+
+.settings-button {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.settings-button:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-primary);
+}
+
+.export-settings-summary {
+  margin: 15px 0;
+  padding: 12px;
+  background: var(--color-surface-hover);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.setting-item:last-child {
+  margin-bottom: 0;
+}
+
+.setting-item span:first-child {
+  color: var(--color-text-secondary);
+}
+
+.setting-item span:last-child {
+  color: var(--color-text-primary);
+  font-weight: 500;
 }
 
 .export-button {

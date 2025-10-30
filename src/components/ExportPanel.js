@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from 'react';
+import { useTimeline } from '../context/TimelineContext';
+import { useExportSettings } from '../context/ExportContext';
+import { useUI } from '../context/UIContext';
 import { logger } from '../utils/logger';
 import '../styles/ExportPanel.css';
 
-const ExportPanel = ({ currentClip, allClips, clipTrims }) => {
+const ExportPanel = () => {
+  const { clips, getSelectedClips } = useTimeline();
+  const { settings } = useExportSettings();
+  const { showModal } = useUI();
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('');
   const [error, setError] = useState(null);
+  
+  const selectedClips = getSelectedClips();
+  const currentClip = selectedClips.length > 0 ? selectedClips[0] : null;
+  const allClips = clips;
 
   useEffect(() => {
     // Subscribe to progress updates
@@ -93,9 +103,40 @@ const ExportPanel = ({ currentClip, allClips, clipTrims }) => {
     }
   };
 
+  const handleOpenSettings = () => {
+    showModal('exportSettings');
+  };
+
   return (
     <div className="export-panel">
-      <h3>Export</h3>
+      <div className="export-header">
+        <h3>Export</h3>
+        <button 
+          className="settings-button"
+          onClick={handleOpenSettings}
+          title="Export Settings"
+          aria-label="Open export settings"
+        >
+          ⚙️
+        </button>
+      </div>
+      
+      {currentClip && (
+        <div className="export-settings-summary">
+          <div className="setting-item">
+            <span>Format:</span>
+            <span>{settings.format.toUpperCase()}</span>
+          </div>
+          <div className="setting-item">
+            <span>Resolution:</span>
+            <span>{settings.resolution}</span>
+          </div>
+          <div className="setting-item">
+            <span>Quality:</span>
+            <span>{settings.quality}</span>
+          </div>
+        </div>
+      )}
       
       {error && (
         <div className="export-error">
@@ -119,7 +160,7 @@ const ExportPanel = ({ currentClip, allClips, clipTrims }) => {
       <button 
         className="export-button"
         onClick={handleExport}
-        disabled={!currentClip || isExporting}
+        disabled={!currentClip || isExporting || allClips.length === 0}
       >
         {isExporting ? 'Exporting...' : 'Export Video'}
       </button>
