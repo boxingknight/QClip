@@ -391,9 +391,33 @@ async function exportTimeline(clips, clipTrims, outputPath, onProgress, settings
         const clip = clips[0];
         const trimData = clipTrims[clip.id] || { inPoint: 0, outPoint: clip.duration };
         
+        console.log('🎬 [TIMELINE] Single clip export:', {
+          clipId: clip.id,
+          clipName: clip.name,
+          clipDuration: clip.duration,
+          isTrimmed: clip.isTrimmed,
+          trimmedPath: clip.trimmedPath,
+          trimData,
+          calculatedDuration: trimData.outPoint - trimData.inPoint
+        });
+        
+        // Validate trim data
+        if (trimData.outPoint <= trimData.inPoint) {
+          console.error('❌ [TIMELINE] Invalid trim data:', trimData);
+          reject(new Error(`Invalid trim data: outPoint (${trimData.outPoint}) must be greater than inPoint (${trimData.inPoint})`));
+          return;
+        }
+        
+        const finalDuration = trimData.outPoint - trimData.inPoint;
+        console.log('🎬 [TIMELINE] Final export parameters:', {
+          inputPath: clip.isTrimmed ? clip.trimmedPath : clip.path,
+          startTime: clip.isTrimmed ? 0 : trimData.inPoint,
+          duration: finalDuration
+        });
+        
         await exportVideo(clip.isTrimmed ? clip.trimmedPath : clip.path, outputPath, {
           startTime: clip.isTrimmed ? 0 : trimData.inPoint,
-          duration: clip.isTrimmed ? clip.duration : (trimData.outPoint - trimData.inPoint),
+          duration: finalDuration,
           onProgress,
           settings
         });

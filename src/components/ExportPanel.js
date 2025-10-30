@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 import '../styles/ExportPanel.css';
 
 const ExportPanel = () => {
-  const { clips, getSelectedClips } = useTimeline();
+  const { clips, getSelectedClips, clipTrims } = useTimeline();
   const { settings } = useExportSettings();
   const { showModal } = useUI();
   const [isExporting, setIsExporting] = useState(false);
@@ -59,20 +59,39 @@ const ExportPanel = () => {
       logger.info('Export location selected', { outputPath: dialogResult.filePath });
       setStatus(`Exporting ${allClips.length} clips...`);
       
-      // 🎯 CRITICAL: Convert new timeline clip format to export format
-      // New format: clips have trimIn/trimOut directly on the object
-      // Export expects: clipTrims as { clipId: { inPoint, outPoint } }
+      // 🎯 CRITICAL: Use the correct trim data source
+      // The clipTrims object contains the actual trim data from the timeline
+      // Each clip has { inPoint, outPoint } in clipTrims[clipId]
       const clipTrimsForExport = {};
       allClips.forEach(clip => {
-        clipTrimsForExport[clip.id] = {
-          inPoint: clip.trimIn || 0,
-          outPoint: clip.trimOut || clip.duration
-        };
+        const trimData = clipTrims[clip.id];
+        if (trimData) {
+          // Use the actual trim data from the timeline
+          clipTrimsForExport[clip.id] = {
+            inPoint: trimData.inPoint || 0,
+            outPoint: trimData.outPoint || clip.duration
+          };
+        } else {
+          // Fallback to clip's own trim properties if no timeline trim data
+          clipTrimsForExport[clip.id] = {
+            inPoint: clip.trimIn || 0,
+            outPoint: clip.trimOut || clip.duration
+          };
+        }
       });
 
       logger.info('Export trim data', { 
         clipCount: allClips.length,
-        trims: clipTrimsForExport 
+        trims: clipTrimsForExport,
+        originalClipTrims: clipTrims,
+        clips: allClips.map(clip => ({
+          id: clip.id,
+          name: clip.name,
+          duration: clip.duration,
+          trimIn: clip.trimIn,
+          trimOut: clip.trimOut,
+          timelineTrimData: clipTrims[clip.id]
+        }))
       });
       
       // Export entire timeline with all trimmed clips
@@ -131,6 +150,10 @@ const ExportPanel = () => {
           <div className="setting-item">
             <span>Resolution:</span>
             <span>{settings.resolution}</span>
+          </div>
+          <div className="setting-item">
+            <span>Frame Rate:</span>
+            <span>{settings.framerate === 'custom' ? `${settings.customFramerate} fps` : 'Source'}</span>
           </div>
           <div className="setting-item">
             <span>Quality:</span>

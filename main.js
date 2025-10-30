@@ -89,9 +89,20 @@ ipcMain.handle('export-video', async (event, inputPath, outputPath, trimData, se
       inPoint: trimData?.inPoint, 
       outPoint: trimData?.outPoint, 
       startTime, 
-      duration 
+      duration,
+      originalTrimData: trimData
     });
     console.log('🎬 [MAIN] Export settings:', settings);
+    
+    // Additional validation
+    if (trimData && trimData.outPoint && trimData.inPoint) {
+      console.log('🎬 [MAIN] Trim validation:', {
+        inPoint: trimData.inPoint,
+        outPoint: trimData.outPoint,
+        calculatedDuration: duration,
+        isValid: duration > 0 && duration < 3600 // Less than 1 hour
+      });
+    }
     
     // Validate trim data
     if (trimData && trimData.outPoint && trimData.inPoint) {

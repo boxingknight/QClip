@@ -63,6 +63,32 @@ const BasicSettings = ({ settings, onChange }) => {
       )}
       
       <div className="setting-group">
+        <label>Frame Rate</label>
+        <select 
+          value={settings.framerate}
+          onChange={(e) => handleChange('framerate', e.target.value)}
+        >
+          <option value="source">Source (Keep Original)</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      
+      {settings.framerate === 'custom' && (
+        <div className="setting-group">
+          <label>Custom Frame Rate</label>
+          <select 
+            value={settings.customFramerate}
+            onChange={(e) => handleChange('customFramerate', parseInt(e.target.value))}
+          >
+            <option value={24}>24 fps (Cinema)</option>
+            <option value={30}>30 fps (Standard)</option>
+            <option value={60}>60 fps (Smooth)</option>
+            <option value={120}>120 fps (High Speed)</option>
+          </select>
+        </div>
+      )}
+      
+      <div className="setting-group">
         <label>Quality</label>
         <select 
           value={settings.quality}
