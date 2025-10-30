@@ -232,6 +232,37 @@ async function exportVideo(inputPath, outputPath, options = {}) {
     console.log('🎬 [EXPORT] Starting export:', inputPath, '->', outputPath);
     console.log('🎬 [EXPORT] Options:', { startTime, duration, settings });
     
+    // Fallback progress tracking for when FFmpeg doesn't provide progress
+    let fallbackProgress = 0;
+    let progressInterval = null;
+    
+    const startFallbackProgress = () => {
+      if (progressInterval) clearInterval(progressInterval);
+      
+      // Start with 5% to show something is happening
+      fallbackProgress = 5;
+      if (onProgress) {
+        onProgress({ percent: fallbackProgress, timemark: '00:00:00' });
+      }
+      
+      // Gradually increase progress over time (fallback)
+      progressInterval = setInterval(() => {
+        if (fallbackProgress < 95) {
+          fallbackProgress += Math.random() * 5; // Random increment to simulate progress
+          if (onProgress) {
+            onProgress({ percent: Math.min(95, fallbackProgress), timemark: 'Processing...' });
+          }
+        }
+      }, 1000); // Update every second
+    };
+    
+    const stopFallbackProgress = () => {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+    };
+    
     // Validate input file exists
     if (!fs.existsSync(inputPath)) {
       const error = `Input file does not exist: ${inputPath}`;
@@ -287,23 +318,51 @@ async function exportVideo(inputPath, outputPath, options = {}) {
       console.log('🎬 [EXPORT] Duration:', duration, 'seconds');
     }
 
+    // Start fallback progress immediately
+    startFallbackProgress();
+    
     command
       .on('progress', (progress) => {
+        // Stop fallback progress since we have real progress
+        stopFallbackProgress();
+        
+        // Calculate progress percentage based on time if percent is not available
+        let calculatedPercent = 0;
+        
+        if (progress.percent && !isNaN(progress.percent)) {
+          calculatedPercent = Math.min(100, Math.max(0, progress.percent));
+        } else if (duration && progress.timemark) {
+          // Calculate progress based on time elapsed vs total duration
+          const timeMatch = progress.timemark.match(/(\d+):(\d+):(\d+\.?\d*)/);
+          if (timeMatch) {
+            const hours = parseInt(timeMatch[1]) || 0;
+            const minutes = parseInt(timeMatch[2]) || 0;
+            const seconds = parseFloat(timeMatch[3]) || 0;
+            const elapsedSeconds = hours * 3600 + minutes * 60 + seconds;
+            calculatedPercent = Math.min(100, Math.max(0, (elapsedSeconds / duration) * 100));
+          }
+        }
+        
         if (onProgress) {
           onProgress({
-            percent: progress.percent || 0,
+            percent: calculatedPercent,
             timemark: progress.timemark || '',
             targetSize: progress.targetSize || 0
           });
         }
-        console.log('Export progress:', progress.percent + '%', progress.timemark);
+        console.log('🎬 [EXPORT] Progress:', calculatedPercent.toFixed(1) + '%', progress.timemark);
       })
       .on('end', () => {
-        console.log('Export completed successfully:', outputPath);
+        stopFallbackProgress();
+        console.log('🎬 [EXPORT] Export completed successfully:', outputPath);
+        if (onProgress) {
+          onProgress({ percent: 100, timemark: 'Complete' });
+        }
         resolve(outputPath);
       })
       .on('error', (err) => {
-        console.error('FFmpeg error:', err);
+        stopFallbackProgress();
+        console.error('❌ [EXPORT] FFmpeg error:', err);
         reject(new Error(`FFmpeg error: ${err.message}`));
       })
       .save(outputPath);
@@ -394,9 +453,17 @@ async function exportTimeline(clips, clipTrims, outputPath, onProgress, settings
         
         command
           .on('progress', (progress) => {
-            if (onProgress) {
-              onProgress({ percent: 90 + (progress.percent * 0.1) });
+            // Calculate progress for concatenation phase (90-100%)
+            let calculatedPercent = 90;
+            
+            if (progress.percent && !isNaN(progress.percent)) {
+              calculatedPercent = 90 + (Math.min(100, Math.max(0, progress.percent)) * 0.1);
             }
+            
+            if (onProgress) {
+              onProgress({ percent: calculatedPercent });
+            }
+            console.log('🎬 [CONCAT] Progress:', calculatedPercent.toFixed(1) + '%');
           })
           .on('end', () => {
             // Cleanup temp files
@@ -478,10 +545,27 @@ async function renderTrimmedClip(inputPath, outputPath, trimData, onProgress, se
       
       command
         .on('progress', (progress) => {
-          console.log('Render progress:', progress.percent + '%', progress.timemark);
+          // Calculate progress percentage based on time if percent is not available
+          let calculatedPercent = 0;
+          
+          if (progress.percent && !isNaN(progress.percent)) {
+            calculatedPercent = Math.min(100, Math.max(0, progress.percent));
+          } else if (duration && progress.timemark) {
+            // Calculate progress based on time elapsed vs total duration
+            const timeMatch = progress.timemark.match(/(\d+):(\d+):(\d+\.?\d*)/);
+            if (timeMatch) {
+              const hours = parseInt(timeMatch[1]) || 0;
+              const minutes = parseInt(timeMatch[2]) || 0;
+              const seconds = parseFloat(timeMatch[3]) || 0;
+              const elapsedSeconds = hours * 3600 + minutes * 60 + seconds;
+              calculatedPercent = Math.min(100, Math.max(0, (elapsedSeconds / duration) * 100));
+            }
+          }
+          
+          console.log('🎬 [TRIM] Render progress:', calculatedPercent.toFixed(1) + '%', progress.timemark);
           if (onProgress) {
             onProgress({
-              percent: progress.percent || 0,
+              percent: calculatedPercent,
               timemark: progress.timemark || '00:00:00'
             });
           }
