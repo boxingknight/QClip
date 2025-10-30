@@ -1,0 +1,127 @@
+/* PIPRecordingControls.css - Picture-in-Picture recording controls styles */
+/* PR#32: Picture-in-Picture Recording */
+
+.pip-recording-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-md);
+}
+
+.pip-controls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.pip-controls-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.pip-error-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  font-size: 14px;
+}
+
+.pip-controls-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.pip-source-selection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.pip-source-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.pip-source-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.pip-source-selected {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 14px;
+}
+
+.pip-change-source-btn,
+.pip-select-source-btn {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pip-change-source-btn {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-secondary);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 13px;
+}
+
+.pip-change-source-btn:hover:not(:disabled),
+.pip-select-source-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.pip-change-source-btn:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  border-color: var(--color-primary);
+}
+
+.pip-change-source-btn:disabled,
+.pip-select-source-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pip-settings-section {
+  /* Settings component has its own styling */
+}
+
+.pip-preview-section {
+  /* Preview component has its own styling */
+}
+
+.pip-recording-buttons {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-md);
+}
+

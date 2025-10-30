@@ -6,3 +6,6 @@ export { default as WebcamRecordingControls } from './WebcamRecordingControls';
 export { default as DeviceSelector } from './DeviceSelector';
 export { default as WebcamPreview } from './WebcamPreview';
 export { default as RecordingSettings } from './RecordingSettings';
+export { default as PIPRecordingControls } from './PIPRecordingControls';
+export { default as PIPSettings } from './PIPSettings';
+export { default as PIPPreview } from './PIPPreview';

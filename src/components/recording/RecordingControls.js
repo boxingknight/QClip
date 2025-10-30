@@ -6,10 +6,11 @@ import RecordingButton from './RecordingButton';
 import RecordingIndicator from './RecordingIndicator';
 import SourcePicker from './SourcePicker';
 import WebcamRecordingControls from './WebcamRecordingControls';
+import PIPRecordingControls from './PIPRecordingControls';
 import './RecordingControls.css';
 
 const RecordingControls = () => {
-  const [recordingMode, setRecordingMode] = useState('screen'); // 'screen' or 'webcam'
+  const [recordingMode, setRecordingMode] = useState('screen'); // 'screen' | 'webcam' | 'pip'
   const {
     isRecording,
     recordingDuration,
@@ -121,9 +122,18 @@ const RecordingControls = () => {
         >
           📷 Webcam
         </button>
+        <button
+          className={`mode-button ${recordingMode === 'pip' ? 'active' : ''}`}
+          onClick={() => setRecordingMode('pip')}
+          disabled={isRecording}
+        >
+          📺 Picture-in-Picture
+        </button>
       </div>
 
-      {recordingMode === 'webcam' ? (
+      {recordingMode === 'pip' ? (
+        <PIPRecordingControls onRecordingSaved={handleWebcamRecordingSaved} />
+      ) : recordingMode === 'webcam' ? (
         <WebcamRecordingControls onRecordingSaved={handleWebcamRecordingSaved} />
       ) : (
         <>
