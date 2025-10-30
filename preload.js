@@ -15,8 +15,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportVideo: (inputPath, outputPath, trimData, settings) => 
     ipcRenderer.invoke('export-video', inputPath, outputPath, trimData, settings),
   
-  exportTimeline: (clips, clipTrims, outputPath, settings) =>
-    ipcRenderer.invoke('export-timeline', clips, clipTrims, outputPath, settings),
+  exportTimeline: (clips, clipTrims, outputPath, settings, srtPath) =>
+    ipcRenderer.invoke('export-timeline', clips, clipTrims, outputPath, settings, srtPath),
   
   renderTrimmedClip: (inputPath, outputPath, trimData) =>
     ipcRenderer.invoke('render-trimmed-clip', inputPath, outputPath, trimData),
@@ -43,6 +43,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Screen recording APIs
   getScreenSources: () => ipcRenderer.invoke('get-screen-sources'),
   requestScreenPermission: () => ipcRenderer.invoke('request-screen-permission'),
-  saveRecordingFile: (arrayBuffer, filePath) => ipcRenderer.invoke('save-recording-file', arrayBuffer, filePath)
+  saveRecordingFile: (arrayBuffer, filePath) => ipcRenderer.invoke('save-recording-file', arrayBuffer, filePath),
+  
+  // Caption generation APIs
+  generateCaptions: (options) => ipcRenderer.invoke('generate-captions', options),
+  checkFileExists: (filePath) => ipcRenderer.invoke('check-file-exists', filePath)
 });
 
