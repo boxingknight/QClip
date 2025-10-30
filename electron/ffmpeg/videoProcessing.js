@@ -172,6 +172,15 @@ function getVideoOptions(settings) {
     options.push(`-profile:v ${advanced.profile}`);
   }
   
+  // Frame rate handling
+  if (settings.framerate === 'custom' && settings.customFramerate) {
+    options.push(`-r ${settings.customFramerate}`);
+    console.log(`[FFmpeg] Setting custom frame rate: ${settings.customFramerate} fps`);
+  } else if (settings.framerate === 'source') {
+    // Keep source frame rate - no -r option needed
+    console.log('[FFmpeg] Using source frame rate');
+  }
+  
   // Bitrate or CRF
   if (advanced.crf && advanced.crfValue !== undefined) {
     options.push(`-crf ${advanced.crfValue}`);
@@ -220,8 +229,31 @@ async function exportVideo(inputPath, outputPath, options = {}) {
     
     const { startTime, duration, onProgress, settings = {} } = options;
     
-    console.log('Starting export:', inputPath, '->', outputPath);
-    console.log('Options:', { startTime, duration, settings });
+    console.log('🎬 [EXPORT] Starting export:', inputPath, '->', outputPath);
+    console.log('🎬 [EXPORT] Options:', { startTime, duration, settings });
+    
+    // Validate input file exists
+    if (!fs.existsSync(inputPath)) {
+      const error = `Input file does not exist: ${inputPath}`;
+      console.error('❌ [EXPORT ERROR]', error);
+      reject(new Error(error));
+      return;
+    }
+    
+    // Validate trim parameters
+    if (startTime !== undefined && (startTime < 0 || !isFinite(startTime))) {
+      const error = `Invalid startTime: ${startTime}`;
+      console.error('❌ [EXPORT ERROR]', error);
+      reject(new Error(error));
+      return;
+    }
+    
+    if (duration !== undefined && (duration <= 0 || !isFinite(duration))) {
+      const error = `Invalid duration: ${duration}`;
+      console.error('❌ [EXPORT ERROR]', error);
+      reject(new Error(error));
+      return;
+    }
     
     // Build FFmpeg command with settings
     let command = ffmpeg(inputPath);
@@ -232,6 +264,7 @@ async function exportVideo(inputPath, outputPath, options = {}) {
     command = command.videoCodec(videoCodec);
     if (videoOptions.length > 0) {
       command = command.outputOptions(videoOptions);
+      console.log('🎬 [EXPORT] Video options:', videoOptions);
     }
     
     // Apply audio codec and settings
@@ -240,17 +273,18 @@ async function exportVideo(inputPath, outputPath, options = {}) {
     command = command.audioCodec(audioCodec);
     if (audioOptions.length > 0) {
       command = command.outputOptions(audioOptions);
+      console.log('🎬 [EXPORT] Audio options:', audioOptions);
     }
 
     // Apply trim if specified
     if (startTime && startTime > 0) {
       command = command.setStartTime(startTime);
-      console.log('Trimming from:', startTime, 'seconds');
+      console.log('🎬 [EXPORT] Trimming from:', startTime, 'seconds');
     }
     
     if (duration && duration > 0) {
       command = command.setDuration(duration);
-      console.log('Duration:', duration, 'seconds');
+      console.log('🎬 [EXPORT] Duration:', duration, 'seconds');
     }
 
     command

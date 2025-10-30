@@ -19,6 +19,10 @@ export const getDefaultSettings = () => ({
   videoBitrate: '5000k',
   audioBitrate: '128k',
   
+  // Frame Rate Settings
+  framerate: 'source', // 'source' | 'custom'
+  customFramerate: 30,
+  
   // Advanced Settings
   advanced: {
     codec: 'h264',
@@ -50,6 +54,8 @@ export const exportPresets = {
     quality: 'fast',
     videoBitrate: '2000k',
     audioBitrate: '128k',
+    framerate: 'source',
+    customFramerate: 30,
     advanced: {
       codec: 'h264',
       bitrate: '2000k',
@@ -67,6 +73,8 @@ export const exportPresets = {
     quality: 'high',
     videoBitrate: '50000k',
     audioBitrate: '320k',
+    framerate: 'custom',
+    customFramerate: 30,
     advanced: {
       codec: 'h264',
       bitrate: '50000k',
@@ -84,6 +92,8 @@ export const exportPresets = {
     quality: 'high',
     videoBitrate: '100000k',
     audioBitrate: '320k',
+    framerate: 'custom',
+    customFramerate: 30,
     advanced: {
       codec: 'h265',
       bitrate: '100000k',

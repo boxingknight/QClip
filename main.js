@@ -79,14 +79,29 @@ ipcMain.handle('get-video-metadata', async (event, videoPath) => {
 // Export video handler
 ipcMain.handle('export-video', async (event, inputPath, outputPath, trimData, settings = {}) => {
   try {
-    console.log('Export request received:', { inputPath, outputPath, trimData, settings });
+    console.log('🎬 [MAIN] Export request received:', { inputPath, outputPath, trimData, settings });
     
     // Convert trim data (inPoint/outPoint) to FFmpeg format (startTime/duration)
     const startTime = trimData?.inPoint || 0;
     const duration = trimData?.outPoint ? (trimData.outPoint - trimData.inPoint) : undefined;
     
-    console.log('Trim settings:', { startTime, duration });
-    console.log('Export settings:', settings);
+    console.log('🎬 [MAIN] Trim settings:', { 
+      inPoint: trimData?.inPoint, 
+      outPoint: trimData?.outPoint, 
+      startTime, 
+      duration 
+    });
+    console.log('🎬 [MAIN] Export settings:', settings);
+    
+    // Validate trim data
+    if (trimData && trimData.outPoint && trimData.inPoint) {
+      const calculatedDuration = trimData.outPoint - trimData.inPoint;
+      console.log('🎬 [MAIN] Calculated duration:', calculatedDuration, 'seconds');
+      
+      if (calculatedDuration <= 0) {
+        throw new Error(`Invalid trim duration: ${calculatedDuration} seconds (outPoint: ${trimData.outPoint}, inPoint: ${trimData.inPoint})`);
+      }
+    }
     
     await exportVideo(inputPath, outputPath, {
       startTime: startTime,
@@ -98,9 +113,10 @@ ipcMain.handle('export-video', async (event, inputPath, outputPath, trimData, se
       }
     });
     
+    console.log('🎬 [MAIN] Export completed successfully:', outputPath);
     return { success: true, outputPath };
   } catch (error) {
-    console.error('Export error:', error);
+    console.error('❌ [MAIN] Export error:', error);
     return { success: false, error: error.message };
   }
 });
@@ -108,16 +124,18 @@ ipcMain.handle('export-video', async (event, inputPath, outputPath, trimData, se
 // Export entire timeline
 ipcMain.handle('export-timeline', async (event, clips, clipTrims, outputPath, settings = {}) => {
   try {
-    console.log('Export timeline request:', { clips: clips.length, outputPath, settings });
+    console.log('🎬 [MAIN] Export timeline request:', { clips: clips.length, outputPath, settings });
+    console.log('🎬 [MAIN] Clip trims:', clipTrims);
     
     const result = await exportTimeline(clips, clipTrims, outputPath, (progress) => {
       // Send progress to renderer
       event.sender.send('export-progress-update', progress);
     }, settings);
     
+    console.log('🎬 [MAIN] Timeline export completed successfully:', result);
     return { success: true, outputPath: result };
   } catch (error) {
-    console.error('Timeline export error:', error);
+    console.error('❌ [MAIN] Timeline export error:', error);
     return { success: false, error: error.message };
   }
 });
@@ -213,20 +231,6 @@ ipcMain.handle('save-recording-file', async (event, arrayBuffer, filePath) => {
   } catch (error) {
     console.error('Failed to save recording:', error);
     throw error;
-  }
-});
-
-app.on('ready', createWindow);
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
   }
 });
 
