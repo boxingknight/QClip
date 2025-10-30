@@ -8,6 +8,42 @@
   border: 1px solid var(--color-secondary);
 }
 
+.recording-mode-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mode-button {
+  flex: 1;
+  padding: 8px 16px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.mode-button:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-primary);
+}
+
+.mode-button.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.mode-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .recording-error {
   display: flex;
   align-items: center;
