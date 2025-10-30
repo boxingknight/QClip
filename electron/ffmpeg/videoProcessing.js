@@ -156,9 +156,10 @@ function getAudioCodec(settings) {
 /**
  * Get video encoding options from settings
  * @param {Object} settings - Export settings
+ * @param {string} inputPath - Input file path (for PIP detection)
  * @returns {Array} FFmpeg output options
  */
-function getVideoOptions(settings) {
+function getVideoOptions(settings, inputPath = '') {
   const options = [];
   const advanced = settings.advanced || {};
   
@@ -303,7 +304,7 @@ async function exportVideo(inputPath, outputPath, options = {}) {
     
     // Apply video codec and settings
     const videoCodec = getVideoCodec(settings);
-    const videoOptions = getVideoOptions(settings);
+    const videoOptions = getVideoOptions(settings, inputPath);
     command = command.videoCodec(videoCodec);
     if (videoOptions.length > 0) {
       command = command.outputOptions(videoOptions);
@@ -473,7 +474,7 @@ async function exportTimeline(clips, clipTrims, outputPath, onProgress, settings
       await new Promise((concatResolve, concatReject) => {
         const videoCodec = getVideoCodec(settings);
         const audioCodec = getAudioCodec(settings);
-        const videoOptions = getVideoOptions(settings);
+        const videoOptions = getVideoOptions(settings, concatFile);
         const audioOptions = getAudioOptions(settings);
         
         let command = ffmpeg(concatFile)
@@ -559,7 +560,7 @@ async function renderTrimmedClip(inputPath, outputPath, trimData, onProgress, se
       // Use settings for rendering (but use ultrafast preset for temp files)
       const videoCodec = getVideoCodec(settings);
       const audioCodec = getAudioCodec(settings);
-      const videoOptions = getVideoOptions(settings);
+      const videoOptions = getVideoOptions(settings, inputPath);
       const audioOptions = getAudioOptions(settings);
       
       // Override preset to ultrafast for temp files
