@@ -557,11 +557,18 @@ export const RecordingProvider = ({ children }) => {
       const canvasStream = canvas.captureStream(30);
       setCanvasStream(canvasStream);
       
-      // Add audio track (basic - will enhance in Phase 3)
-      // For now, just use webcam audio
-      const webcamAudioTracks = webcamStream.getAudioTracks();
-      if (webcamAudioTracks.length > 0 && settings.audioSource !== 'none') {
-        canvasStream.addTrack(webcamAudioTracks[0]);
+      // Add audio track based on selection
+      const audioTrack = await selectAudioSource(
+        settings.audioSource,
+        screenStream,
+        webcamStream
+      );
+      
+      if (audioTrack) {
+        canvasStream.addTrack(audioTrack);
+        logger.info('Audio track added to canvas stream', {
+          source: settings.audioSource
+        });
       }
       
       // Setup MediaRecorder with canvas stream
