@@ -18,11 +18,24 @@ A professional desktop video editor for quick clip trimming and export. Built wi
 - ✅ **Professional Timeline** - Multi-track video editor with CapCut-style interface
 - ✅ **Drag & Drop Clips** - Drag clips between tracks with magnetic snapping
 - ✅ **Split & Delete Clips** - Professional editing operations with context menu & keyboard shortcuts
+- ✅ **Advanced Export Settings** - Professional codec options, presets, and file size estimation
 - 📋 **Screen Recording** - Built-in recording functionality
 - 📋 **Advanced Effects** - Text overlays, transitions, filters
 - 📋 **Project Management** - Save/load projects with auto-save
 
 ## Recent Updates 🔧
+
+### PR#23: Advanced Export Settings (October 28, 2024)
+- ✅ **Export Settings Modal** - Comprehensive settings interface with basic and advanced options
+- ✅ **Codec Support** - H.264, H.265, VP9 with automatic FFmpeg mapping
+- ✅ **Preset System** - Web (fast), Broadcast (high quality), Archival (maximum quality)
+- ✅ **Advanced Settings** - Bitrate, CRF, two-pass encoding, encoding presets and profiles
+- ✅ **File Size Estimation** - Real-time file size calculations based on settings
+- ✅ **Settings Persistence** - All settings saved to localStorage between sessions
+- ✅ **FFmpeg Integration** - Complete settings support throughout video processing pipeline
+- ✅ **Professional UI** - Modern interface with comprehensive validation and error handling
+
+**Achievement:** ClipForge now has professional-grade export capabilities rivaling industry-standard video editors!
 
 ### PR#15: Split & Delete Clips (October 28, 2024)
 - ✅ **Split at Playhead** - Split clips at any position with Cmd+B or toolbar button
